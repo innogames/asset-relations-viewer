@@ -116,7 +116,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		[MenuItem("Window/Asset Relations Viewer/Open")]
 		public static AssetRelationsViewerWindow ShowWindow()
 		{
-			return GetWindow<AssetRelationsViewerWindow>(false, OwnName);
+			AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
+
+			window.LoadDependencyCache();
+			return window;
 		}
 
 		public void OnEnable()
@@ -130,6 +133,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			SetHandlerSelection();
 			
 			LoadDependencyCache();
+			
+			InitNodeHandlerContext();
 		}
 
 		private void LoadDependencyCache(bool update = true)
@@ -142,8 +147,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			progress.SetProgressFunction((title, info, value) => EditorUtility.DisplayProgressBar(title, info, value));
 			
 			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_cacheStateContext, cacheUsageDefinitionList, progress, true, update);
-			
-			InitNodeHandlerContext();
 		}
 
 		private void InitNodeHandlerContext()
