@@ -1,0 +1,147 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
+
+namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
+{
+	public class AssetTypeHandler : ITypeHandler
+	{
+		private HashSet<string> _filteredNodes;
+		private PrefValueString _filterString = new PrefValueString("AssetTypeHandler_FilterString", String.Empty);
+
+		private Object _selectedAsset;
+		private AssetRelationsViewerWindow _viewerWindow;
+
+		private PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
+
+		public string GetHandledType()
+		{
+			return "Asset";
+		}
+
+		public bool HasFilter()
+		{
+			return _filteredNodes != null;
+		}
+
+		public bool IsFiltered(string id)
+		{
+			return _filteredNodes.Contains(id);
+		}
+
+		public string GetName(string id)
+		{
+			string name = Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
+			return name.Length > 0 ? name : id;
+		}
+
+		public VisualizationNodeData CreateNodeCachedData(string id)
+		{
+			return new AssetVisualizationNodeData(id, GetHandledType());
+		}
+
+		public void SelectInEditor(string id)
+		{
+			Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(id));
+		}
+
+		public void OnGui()
+		{
+			DisplayFilterOptions();
+		}
+
+		public void OnSelectAsset(string id, string type)
+		{
+			if (type == GetHandledType())
+			{
+				_selectedAsset = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id));
+			}
+			else
+			{
+				_selectedAsset = null;
+			}
+		}
+
+		public void InitContext(CacheStateContext cacheStateContext, AssetRelationsViewerWindow window)
+		{
+			_viewerWindow = window;
+			_filteredNodes = CreateFilter(_filterString);
+
+			if (_explorerSyncModePref.GetValue())
+			{
+				RegisterOnSelectionChanged();
+			}
+			else
+			{
+				UnregisterOnSelectionChanged();
+			}
+		}
+
+		public bool HandlesCurrentNode()
+		{
+			return _selectedAsset != null;
+		}
+
+		private void DisplayFilterOptions()
+		{
+			EditorGUILayout.BeginVertical();
+
+			Object newSelectedAsset = EditorGUILayout.ObjectField(_selectedAsset, typeof(Object), false);
+
+			if (newSelectedAsset != _selectedAsset)
+			{
+				string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(newSelectedAsset));
+				_viewerWindow.ChangeSelection(guid, GetHandledType());
+
+				_selectedAsset = newSelectedAsset;
+			}
+
+			float origWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = 50;
+			_filterString.DirtyOnChange(EditorGUILayout.TextField("Filter:", _filterString, GUILayout.MinWidth(200)));
+			EditorGUIUtility.labelWidth = origWidth;
+
+			if (GUILayout.Button("Apply"))
+			{
+				_filteredNodes = CreateFilter(_filterString);
+				_viewerWindow.InvalidateNodeStructure();
+			}
+
+			AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:", b =>
+			{
+				if (b)
+				{
+					RegisterOnSelectionChanged();
+				}
+				else
+				{
+					UnregisterOnSelectionChanged();
+				}
+			});
+
+			EditorGUILayout.EndVertical();
+		}
+
+		private void RegisterOnSelectionChanged()
+		{
+			Selection.selectionChanged += _viewerWindow.OnAssetSelectionChanged;
+		}
+		
+		private void UnregisterOnSelectionChanged()
+		{
+			Selection.selectionChanged -= _viewerWindow.OnAssetSelectionChanged;
+		}
+
+		private HashSet<string> CreateFilter(string filter)
+		{
+			if (string.IsNullOrEmpty(filter))
+				return null;
+
+			return new HashSet<string>(AssetDatabase.FindAssets(filter));
+		}
+	}
+}
