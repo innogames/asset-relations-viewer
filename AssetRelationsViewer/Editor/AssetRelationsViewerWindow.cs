@@ -131,9 +131,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			CreateTypeHandlers();
 			
 			SetHandlerSelection();
-			
-			LoadDependencyCache();
-			
+
 			InitNodeHandlerContext();
 		}
 
