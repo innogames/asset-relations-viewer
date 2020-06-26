@@ -19,6 +19,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         // What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
         public abstract void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
         
+        public abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+        
         // Returns a dependency result of the given serialized property is a UnityEngine.Object
         public abstract Result GetDependency(Type objType, object obj, SerializedProperty property, string propertyPath, SerializedPropertyType type, Stack<PathSegment> stack);
 

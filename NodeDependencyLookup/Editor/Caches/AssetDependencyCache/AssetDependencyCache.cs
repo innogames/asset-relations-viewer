@@ -12,7 +12,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class AssetDependencyCache : IDependencyCache
 	{
-		public const string Version = "1.01";
+		public const string Version = "1.02";
 		public const string FileName = "AssetDependencyCacheData_" + Version + ".cache";
 
 		private AssetNode[] _assetNodes = new AssetNode[0];

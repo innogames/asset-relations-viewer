@@ -186,7 +186,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				subSystem.TraversePrefab(id, obj, stack);
 			}
 		}
-		
+
+		public override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+		{
+			if (!m_guidToResolver.ContainsKey(id))
+			{
+				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
+			}
+			
+			foreach (SerializedPropertyTraverserSubSystem subSystem in m_guidToResolver[id])
+			{
+				subSystem.TraversePrefabVariant(id, obj, stack);
+			}
+		}
+
 		public void TraverseProperty(string id, Type objType, object obj, SerializedProperty property, string propertyPath, Stack<PathSegment> stack)
 		{
 			SerializedPropertyType type = property.propertyType;

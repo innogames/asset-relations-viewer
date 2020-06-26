@@ -6,6 +6,10 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
+#if UNITY_2019_2_OR_NEWER
+using UnityEditor.Experimental;
+#endif
+
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
     /// <summary>
@@ -117,30 +121,63 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// </summary>
         public static int GetPackedAssetSize(string guid)
         {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            string fullpath = string.Empty;
-
-            if (String.IsNullOrEmpty(guid))
-            {
-                return 0;
-            }
-
-            if (Path.GetExtension(path).Equals(".asset"))
-            {
-                fullpath = path;
-            }
-            else
-            {
-                fullpath = Application.dataPath + "../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
-            }
-
-            if (File.Exists(fullpath))
+            string fullpath = GetLibraryFullPath(guid);
+            
+            if (!String.IsNullOrEmpty(fullpath) && File.Exists(fullpath))
             {
                 FileInfo info = new FileInfo(fullpath);
                 return (int) (info.Length / 1024);
             }
 
             return 0;
+        }
+
+        public static string GetLibraryFullPath(string guid)
+        {
+            if (String.IsNullOrEmpty(guid))
+            {
+                return null;
+            }
+            
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            
+            if (Path.GetExtension(path).Equals(".asset"))
+            {
+                return path;
+            }
+
+
+#if UNITY_2019_2_OR_NEWER
+            if (EditorSettings.assetPipelineMode == AssetPipelineMode.Version1)
+            {
+                return GetAssetDatabaseVersion1LibraryDataPath(guid);
+            }
+            else
+            {
+                Hash128 artifactHash = AssetDatabaseExperimental.GetArtifactHash(guid);
+
+                string[] paths;
+
+                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out paths);
+            
+                foreach (string artifactPath in paths)
+                {
+                    if(artifactPath.EndsWith(".info")) 
+                        continue;
+                
+                    return Path.GetFullPath(artifactPath);
+                }
+            }
+#else // For older version that dont have asset database V2 yet
+                return return GetAssetDatabaseVersion1LibraryDataPath(guid);
+#endif
+            
+            return null;
+        }
+
+        private static string GetAssetDatabaseVersion1LibraryDataPath(string guid)
+        {
+            return Application.dataPath + "../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
         }
 
         /// <summary>
