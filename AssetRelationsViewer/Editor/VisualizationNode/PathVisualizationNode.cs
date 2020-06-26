@@ -55,7 +55,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			foreach (VisualizationConnection connection in GetRelations(RelationType.DEPENDENCY, true, true))
 			{
-				pathCount += connection.Datas.Count;
+				for (var i = 0; i < connection.Datas.Count; i++)
+				{
+					if (connection.Datas[i].PathSegments.Length > 0)
+					{
+						pathCount++;
+					}
+				}
 			}
 			
 			return pathCount;
