@@ -19,6 +19,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
         public override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
         {
+            AddPrefabAsDependency(id, obj, stack);
+        }
+
+        public override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+        {
+            stack.Push(new PathSegment("Variant Of", PathSegmentType.Component));
+            AddPrefabAsDependency(id, obj, stack);
+            stack.Pop();
+        }
+
+        private void AddPrefabAsDependency(string id, Object obj, Stack<PathSegment> stack)
+        {
             string assetPath = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(obj));
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 

@@ -17,6 +17,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
 		public abstract void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
+		
+		public abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
 
 		public void Traverse(string id, Object obj, Stack<PathSegment> stack)
 		{
@@ -64,7 +66,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #if UNITY_2018_3_OR_NEWER
 			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(obj);
 
-			if (prefabAssetType == PrefabAssetType.Regular)
+			if (prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant)
 			{
 				if (PrefabUtility.GetCorrespondingObjectFromSource(go))
 				{
@@ -73,13 +75,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					if(prefabObj != currentPrefab)
 					{
-						TraversePrefab(id, obj, stack);
+						if (prefabAssetType == PrefabAssetType.Regular)
+						{
+							TraversePrefab(id, obj, stack);
+						}
+						else if (prefabAssetType == PrefabAssetType.Variant)
+						{
+							TraversePrefabVariant(id, obj, stack);
+						}
+						
 						currentPrefab = prefabObj;
 					}
 				}
 			}
 #endif
-
 			
 #if !UNITY_2018_3_OR_NEWER
 			PrefabType prefabType = PrefabUtility.GetPrefabType(obj);
@@ -91,7 +100,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if(prefabObj != currentPrefab)
 				{
-					OnPrefabTraversed(id, obj, stack);
+					TraversePrefab(id, prefabAssetType, obj, stack);
 					currentPrefab = prefabObj;
 				}
 			}

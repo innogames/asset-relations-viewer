@@ -7,16 +7,16 @@ Plugin to display dependencies between assets in a tree based view within the Un
 <br><br><br><br>
 ## Features
 
-* Standalone Editor UI without any dependencies
-* View which dependencies an asset has
+* Standalone Editor UI without any external dependencies
+* View which dependencies an asset has to other assets
 * View which assets have the given asset as a dependency
-* Show thumnails of all assets in the dependency tree
-* Filter to filter for Asset Names and Asset Types in displayed tree
-* Show if an asset is used in the project (going to be packed in the app)
+* Show thumbnails of all assets in the dependency tree
+* filter for Asset Names and Asset Types in displayed tree
+* Highlight if an asset is used in the project (going to be packed in the app)
 * Show path of where an asset is used exactly within a scene, prefab or asset
-* Display byte size of asset together with overall size of dependency tree
-* Extendable by own dependency resolvers, for example to show addressables in tree
-* Support additional connection- and nodetypes which can be added via addons
+* Display byte size of compressed asset together with overall size of dependency tree
+* Extendable by own dependency resolvers, for example to show addressables
+* Support additional connection- and nodetypes which can be added via addons, for example:
 	* Addressable Groups
 	* Addressables
 	* AssetBundles
@@ -42,12 +42,11 @@ Find the manifest.json file in the Packages folder of your project and edit it t
 <br><br><br><br>
 ## First Usage
 
-1. Select an asset as to show in unity project explorer
+1. Select an asset within the unity project explorer
 2. Right click to open context menu for an asset
 3. Select "Show in Asset Relations Viewer"
 4. On Dialog for the first startup of AssetRelationsViewer click on yes
 5. Wait for the resolver to find all dependencies for all assets in the project which can take a while for a large project with many assets
-6. Activate "Object" to show dependencies for Unity Objects (Assets)
 
 <br><br><br><br>
 ## Controls
@@ -76,7 +75,7 @@ Menu items sorted from left to right
 
 **Show hierarchy Once**: To only show the same dependency hierarchy for an asset once within the displayed tree
 
-**Show referencers** If referencers (Assets that have the selected asset as a dependency) should be shown or not
+**Show referencers**: If referencers (Assets that have the selected asset as a dependency) should be shown or not
 
 **Show Property Pathes**: If path of where the dependency is within the scene, prefab, scriptable object is shown
 
@@ -120,8 +119,12 @@ Since this solution is based on an own dependency search implementation, it is m
 
 <br><br><br><br>
 ## Showing dependency pathes
-If you want to know where exactly in a scene, prefab, scriptable object a reference is done the "ObjectSerializedDependencyResolver" needs to be active and "Show Property Pathes" in the menu needs to be active.
+If one wants to know where exactly in a scene, prefab, scriptable object a reference is done the "ObjectSerializedDependencyResolver" needs to be active and "Show Property Pathes" in the menu needs to be active.
 Once active the whole path of the dependency (GameObject->Components->ClassMemberVariable) is shown.
+
+#### Showing "Unknown Path" path nodes
+This is due to the issue that the AssetDatabase.GetDependencies() function returns dependencies of nested prefabs as well as prefab variants even though the dependencies are not serialized within the asset itself.
+This is why the ObjectSerializedDependencyResolver cant find these dependencies within the serialized properties of the asset itself while AssetDatabase.GetDependencies() still returns it for non recursive dependencies so the path is unknown.
 
 ![](Docs~/Images/arv_example_pathes.png)
 
@@ -143,5 +146,3 @@ The Package is called asset-relations-viewer-addressables
 
 #### Writing own addons to support custom connection- and nodetypes
 Documentation on how to write own addons will be added later
-
-
