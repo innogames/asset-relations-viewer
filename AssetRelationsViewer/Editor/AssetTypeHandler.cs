@@ -66,7 +66,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		public void InitContext(CacheStateContext cacheStateContext, AssetRelationsViewerWindow window)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
 		{
 			_viewerWindow = window;
 			_filteredNodes = CreateFilter(_filterString);

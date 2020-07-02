@@ -7,7 +7,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	///List to store which resolvers will be used when creating the dependency structure.
 	///Only the given resolvers will be executed instead of executing all available ones
 	///</summary>
-	public class CacheUsageDefinitionList
+	public class ResolverUsageDefinitionList
 	{
 		internal class Entry
 		{
