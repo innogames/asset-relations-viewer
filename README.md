@@ -113,9 +113,17 @@ The AssetRelationsViewer supports different resolvers to find dependencies for a
 Uses Unitys internal AssetDatabase.GetDependencies() function to find dependencies for assets.
 Its fast and reliable, but can only find dependencies between assets.
 
+##### Known issues
+Nested Prefabs or Prefab Variants arent handled correctly when using the ObjectDependencyResolver since it uses Unitys AssetDatabase.GetDependencies() function which wasnt updated for this. 
+The problem is that dependencies of nested prefabs will be shown as own for prefabs or scenes. This issue can be avoided by only using the SerializeObjectDependecyResolver which unfortunately is slower.
+A feature request for Unity exists which hopefully fixed the mentioned issue with AssetDatabase.GetDependencies() in the future.
+
 #### ObjectSerializedDependencyResolver
 Uses own implementation which is based on SerializedObjects and SerializedProperties to find assets and other dependency types.
 Since this solution is based on an own dependency search implementation, it is much slower than the ObjectDependencyResolver.
+
+##### Known issues
+The ObjectSerializedDependencyResolver can only find dependencies that are serialized in the asset. In theory it can be the case that AssetDatabase.GetDependencies() could return dependencies that cant be found by the ObjectSerializedDependencyResolver.
 
 <br><br><br><br>
 ## Showing dependency pathes
@@ -123,8 +131,10 @@ If one wants to know where exactly in a scene, prefab, scriptable object a refer
 Once active the whole path of the dependency (GameObject->Components->ClassMemberVariable) is shown.
 
 #### Showing "Unknown Path" path nodes
-This is due to the issue that the AssetDatabase.GetDependencies() function returns dependencies of nested prefabs as well as prefab variants even though the dependencies are not serialized within the asset itself.
-This is why the ObjectSerializedDependencyResolver cant find these dependencies within the serialized properties of the asset itself while AssetDatabase.GetDependencies() still returns it for non recursive dependencies so the path is unknown.
+First make sure to the ObjectSerializedDependencyResolver is activated since the ObjectDependencyResolver cant find any pathes so "Unknown path" is shown.
+Also, if the ObjectSerializedDependencyResolver and ObjectDependencyResolver are active at the same time the ObjectDependencyResolver can find dependencies that the ObjectSerializedDependencyResolver didnt find. 
+This relates to the already mentioned issue with nested prefabs and the AssetDatabase.GetDependencies() function.
+
 
 ![](Docs~/Images/arv_example_pathes.png)
 
@@ -142,7 +152,10 @@ Support to display different connection and node types can be added by addons.
 
 #### Addressable system
 An addon is available to add support for showing addressables and also addressable groups from Unitys Addressables system.
-The Package is called asset-relations-viewer-addressables
+The Package is called asset-relations-viewer-addressables.
+It can be found at https://github.com/innogames/asset-relations-viewer-addressables
 
 #### Writing own addons to support custom connection- and nodetypes
-Documentation on how to write own addons will be added later
+Own addons can be also added so custom dependencies with any nodetype and dependency type can be added to be viewed inside the Asset Relations Viewer. 
+For seing how to add own addons, please have a look at the Addressable sytem addon source code. 
+
