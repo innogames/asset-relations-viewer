@@ -76,7 +76,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (displayData.ShowAdditionalInformation)
 			{
-				string text = string.Format("Own: {0} kb | Tree: {1} kb ", NodeData.OwnSize, NodeData.HierarchySize);
+				string text = string.Format("Size: {0}kb | TreeSize: {1}kb ", NodeData.OwnSize, NodeData.HierarchySize);
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
 			}
 			
