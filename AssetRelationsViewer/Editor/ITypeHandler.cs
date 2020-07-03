@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		void OnSelectAsset(string id, string type);
 		
-		void InitContext(CacheStateContext cacheStateContext, AssetRelationsViewerWindow viewerWindow);
+		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow viewerWindow);
 
 		bool HandlesCurrentNode();
 	}

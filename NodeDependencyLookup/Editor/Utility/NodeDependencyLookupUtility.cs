@@ -34,7 +34,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         [MenuItem("Window/Node Dependency Lookup/Clear Cached Contexts")]
         public static void ClearCachedContexts()
         {
-            CacheStateContext.ResetContexts();
+            NodeDependencyLookupContext.ResetContexts();
         }
 
         public static bool NeedsCacheUpdate(CreatedDependencyCache usage)
@@ -48,11 +48,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static void LoadDependencyLookupForCaches(CacheStateContext stateContext,
-            CacheUsageDefinitionList cacheUsageDefinitionList, ProgressBase progress, bool loadCache = true,
+        public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
+            ResolverUsageDefinitionList resolverUsageDefinitionList, ProgressBase progress, bool loadCache = true,
             bool updateCache = true, bool saveCache = true, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
         {
-            stateContext.UpdateFromDefinition(cacheUsageDefinitionList);
+            stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
             List<CreatedDependencyCache> caches = stateContext.GetCaches();
 
@@ -184,7 +184,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources folder.
         /// If the asset is just in a bundle this is currently not tracked. Trying to find a solution for this.
         /// </summary>
-        public static bool IsNodePackedToApp(string id, string type, CacheStateContext stateContext,
+        public static bool IsNodePackedToApp(string id, string type, NodeDependencyLookupContext stateContext)
+        {
+            return IsNodePackedToApp(id, type, stateContext, new HashSet<string>());
+        }
+
+        /// <summary>
+        /// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources folder.
+        /// If the asset is just in a bundle this is currently not tracked. Trying to find a solution for this.
+        /// </summary>
+        public static bool IsNodePackedToApp(string id, string type, NodeDependencyLookupContext stateContext,
             HashSet<string> visitedKeys)
         {
             if (visitedKeys.Contains(id))
@@ -226,7 +235,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static int GetNodeSize(bool own, bool tree, string id, string type, HashSet<string> traversedNodes,
-            CacheStateContext stateContext)
+            NodeDependencyLookupContext stateContext)
         {
             string key = GetNodeKey(id, type);
 
@@ -317,10 +326,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /**
          * Return the dependency lookup for Objects using the SimpleObjectResolver
          */
-        public static void BuildDefaultAssetLookup(CacheStateContext stateContext, bool loadFromCache, string savePath,
+        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache, string savePath,
             ProgressBase progress)
         {
-            CacheUsageDefinitionList usageDefinitionList = new CacheUsageDefinitionList();
+            ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
             usageDefinitionList.Add<AssetDependencyCache, ObjectDependencyResolver>();
 
             LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress, loadFromCache, true, false,

@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return HandledTypes;
 		}
 		
-		public int GetOwnFileSize(string id, string type, CacheStateContext stateContext)
+		public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
 		{
 			return NodeDependencyLookupUtility.GetPackedAssetSize(id);
 		}
@@ -54,7 +54,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return true;
 		}
 
-		public void InitContext(CacheStateContext cacheStateContext)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)
 		{
 			// nothing to do
 		}

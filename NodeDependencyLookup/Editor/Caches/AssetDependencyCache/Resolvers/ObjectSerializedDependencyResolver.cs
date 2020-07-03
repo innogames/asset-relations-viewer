@@ -23,9 +23,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public void GetDependenciesForId(string guid, List<Dependency> dependencies)
 		{
-			string path = AssetDatabase.GUIDToAssetPath(guid);
-			string[] assetDatabaseDependencies = AssetDatabase.GetDependencies(path, false).Select(AssetDatabase.AssetPathToGUID).ToArray();
-
 			List<Dependency> subSystemDependencies = new List<Dependency>();
 			HashSet<string> foundDependenciesHashSet = new HashSet<string>();
 
@@ -35,15 +32,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				foundDependenciesHashSet.Add(dependency.Id);
 				dependencies.Add(dependency);
-			}
-			
-			foreach (string dguid in assetDatabaseDependencies)
-			{
-				if (!foundDependenciesHashSet.Contains(dguid))
-				{
-					PathSegment pathSegment = new PathSegment("Unknown Path", PathSegmentType.Unknown);
-					dependencies.Add(new Dependency(dguid, ResolvedType, NodeType, new []{pathSegment}));
-				}
 			}
 		}
 

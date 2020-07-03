@@ -50,7 +50,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private int _maxHierarchyDepth = 64;
 
 		private VisualizationNode _nodeStructure = null;
-		private CacheStateContext _cacheStateContext = new CacheStateContext();
+		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
 
@@ -132,32 +132,34 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			SetHandlerSelection();
 
-			InitNodeHandlerContext();
+			SetNodeHandlerContext();
 		}
 
 		private void LoadDependencyCache(bool update = true)
 		{
-			_cacheStateContext.Reset();
+			_nodeDependencyLookupContext.Reset();
 
-			CacheUsageDefinitionList cacheUsageDefinitionList = CreateCacheUsageList();
+			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList();
 
 			ProgressBase progress = new ProgressBase(null);
 			progress.SetProgressFunction((title, info, value) => EditorUtility.DisplayProgressBar(title, info, value));
 			
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_cacheStateContext, cacheUsageDefinitionList, progress, true, update);
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress, true, update);
+			
+			SetNodeHandlerContext();
 		}
 
-		private void InitNodeHandlerContext()
+		private void SetNodeHandlerContext()
 		{
 			foreach (ITypeHandler handler in _typeHandlers)
 			{
-				handler.InitContext(_cacheStateContext, this);
+				handler.InitContext(_nodeDependencyLookupContext, this);
 			}
 		}
 
-		private CacheUsageDefinitionList CreateCacheUsageList()
+		private ResolverUsageDefinitionList CreateCacheUsageList()
 		{
-			CacheUsageDefinitionList cacheUsageDefinitionList = new CacheUsageDefinitionList();
+			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 			
 			foreach (CacheState state in _cacheStates)
 			{
@@ -176,13 +178,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 									activeConnectionTypes.Add(connectionType);
 							}
 							
-							cacheUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
+							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
 						}
 					}
 				}
 			}
 
-			return cacheUsageDefinitionList;
+			return resolverUsageDefinitionList;
 		}
 
 		private void HandleFirstStartup()
@@ -230,6 +232,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public void OnAssetSelectionChanged()
 		{
 			string assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
+			
+			// Make sure Selection.activeObject is an asset
+			if (string.IsNullOrEmpty(assetPath))
+			{
+				return;
+			}
+			
 			string guid = AssetDatabase.AssetPathToGUID(assetPath);
 			
 			ChangeSelection(guid, "Asset");
@@ -705,7 +714,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DrawHierarchy()
 		{
-			if (_cacheStateContext == null)
+			if (_nodeDependencyLookupContext == null)
 			{
 				DrawNotLoadedError();
 				return;
@@ -717,7 +726,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 
-			Node entry = _cacheStateContext.RelationsLookup.GetNode(_selectedId, _selectedType);
+			Node entry = _nodeDependencyLookupContext.RelationsLookup.GetNode(_selectedId, _selectedType);
 
 			if (entry == null)
 			{
@@ -746,12 +755,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				ITypeHandler typeHandler = GetTypeHandlerForType(type);
 				
 				VisualizationNodeData data = typeHandler.CreateNodeCachedData(id);
-				_cacheStateContext.NodeHandlerLookup = GetNodeHandlerLookup();
+				_nodeDependencyLookupContext.NodeHandlerLookup = GetNodeHandlerLookup();
 
 				if (_showThumbnails || DisplayData.ShowAdditionalInformation)
 				{
-					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _cacheStateContext);
-					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _cacheStateContext);
+					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
+					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
 				}
 
 				data.Id = id;
@@ -762,7 +771,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				
 				data.Name = typeHandler.GetName(id);
 				data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(id, type);
-				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _cacheStateContext, new HashSet<string>());
+				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, new HashSet<string>());
 
 				_cachedVisualizationNodeDatas.Add(key, data);
 			}
@@ -857,7 +866,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public Color GetConnectionColorForType(string typeId)
 		{
-			return _cacheStateContext.ConnectionTypeLookup.GetDependencyType(typeId).Colour;
+			return _nodeDependencyLookupContext.ConnectionTypeLookup.GetDependencyType(typeId).Colour;
 		}
 		
 		private void InvalidateNodePositionData(VisualizationNodeBase node, RelationType relationType)
@@ -1069,9 +1078,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void AddBidirConnection(RelationType relationType, VisualizationNodeBase node, VisualizationNodeBase target,
 			List<VisualizationConnection.Data> datas, bool isRecursion)
 		{
-			if (_nodeDisplayOptions.ShowPropertyPathes && VisualizationConnection.HasPathSegments(datas))
+			if (_nodeDisplayOptions.ShowPropertyPathes)
 			{
 				PathVisualizationNode pathVisualizationNode = new PathVisualizationNode();
+
+				if (!VisualizationConnection.HasPathSegments(datas))
+				{
+					datas = new List<VisualizationConnection.Data>();
+					datas.Add(new VisualizationConnection.Data("UnknownPath", new []{new PathSegment("Unknown Path", PathSegmentType.Unknown)}));
+				}
 			
 				node.AddRelation(relationType, new VisualizationConnection(datas, pathVisualizationNode, false));
 				pathVisualizationNode.AddRelation(InvertRelationType(relationType), new VisualizationConnection(datas, node, false));

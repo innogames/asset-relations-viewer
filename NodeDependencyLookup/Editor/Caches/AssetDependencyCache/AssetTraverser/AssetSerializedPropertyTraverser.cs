@@ -80,6 +80,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			do
 			{
+				if (property.type == "char")
+				{
+					continue;
+				}
+				
 				if (!onlyOverriden || property.prefabOverride)
 				{
 					string propertyPath = property.propertyPath;

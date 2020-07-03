@@ -8,19 +8,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 * The CacheStateContext holds all information after the Caches updates
 	 * This is to reduce the amount of parameters needing to be passed to the functions because most of the time they need all member values
 	 */
-	public class CacheStateContext
+	public class NodeDependencyLookupContext
 	{
-		private static Dictionary<string, CacheStateContext> m_stateContexts = new Dictionary<string, CacheStateContext>();
+		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts = new Dictionary<string, NodeDependencyLookupContext>();
 		
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
 		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		public ConnectionTypeLookup ConnectionTypeLookup;
 		public Dictionary<string, CreatedDependencyCache> CreatedCaches = new Dictionary<string, CreatedDependencyCache>();
 		
-		public static CacheStateContext GetStateContextForName(string name)
+		public static NodeDependencyLookupContext GetStateContextForName(string name)
 		{
 			if(!m_stateContexts.ContainsKey(name))
-				m_stateContexts.Add(name, new CacheStateContext());
+				m_stateContexts.Add(name, new NodeDependencyLookupContext());
 
 			return m_stateContexts[name];
 		}
@@ -37,11 +37,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			ConnectionTypeLookup = null;
 		}
 		
-		public void UpdateFromDefinition(CacheUsageDefinitionList definitionList)
+		public void UpdateFromDefinition(ResolverUsageDefinitionList definitionList)
 		{
 			ResetCacheUsages();
 			
-			foreach (CacheUsageDefinitionList.Entry entry in definitionList.CacheUsages)
+			foreach (ResolverUsageDefinitionList.Entry entry in definitionList.CacheUsages)
 			{
 				string cacheTypeFullName = entry.CacheType.FullName;
 				
