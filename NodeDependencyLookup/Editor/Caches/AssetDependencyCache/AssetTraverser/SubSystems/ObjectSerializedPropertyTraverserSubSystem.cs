@@ -36,7 +36,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
-            if (guid != NodeDependencyLookupUtility.GetGuidFromId(id))
+            if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(id))
             {
                 AddDependency(id, new Dependency(assetId, ConnectionType, NodeType, stack.ToArray()));
             }

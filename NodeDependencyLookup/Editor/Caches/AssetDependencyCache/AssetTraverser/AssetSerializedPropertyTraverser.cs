@@ -229,8 +229,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (result == null)
 					continue;
 				
-				string assetGuid = NodeDependencyLookupUtility.GetGuidFromId(assetId);
-				string resultGuid = NodeDependencyLookupUtility.GetGuidFromId(result.Id);
+				string assetGuid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+				string resultGuid = NodeDependencyLookupUtility.GetGuidFromAssetId(result.Id);
 
 				// TODO this currently prevent subassets in the same file to find each other as a dependency
 				if (assetGuid == resultGuid)

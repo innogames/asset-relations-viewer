@@ -11,7 +11,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public const string EOF = "EndOfSerializedAssetDependencyCache";
 
-		public static byte[] Serialize(AssetNode[] assetNodes)
+		/*public static byte[] Serialize(AssetNode[] assetNodes)
 		{
 			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
 			int offset = 0;
@@ -143,6 +143,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			return assetsNodes;
-		}
+		}*/
 	}
 }

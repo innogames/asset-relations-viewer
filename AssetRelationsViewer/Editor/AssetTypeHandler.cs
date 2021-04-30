@@ -38,7 +38,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public string GetName(string id)
 		{
 			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-			string guid = NodeDependencyLookupUtility.GetGuidFromId(id);
+			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
 			if (asset != null)

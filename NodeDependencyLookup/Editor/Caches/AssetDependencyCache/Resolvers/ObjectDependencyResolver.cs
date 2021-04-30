@@ -23,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void GetDependenciesForId(string fileId, List<Dependency> dependencies)
 		{
-			string guid = NodeDependencyLookupUtility.GetGuidFromId(fileId);
+			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(fileId);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
 			string[] resolvedDependencies = AssetDatabase.GetDependencies(path, false);

@@ -31,7 +31,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		// Builds bidirectional relations between nodes based on their dependencies
 		public class RelationLookupBuilder
 		{
-			public static Dictionary<string, T> ConvertToDictionary<T>(T[] entries) where T : IResolvedNode
+			public static Dictionary<string, T> ConvertToDictionary<T>(T[] entries) where T : IIdentifyable
 			{
 				Dictionary<string, T> list = new Dictionary<string, T>();
 
@@ -53,15 +53,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					IDependencyCache cache = dependencyCache.Cache;
 					typeToCache.Add(cache.GetHandledNodeType(), cache);
-					
-					foreach (IResolvedNode resolvedNode in cache.GetNodes())
-					{
-						if (resolvedNode.Existing)
-						{
-							resolvedNodes.Add(resolvedNode);
-						}
-					}
-					
+
+					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
 				}
 				
