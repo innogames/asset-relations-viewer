@@ -10,11 +10,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class AssetDependencyCacheSerializer
 	{
 		public const string EOF = "EndOfSerializedAssetDependencyCache";
-		public const int ARRAY_SIZE_OFFSET = 0xFFFF; // 64 kb
-		
+
 		public static byte[] Serialize(AssetNode[] assetNodes)
 		{
-			byte[] bytes = new byte[ARRAY_SIZE_OFFSET];
+			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
 			int offset = 0;
 
 			int length = assetNodes.Length;
@@ -23,14 +22,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			foreach (AssetNode assetNode in assetNodes)
 			{
-				EncodeString(assetNode.Guid, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeString(assetNode.AssetId, ref bytes, ref offset);
 
-				bytes[offset++] = (byte)assetNode.Res.Count;
-				bytes[offset++] = (byte)(assetNode.Res.Count >> 8);
+				bytes[offset++] = (byte)assetNode.ResolverDatas.Count;
+				bytes[offset++] = (byte)(assetNode.ResolverDatas.Count >> 8);
 				
-				for (var i = 0; i < assetNode.Res.Count; i++)
+				for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
 				{
-					AssetNode.ResolverData data = assetNode.Res[i];
+					AssetNode.ResolverData data = assetNode.ResolverDatas[i];
 					long timeStamp = data.TimeStamp;
 
 					for (int k = 0; k < 8; ++k)
@@ -38,9 +37,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						bytes[offset++] = (byte) (timeStamp >> (8 * k));
 					}
 					
-					EncodeString(data.Id, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeString(data.Id, ref bytes, ref offset);
 
-					Dependency[] dependencies = data.Dep;
+					Dependency[] dependencies = data.Dependencies;
 					
 					bytes[offset++] = (byte) dependencies.Length;
 					bytes[offset++] = (byte) (dependencies.Length >> 8);
@@ -48,9 +47,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					for (var k = 0; k < dependencies.Length; k++)
 					{
 						Dependency dependency = dependencies[k];
-						EncodeString(dependency.Id, ref bytes, ref offset);
-						EncodeString(dependency.ConnectionType, ref bytes, ref offset);
-						EncodeString(dependency.NodeType, ref bytes, ref offset);
+						CacheSerializerUtils.EncodeString(dependency.Id, ref bytes, ref offset);
+						CacheSerializerUtils.EncodeString(dependency.ConnectionType, ref bytes, ref offset);
+						CacheSerializerUtils.EncodeString(dependency.NodeType, ref bytes, ref offset);
 
 						int pathLength = dependency.PathSegments.Length;
 						bytes[offset++] = (byte) pathLength;
@@ -60,18 +59,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						{
 							PathSegment pathSegment = dependency.PathSegments[p];
 							
-							EncodeString(pathSegment.Name, ref bytes, ref offset);
+							CacheSerializerUtils.EncodeString(pathSegment.Name, ref bytes, ref offset);
 							bytes[offset++] = (byte) pathSegment.Type;
 						}
 						
-						bytes = EnsureSize(bytes, offset);
+						bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 					}
 
-					bytes = EnsureSize(bytes, offset);
+					bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 				}
 			}
 			
-			EncodeString(EOF, ref bytes, ref offset);
+			CacheSerializerUtils.EncodeString(EOF, ref bytes, ref offset);
 			
 			return bytes;
 		}
@@ -85,7 +84,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			for (int n = 0; n < nodeLength; ++n)
 			{
-				string guid = DecodeString(ref bytes, ref offset);
+				string guid = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 				AssetNode assetNode = new AssetNode(guid);
 				int resLength = bytes[offset++] + (bytes[offset++] << 8);
 				
@@ -100,16 +99,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 
 					data.TimeStamp = timeStamp;
-					data.Id = DecodeString(ref bytes, ref offset);
+					data.Id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 
 					int dependencyLength = bytes[offset++] + (bytes[offset++] << 8);
 					Dependency[] dependencies = new Dependency[dependencyLength];
 					
 					for (var k = 0; k < dependencyLength; k++)
 					{
-						string id = DecodeString(ref bytes, ref offset);
-						string connectionType = DecodeString(ref bytes, ref offset);
-						string nodeType = DecodeString(ref bytes, ref offset);
+						string id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+						string connectionType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+						string nodeType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 
 						int pathLength = bytes[offset++] + (bytes[offset++] << 8);
 						PathSegment[] pathSegments = new PathSegment[pathLength];
@@ -118,7 +117,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						{
 							PathSegment pathSegment = new PathSegment();
 							
-							pathSegment.Name = DecodeString(ref bytes, ref offset);
+							pathSegment.Name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 							pathSegment.Type = (PathSegmentType)bytes[offset++];
 
 							pathSegments[p] = pathSegment;
@@ -129,14 +128,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						dependencies[k] = dependency;
 					}
 
-					data.Dep = dependencies;
-					assetNode.Res.Add(data);
+					data.Dependencies = dependencies;
+					assetNode.ResolverDatas.Add(data);
 				}
 				
 				assetsNodes[n] = assetNode;
 			}
 			
-			string eof = DecodeString(ref bytes, ref offset);
+			string eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 			if (!eof.Equals(EOF))
 			{
 				Debug.LogError("AssetDependencyCache cache file to be corrupted. Rebuilding cache required");
@@ -144,42 +143,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			return assetsNodes;
-		}
-
-		public static byte[] EnsureSize(byte[] array, int offset)
-		{
-			if (offset + ARRAY_SIZE_OFFSET / 2 > array.Length)
-			{
-				byte[] newArray = new byte[array.Length * 2];
-				Array.Copy(array, newArray, offset);
-				return newArray;
-			}
-			
-			return array;
-		}
-
-		public static void EncodeString(string value, ref byte[] bytes, ref int offset)
-		{
-			char[] charArray = value.ToCharArray();
-			bytes[offset++] = (byte)charArray.Length;
-				
-			for (var c = 0; c < charArray.Length; c++)
-			{
-				bytes[offset++] = (byte) charArray[c];
-			}
-		}
-		
-		public static string DecodeString(ref byte[] bytes, ref int offset)
-		{
-			int length = bytes[offset++];
-			char[] charArray = new char[length];
-			
-			for (var c = 0; c < length; c++)
-			{
-				charArray[c] = (char)bytes[offset++];
-			}
-			
-			return new string(charArray);
 		}
 	}
 }

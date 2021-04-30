@@ -11,25 +11,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			public string Id;
 			public long TimeStamp;
-			public Dependency[] Dep = new Dependency[0];
+			public Dependency[] Dependencies = new Dependency[0];
 		}
 
-		public string Guid;
+		public string AssetId;
 		
-		public string Id{get { return Guid; }}
+		public string Id{get { return AssetId; }}
 		public string Type{get { return "Asset"; }}
 		public bool Existing { get; set; }
 		
-		public List<ResolverData> Res = new List<ResolverData>();
+		public List<ResolverData> ResolverDatas = new List<ResolverData>();
 
-		public AssetNode(string guid)
+		public AssetNode(string assetId)
 		{
-			Guid = guid;
+			AssetId = assetId;
 		}
 
 		public ResolverData GetResolverData(string id)
 		{
-			foreach (ResolverData resolverData in Res)
+			foreach (ResolverData resolverData in ResolverDatas)
 			{
 				if (resolverData.Id == id)
 				{
@@ -40,7 +40,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			ResolverData newResolver = new ResolverData();
 			newResolver.Id = id;
 
-			Res.Add(newResolver);
+			ResolverDatas.Add(newResolver);
 
 			return newResolver;
 		}
@@ -49,7 +49,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			List<Dependency> result = new List<Dependency>();
 
-			foreach (ResolverData data in Res)
+			foreach (ResolverData data in ResolverDatas)
 			{
 				if (!resolverUsages.ContainsKey(data.Id))
 				{
@@ -58,7 +58,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				CreatedResolver dependencyCache = resolverUsages[data.Id];
 
-				foreach (Dependency dependency in data.Dep)
+				foreach (Dependency dependency in data.Dependencies)
 				{
 					if (dependencyCache.ConnectionTypes.Contains(dependency.ConnectionType))
 					{

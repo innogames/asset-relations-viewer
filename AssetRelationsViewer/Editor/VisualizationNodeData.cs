@@ -33,6 +33,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	public class AssetVisualizationNodeData : VisualizationNodeData
 	{
 		private Object _loadedAsset;
+		private Object _loadedMainAsset;
 		private bool _assetLoaded;
 		private int _assetPreviewRenderTries;
 
@@ -53,13 +54,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			if (!_assetLoaded)
 			{
-				_loadedAsset = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(Id));
+				_loadedAsset = NodeDependencyLookupUtility.GetAssetById(Id);
+				_loadedMainAsset = NodeDependencyLookupUtility.GetMainAssetById(Id);
 				_assetLoaded = true;
 			}
 			
 			if (_loadedAsset != null && _assetPreview == null && _assetPreviewRenderTries < MAX_ASSET_PREVIEW_RENDER_RETRIES)
 			{
-				Texture2D previewTexture = UnityEditor.AssetPreview.GetAssetPreview(_loadedAsset);
+				Texture2D previewTexture = AssetPreview.GetAssetPreview(_loadedAsset);
+
+				if (previewTexture == null)
+				{
+					previewTexture = AssetPreview.GetAssetPreview(_loadedMainAsset);
+				}
 
 				if (previewTexture != null)
 				{

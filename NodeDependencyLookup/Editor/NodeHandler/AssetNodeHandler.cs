@@ -23,7 +23,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
 		{
-			return NodeDependencyLookupUtility.GetPackedAssetSize(id);
+			return 0;
+			//return NodeDependencyLookupUtility.GetPackedAssetSize(id);
 		}
 
 		public bool IsNodePackedToApp(string id, string type)

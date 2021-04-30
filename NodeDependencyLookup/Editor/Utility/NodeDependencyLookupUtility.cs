@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-
+using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
 #endif
@@ -66,7 +66,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     cacheUsage.IsLoaded = true;
                 }
 
-                if (updateCache && cache.NeedsUpdate())
+                if (updateCache && cache.NeedsUpdate(progress))
                 {
                     if (cache.CanUpdate())
                     {
@@ -119,9 +119,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// Used to get the size of an asset inside the packed build.
         /// Currently sounds are not correct since the file isnt going to be written into the libraray in the final format.
         /// </summary>
-        public static int GetPackedAssetSize(string guid)
+        public static int GetPackedAssetSize(string assetId)
         {
-            string fullpath = GetLibraryFullPath(guid);
+            string fullpath = GetLibraryFullPath(GetGuidFromId(assetId));
             
             if (!String.IsNullOrEmpty(fullpath) && File.Exists(fullpath))
             {
@@ -156,9 +156,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Hash128 artifactHash = AssetDatabaseExperimental.GetArtifactHash(guid);
 
-                string[] paths;
-
-                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out paths);
+                if (!artifactHash.isValid)
+                {
+                    return null;
+                }
+                
+                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out string[] paths);
             
                 foreach (string artifactPath in paths)
                 {
@@ -275,7 +278,65 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return size;
         }
 
-        public static string[] GetAllAssetPathes()
+        private const string BuiltinExtraGuid = "0000000000000000f000000000000000";
+        private const string BuiltinGuid = "0000000000000000e000000000000000";
+
+        public static string GetGuidFromId(string id)
+        {
+            return id.Split('_')[0];
+        }
+        
+        public static string GetFileIdFromId(string id)
+        {
+            return id.Split('_')[1];
+        }
+
+        public static string GetAssetIdForAsset(Object asset)
+        {
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileId);
+            return $"{guid}_{fileId}";
+        }
+
+        public static Object GetAssetById(string id)
+        {
+            string fileId = GetFileIdFromId(id);
+            string guid = GetGuidFromId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Object[] assetsAtPath = LoadAllAssetsAtPath(path);
+			
+            foreach (Object asset in assetsAtPath)
+            {
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
+                if (afileId.ToString() == fileId)
+                {
+                    return asset;
+                }
+            }
+
+            return null;
+        }
+
+        public static Object GetMainAssetById(string id)
+        {
+            string guid = GetGuidFromId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+
+            return AssetDatabase.LoadAssetAtPath<Object>(path);
+        }
+
+        public static Object[] LoadAllAssetsAtPath(string path)
+        {
+            if (path.EndsWith(".unity"))
+            {
+                return new Object[] {AssetDatabase.LoadMainAssetAtPath(path)};
+            }
+            else
+            {
+                return AssetDatabase.LoadAllAssetsAtPath(path);
+            }
+        }
+
+        public static string[] GetAllAssetIds(ProgressBase progress)
         {
             string[] pathes = AssetDatabase.FindAssets("");
 
@@ -284,7 +345,45 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 pathes[i] = AssetDatabase.GUIDToAssetPath(pathes[i]);
             }
 
-            return pathes;
+            pathes = AssetDatabase.GetAllAssetPaths();
+
+            List<string> pathList = new List<string>();
+            List<string> idList = new List<string>();
+            
+            //pathList.Add(AssetDatabase.GUIDToAssetPath(BuiltinGuid));
+            //pathList.Add(AssetDatabase.GUIDToAssetPath(BuiltinExtraGuid));
+
+            foreach (string path in pathes)
+            {
+                pathList.Add(path);
+            }
+
+            for (var i = 0; i < pathList.Count; i++)
+            {
+                float progressAmount = (i / (float) pathList.Count) * 100;
+                
+                //progress.UpdateProgress("Loading assets", );
+                
+                string path = pathList[i];
+                Object[] allAssets = LoadAllAssetsAtPath(path);
+                
+                foreach (Object asset in allAssets)
+                {
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
+
+                    /*if (fileID.ToString().EndsWith("3555"))
+                    {
+                        Debug.LogError("Test");
+                    }*/
+
+                    if (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset))
+                    {
+                        idList.Add($"{guid}_{fileID}");
+                    }
+                }
+            }
+
+            return idList.ToArray();
         }
 
         public static List<Type> GetTypesForBaseType(Type interfaceType)

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {	
@@ -19,16 +21,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private ResolverProgress Progress;
 
-		public void GetDependenciesForId(string guid, List<Dependency> dependencies)
+		public void GetDependenciesForId(string fileId, List<Dependency> dependencies)
 		{
-			string[] resolvedDependencies = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(guid), false);
+			string guid = NodeDependencyLookupUtility.GetGuidFromId(fileId);
+			string path = AssetDatabase.GUIDToAssetPath(guid);
+
+			string[] resolvedDependencies = AssetDatabase.GetDependencies(path, false);
 
 			Progress.IncreaseProgress();
-			Progress.UpdateProgress(Id, AssetDatabase.GUIDToAssetPath(guid));
+			Progress.UpdateProgress(Id, AssetDatabase.GUIDToAssetPath(fileId));
 			
-			foreach (var dependency in resolvedDependencies)
+			foreach (string dependency in resolvedDependencies)
 			{
-				dependencies.Add(new Dependency(AssetDatabase.AssetPathToGUID(dependency), ResolvedType, "Asset", new PathSegment[0]));
+				Object[] dependencyAssets = NodeDependencyLookupUtility.LoadAllAssetsAtPath(dependency);
+				
+				foreach (Object asset in dependencyAssets)
+				{
+					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string depGuid, out long depFileId);
+					string assetId = $"{depGuid}_{depFileId}";
+
+					dependencies.Add(new Dependency(assetId, ResolvedType, "Asset", new PathSegment[0]));
+				}
 			}
 		}
 

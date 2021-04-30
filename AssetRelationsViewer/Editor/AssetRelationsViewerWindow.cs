@@ -238,10 +238,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				return;
 			}
+
+			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Selection.activeObject, out string guid, out long fileId);
+			string assetId = $"{guid}_{fileId}";
 			
-			string guid = AssetDatabase.AssetPathToGUID(assetPath);
 			
-			ChangeSelection(guid, "Asset");
+			ChangeSelection(assetId, "Asset");
 			Repaint();
 		}
 
@@ -348,6 +350,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			if (GUILayout.Button("Save and Refresh"))
 			{
 				AssetDatabase.SaveAssets();
+				ReloadContext();
+			}
+			
+			if (GUILayout.Button("Clear and refresh"))
+			{
+				AssetDatabase.SaveAssets();
+				NodeDependencyLookupUtility.ClearCachedContexts();
+				NodeDependencyLookupUtility.ClearCacheFiles();
 				ReloadContext();
 			}
 

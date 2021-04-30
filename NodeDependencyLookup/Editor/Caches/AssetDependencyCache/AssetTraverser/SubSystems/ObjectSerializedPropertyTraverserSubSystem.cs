@@ -31,12 +31,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private void AddPrefabAsDependency(string id, Object obj, Stack<PathSegment> stack)
         {
-            string assetPath = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(obj));
+            Object correspondingObjectFromSource = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(correspondingObjectFromSource);
+            string assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
-            if (guid != id)
+            if (guid != NodeDependencyLookupUtility.GetGuidFromId(id))
             {
-                AddDependency(id, new Dependency(guid, ConnectionType, NodeType, stack.ToArray()));
+                AddDependency(id, new Dependency(assetId, ConnectionType, NodeType, stack.ToArray()));
             }
         }
 
@@ -61,13 +63,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             if (ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
                 return null;
 
-            string guid = AssetDatabase.AssetPathToGUID(assetPath);
+            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
 
             // Unity internal assets start with 000000 which should not be seen as a dependency
-            if (guid.StartsWith("000000"))
-                return null;
+            //if (guid.StartsWith("000000"))
+                //return null;
 
-            return new Result {Id = guid, ConnectionType = ConnectionType, NodeType = NodeType};
+            return new Result {Id = assetId, ConnectionType = ConnectionType, NodeType = NodeType};
         }
     }
 }

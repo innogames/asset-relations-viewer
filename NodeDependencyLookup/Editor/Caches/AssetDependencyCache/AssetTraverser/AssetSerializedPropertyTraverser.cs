@@ -20,7 +20,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public Type type;
 		}
 		
-		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> m_guidToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
+		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> m_assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
 		private ResolverProgress Progress;
 		private BindingFlags FLAGS = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
 		private ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
@@ -32,33 +32,39 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				ReflectionStack[i] = new ReflectionStackItem();
 			}
 			
-			foreach (var pair in m_guidToResolver)
+			foreach (var pair in m_assetIdToResolver)
 			{
-				string assetPath = AssetDatabase.GUIDToAssetPath(pair.Key);
+				Object asset = NodeDependencyLookupUtility.GetAssetById(pair.Key);
+
+				if (asset == null)
+				{
+					continue;
+				}
+				
 				Progress.IncreaseProgress();
-				Progress.UpdateProgress("SerializedPropertySearcher", assetPath);
-				Traverse(pair.Key, AssetDatabase.LoadAssetAtPath<Object>(assetPath), new Stack<PathSegment>());
+				Progress.UpdateProgress("SerializedPropertySearcher", asset.name);
+				Traverse(pair.Key, NodeDependencyLookupUtility.GetAssetById(pair.Key), new Stack<PathSegment>());
 			}
 		}
 
 		public void Clear()
 		{
-			m_guidToResolver.Clear();
+			m_assetIdToResolver.Clear();
 		}
 
 		public void Initialize(ProgressBase progress)
 		{
-			Progress = new ResolverProgress(progress, m_guidToResolver.Count, 10);
+			Progress = new ResolverProgress(progress, m_assetIdToResolver.Count, 10);
 		}
 
-		public void AddGuid(string key, SerializedPropertyTraverserSubSystem resolver)
+		public void AddAssetId(string key, SerializedPropertyTraverserSubSystem resolver)
 		{
-			if (!m_guidToResolver.ContainsKey(key))
+			if (!m_assetIdToResolver.ContainsKey(key))
 			{
-				m_guidToResolver.Add(key, new List<SerializedPropertyTraverserSubSystem>());
+				m_assetIdToResolver.Add(key, new List<SerializedPropertyTraverserSubSystem>());
 			}
 
-			m_guidToResolver[key].Add(resolver);
+			m_assetIdToResolver[key].Add(resolver);
 		}
 
 		public override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
@@ -181,12 +187,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
 		{
-			if (!m_guidToResolver.ContainsKey(id))
+			if (!m_assetIdToResolver.ContainsKey(id))
 			{
 				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
 			}
 			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_guidToResolver[id])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[id])
 			{
 				subSystem.TraversePrefab(id, obj, stack);
 			}
@@ -194,36 +200,46 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
 		{
-			if (!m_guidToResolver.ContainsKey(id))
+			if (!m_assetIdToResolver.ContainsKey(id))
 			{
 				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
 			}
 			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_guidToResolver[id])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[id])
 			{
 				subSystem.TraversePrefabVariant(id, obj, stack);
 			}
 		}
 
-		public void TraverseProperty(string id, Type objType, object obj, SerializedProperty property, string propertyPath, Stack<PathSegment> stack)
+		public void TraverseProperty(string assetId, Type objType, object obj, SerializedProperty property, string propertyPath, Stack<PathSegment> stack)
 		{
 			SerializedPropertyType type = property.propertyType;
 
 			stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
 			
-			if (!m_guidToResolver.ContainsKey(id))
+			if (!m_assetIdToResolver.ContainsKey(assetId))
 			{
-				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
+				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", assetId);
 			}
 			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_guidToResolver[id])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[assetId])
 			{
 				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(objType, obj, property, propertyPath, type, stack);
-
-				if (result == null || id == result.Id)
+				
+				if (result == null)
 					continue;
+				
+				string assetGuid = NodeDependencyLookupUtility.GetGuidFromId(assetId);
+				string resultGuid = NodeDependencyLookupUtility.GetGuidFromId(result.Id);
+
+				// TODO this currently prevent subassets in the same file to find each other as a dependency
+				if (assetGuid == resultGuid)
+				//if (assetId == result.Id)
+				{
+					continue;
+				}
 			
-				subSystem.AddDependency(id, new Dependency(result.Id, result.ConnectionType, result.NodeType, stack.ToArray()));
+				subSystem.AddDependency(assetId, new Dependency(result.Id, result.ConnectionType, result.NodeType, stack.ToArray()));
 			}
 
 			stack.Pop();

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
+using UnityEditor.VersionControl;
 using UnityEngine;
+using Node = UnityEditor.Graphs.AnimationBlendTree.Node;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
@@ -35,8 +37,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public string GetName(string id)
 		{
-			string name = Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
-			return name.Length > 0 ? name : id;
+			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+			string guid = NodeDependencyLookupUtility.GetGuidFromId(id);
+			string path = AssetDatabase.GUIDToAssetPath(guid);
+
+			if (asset != null)
+			{
+				return $"{asset.name} in {path}";
+			}
+
+			if (!string.IsNullOrEmpty(path))
+			{
+				return path;
+			}
+			
+			return id;
 		}
 
 		public VisualizationNodeData CreateNodeCachedData(string id)
@@ -58,7 +73,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			if (type == GetHandledType())
 			{
-				_selectedAsset = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id));
+				_selectedAsset = NodeDependencyLookupUtility.GetAssetById(id);
 			}
 			else
 			{
@@ -94,8 +109,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (newSelectedAsset != _selectedAsset)
 			{
-				string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(newSelectedAsset));
-				_viewerWindow.ChangeSelection(guid, GetHandledType());
+				string fileId = NodeDependencyLookupUtility.GetAssetIdForAsset(newSelectedAsset);
+				_viewerWindow.ChangeSelection(fileId, GetHandledType());
 
 				_selectedAsset = newSelectedAsset;
 			}
