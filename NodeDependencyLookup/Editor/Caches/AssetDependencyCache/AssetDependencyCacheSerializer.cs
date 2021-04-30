@@ -11,138 +11,152 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public const string EOF = "EndOfSerializedAssetDependencyCache";
 
-		/*public static byte[] Serialize(AssetNode[] assetNodes)
+		public static byte[] Serialize(FileToAssetNode[] fileToAssetNodes)
 		{
 			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
 			int offset = 0;
-
-			int length = assetNodes.Length;
-			bytes[offset++] = (byte) length;
-			bytes[offset++] = (byte) (length >> 8);
 			
-			foreach (AssetNode assetNode in assetNodes)
+			CacheSerializerUtils.EncodeShort((short)fileToAssetNodes.Length, ref bytes, ref offset);
+
+			foreach (FileToAssetNode fileToAssetNode in fileToAssetNodes)
 			{
-				CacheSerializerUtils.EncodeString(assetNode.AssetId, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeString(fileToAssetNode.FileId, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeShort((short)fileToAssetNode.ResolverTimeStamps.Count, ref bytes, ref offset);
 
-				bytes[offset++] = (byte)assetNode.ResolverDatas.Count;
-				bytes[offset++] = (byte)(assetNode.ResolverDatas.Count >> 8);
-				
-				for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
+				for (int i = 0; i < fileToAssetNode.ResolverTimeStamps.Count; ++i)
 				{
-					AssetNode.ResolverData data = assetNode.ResolverDatas[i];
-					long timeStamp = data.TimeStamp;
+					FileToAssetNode.ResolverTimeStamp resolverTimeStamp = fileToAssetNode.ResolverTimeStamps[i];
+					CacheSerializerUtils.EncodeString(resolverTimeStamp.ResolverId, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeLong(resolverTimeStamp.TimeStamp, ref bytes, ref offset);
+				}
+				
+				CacheSerializerUtils.EncodeShort((short)fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
 
-					for (int k = 0; k < 8; ++k)
+				for (int j = 0; j < fileToAssetNode.AssetNodes.Count; ++j)
+				{
+					AssetNode assetNode = fileToAssetNode.AssetNodes[j];
+					CacheSerializerUtils.EncodeString(assetNode.Id, ref bytes, ref offset);
+					
+					CacheSerializerUtils.EncodeShort((short)assetNode.ResolverDatas.Count, ref bytes, ref offset);
+
+					for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
 					{
-						bytes[offset++] = (byte) (timeStamp >> (8 * k));
-					}
-					
-					CacheSerializerUtils.EncodeString(data.Id, ref bytes, ref offset);
+						AssetNode.ResolverData resolverData = assetNode.ResolverDatas[i];
+						Dependency[] dependencies = resolverData.Dependencies;
+				
+						CacheSerializerUtils.EncodeString(resolverData.ResolverId, ref bytes, ref offset);
+						CacheSerializerUtils.EncodeShort((short)dependencies.Length, ref bytes, ref offset);
 
-					Dependency[] dependencies = data.Dependencies;
-					
-					bytes[offset++] = (byte) dependencies.Length;
-					bytes[offset++] = (byte) (dependencies.Length >> 8);
-					
-					for (var k = 0; k < dependencies.Length; k++)
-					{
-						Dependency dependency = dependencies[k];
-						CacheSerializerUtils.EncodeString(dependency.Id, ref bytes, ref offset);
-						CacheSerializerUtils.EncodeString(dependency.ConnectionType, ref bytes, ref offset);
-						CacheSerializerUtils.EncodeString(dependency.NodeType, ref bytes, ref offset);
-
-						int pathLength = dependency.PathSegments.Length;
-						bytes[offset++] = (byte) pathLength;
-						bytes[offset++] = (byte) (pathLength >> 8);
-						
-						for (var p = 0; p < pathLength; p++)
+						for (var k = 0; k < dependencies.Length; k++)
 						{
-							PathSegment pathSegment = dependency.PathSegments[p];
-							
-							CacheSerializerUtils.EncodeString(pathSegment.Name, ref bytes, ref offset);
-							bytes[offset++] = (byte) pathSegment.Type;
+							Dependency dependency = dependencies[k];
+							CacheSerializerUtils.EncodeString(dependency.Id, ref bytes, ref offset);
+							CacheSerializerUtils.EncodeString(dependency.ConnectionType, ref bytes, ref offset);
+							CacheSerializerUtils.EncodeString(dependency.NodeType, ref bytes, ref offset);
+							CacheSerializerUtils.EncodeShort((short)dependency.PathSegments.Length, ref bytes, ref offset);
+
+							for (var p = 0; p < dependency.PathSegments.Length; p++)
+							{
+								PathSegment pathSegment = dependency.PathSegments[p];
+
+								CacheSerializerUtils.EncodeString(pathSegment.Name, ref bytes, ref offset);
+								CacheSerializerUtils.EncodeShort((short)pathSegment.Type, ref bytes, ref offset);
+							}
+
+							bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 						}
-						
+
 						bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 					}
-
-					bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 				}
 			}
 			
 			CacheSerializerUtils.EncodeString(EOF, ref bytes, ref offset);
+
+			Deserialize(bytes);
 			
 			return bytes;
 		}
 		
-		public static AssetNode[] Deserialize(byte[] bytes)
+		public static FileToAssetNode[] Deserialize(byte[] bytes)
 		{
 			int offset = 0;
-			int nodeLength = bytes[offset++] + (bytes[offset++] << 8);
+			int numFileToAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
 			
-			AssetNode[] assetsNodes = new AssetNode[nodeLength];
+			FileToAssetNode[] fileToAssetNodes = new FileToAssetNode[numFileToAssetNodes];
 
-			for (int n = 0; n < nodeLength; ++n)
+			for (int n = 0; n < numFileToAssetNodes; ++n)
 			{
-				string guid = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-				AssetNode assetNode = new AssetNode(guid);
-				int resLength = bytes[offset++] + (bytes[offset++] << 8);
-				
-				for (var i = 0; i < resLength; i++)
+				string fileId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+				FileToAssetNode fileAssetNode = new FileToAssetNode{FileId = fileId};
+				int resolverTimeStampLength = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+
+				for (var i = 0; i < resolverTimeStampLength; i++)
 				{
-					AssetNode.ResolverData data = new AssetNode.ResolverData();
-					long timeStamp = 0;
+					FileToAssetNode.ResolverTimeStamp resolverTimeStamp = new FileToAssetNode.ResolverTimeStamp();
+					resolverTimeStamp.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+					resolverTimeStamp.TimeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
+					fileAssetNode.ResolverTimeStamps.Add(resolverTimeStamp);
+				}
 
-					for (int k = 0; k < 8; ++k)
+				int numAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+
+				for (var i = 0; i < numAssetNodes; i++)
+				{
+					string assetId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+					AssetNode assetNode = new AssetNode(assetId);
+
+					int numResolverDatas = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+
+					for (int j = 0; j < numResolverDatas; ++j)
 					{
-						timeStamp += (long)bytes[offset++] << (8 * k);
-					}
-
-					data.TimeStamp = timeStamp;
-					data.Id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-
-					int dependencyLength = bytes[offset++] + (bytes[offset++] << 8);
-					Dependency[] dependencies = new Dependency[dependencyLength];
-					
-					for (var k = 0; k < dependencyLength; k++)
-					{
-						string id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-						string connectionType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-						string nodeType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-
-						int pathLength = bytes[offset++] + (bytes[offset++] << 8);
-						PathSegment[] pathSegments = new PathSegment[pathLength];
+						AssetNode.ResolverData data = new AssetNode.ResolverData();
 						
-						for (var p = 0; p < pathLength; p++)
-						{
-							PathSegment pathSegment = new PathSegment();
-							
-							pathSegment.Name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-							pathSegment.Type = (PathSegmentType)bytes[offset++];
+						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 
-							pathSegments[p] = pathSegment;
+						int numDependencies = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+						Dependency[] dependencies = new Dependency[numDependencies];
+
+						for (var k = 0; k < numDependencies; k++)
+						{
+							string id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+							string connectionType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+							string nodeType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+							int pathLength = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+							
+							PathSegment[] pathSegments = new PathSegment[pathLength];
+
+							for (var p = 0; p < pathLength; p++)
+							{
+								PathSegment pathSegment = new PathSegment();
+
+								pathSegment.Name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+								pathSegment.Type = (PathSegmentType)CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+
+								pathSegments[p] = pathSegment;
+							}
+
+							dependencies[k] = new Dependency(id, connectionType, nodeType, pathSegments);
 						}
 						
-						Dependency dependency = new Dependency(id, connectionType, nodeType, pathSegments);
-
-						dependencies[k] = dependency;
+						data.Dependencies = dependencies;
+						assetNode.ResolverDatas.Add(data);
 					}
 
-					data.Dependencies = dependencies;
-					assetNode.ResolverDatas.Add(data);
+					fileAssetNode.AssetNodes.Add(assetNode);
 				}
 				
-				assetsNodes[n] = assetNode;
+				fileToAssetNodes[n] = fileAssetNode;
 			}
 			
 			string eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 			if (!eof.Equals(EOF))
 			{
 				Debug.LogError("AssetDependencyCache cache file to be corrupted. Rebuilding cache required");
-				return new AssetNode[0];
+				return new FileToAssetNode[0];
 			}
 
-			return assetsNodes;
-		}*/
+			return fileToAssetNodes;
+		}
 	}
 }

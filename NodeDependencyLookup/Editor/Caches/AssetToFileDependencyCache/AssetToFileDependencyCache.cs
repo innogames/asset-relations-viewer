@@ -183,7 +183,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public string Type => "File";
         public bool Existing => IsExisting;
 
-        public bool IsExisting;
+        public bool IsExisting = true;
         public long TimeStamp;
         
         public List<Dependency> Dependencies = new List<Dependency>();

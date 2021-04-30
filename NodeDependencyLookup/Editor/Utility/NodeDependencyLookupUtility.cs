@@ -55,7 +55,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             for (int i = 0; i < pathes.Length; ++i)
             {
-                timestamps[i] = GetTimeStampForFileId(pathes[i]);
+                timestamps[i] = GetTimeStampForPath(pathes[i]);
             }
 
             return timestamps;
@@ -63,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static long GetTimeStampForFileId(string fileId)
         {
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(fileId);
+            string guid = GetGuidFromAssetId(fileId);
             string path = AssetDatabase.GUIDToAssetPath(guid);
 
             if (string.IsNullOrEmpty(path))
@@ -71,6 +71,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 return 0;
             }
 
+            return GetTimeStampForPath(path);
+        }
+
+        public static long GetTimeStampForPath(string path)
+        {
             long fileTimeStamp = File.GetLastWriteTime(path).ToFileTimeUtc();
             long metaFileTimeStamp = File.GetLastWriteTime(path + ".meta").ToFileTimeUtc();
             long timeStamp = Math.Max(fileTimeStamp, metaFileTimeStamp);

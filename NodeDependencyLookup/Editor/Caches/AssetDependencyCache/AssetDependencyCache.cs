@@ -41,12 +41,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (_isLoaded)
 				return;
 			
-			/*if (File.Exists(path))
+			if (File.Exists(path))
 			{
 				byte[] bytes = File.ReadAllBytes(path);
-				_assetNodes = AssetDependencyCacheSerializer.Deserialize(bytes);
+				_fileToAssetNodes = AssetDependencyCacheSerializer.Deserialize(bytes);
 			}
-			else*/
+			else
 			{
 				_fileToAssetNodes = new FileToAssetNode[0];
 			}
@@ -63,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				Directory.CreateDirectory(directory);
 			}
 			
-			//File.WriteAllBytes(path, AssetDependencyCacheSerializer.Serialize(_assetNodes));
+			File.WriteAllBytes(path, AssetDependencyCacheSerializer.Serialize(_fileToAssetNodes));
 		}
 		
 		public void ClearFile(string directory)
@@ -162,12 +162,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (list.ContainsKey(guid))
 				{
 					FileToAssetNode fileToAssetNode = list[guid];
-					//entry.Existing = true; // TODO
+					foreach (AssetNode assetNode in fileToAssetNode.AssetNodes)
+					{
+						assetNode.Existing = true;
+					}
 					
-					long resolverTimestamp = fileToAssetNode.GetResolverTimeStamp(id).TimeStamp;
-					long timeStamp = timestamps[i];
-
-					//if (resolverData.TimeStamp != timeStamp)
+					if (fileToAssetNode.GetResolverTimeStamp(id).TimeStamp != timestamps[i])
 					{
 						NodeDependencyLookupUtility.AddAssetsToList(result, path);
 					}
