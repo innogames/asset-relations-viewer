@@ -37,6 +37,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				
 				foreach (Object asset in dependencyAssets)
 				{
+					if (asset == null)
+					{
+						continue;
+					}
+					
 					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string depGuid, out long depFileId);
 					string assetId = $"{depGuid}_{depFileId}";
 

@@ -209,16 +209,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void SetDefaultResolverAndCacheState()
 		{
 			AssetDependencyCache assetDependencyCache = new AssetDependencyCache();
-			ObjectDependencyResolver resolver = new ObjectDependencyResolver();
-			
+			ObjectDependencyResolver objectDependencyResolver = new ObjectDependencyResolver();
+
 			CacheState assetDependencyCacheState = new CacheState(assetDependencyCache);
-			ResolverState resolverState = new ResolverState(resolver);
+			ResolverState resolverState = new ResolverState(objectDependencyResolver);
 			
 			assetDependencyCacheState.ResolverStates.Add(resolverState);
 
 			assetDependencyCacheState.IsActive = true;
 			resolverState.IsActive = true;
-			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetConnectionTypes());
+			resolverState.ActiveConnectionTypes = new HashSet<string>(objectDependencyResolver.GetConnectionTypes());
 
 			assetDependencyCacheState.SaveState();
 		}
@@ -358,6 +358,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				AssetDatabase.SaveAssets();
 				NodeDependencyLookupUtility.ClearCachedContexts();
 				NodeDependencyLookupUtility.ClearCacheFiles();
+				_nodeDependencyLookupContext.CreatedCaches.Clear();
 				ReloadContext();
 			}
 
@@ -1133,7 +1134,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			visualizationNode.SetRelations(visualizationNode.GetRelations(relationType, true, true).OrderBy(p =>
 			{
-				return Path.GetFileNameWithoutExtension(p.VNode.GetSortingKey(relationType));
+				return p.VNode.GetSortingKey(relationType);
+
 			}).ToList(), relationType);
 		}
 

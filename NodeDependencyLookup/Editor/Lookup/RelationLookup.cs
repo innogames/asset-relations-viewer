@@ -46,13 +46,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public static Dictionary<string, Node> CreateRelationMapping(List<CreatedDependencyCache> dependencyCaches)
 			{
 				List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
-				Dictionary<string, IDependencyCache> typeToCache = new Dictionary<string, IDependencyCache>();
+				Dictionary<string, List<IDependencyCache>> typeToCaches = new Dictionary<string, List<IDependencyCache>>();
 				Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
 					IDependencyCache cache = dependencyCache.Cache;
-					typeToCache.Add(cache.GetHandledNodeType(), cache);
+					string handledNodeType = cache.GetHandledNodeType();
+
+					if (!typeToCaches.ContainsKey(handledNodeType))
+					{
+						typeToCaches.Add(handledNodeType, new List<IDependencyCache>());
+					}
+					
+					typeToCaches[handledNodeType].Add(cache);
 
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
@@ -62,13 +69,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				foreach (var resolvedNode in resolvedNodes)
 				{
 					Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary);
-					List<Dependency> dependenciesForId = typeToCache[referencerNode.Type].GetDependenciesForId(referencerNode.Id);
-
-					foreach (Dependency dependency in dependenciesForId)
+					
+					foreach (IDependencyCache dependencyCache in typeToCaches[referencerNode.Type])
 					{
-						Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary);
-						referencerNode.Dependencies.Add(
-							new Connection(dependencyNode, dependency.ConnectionType, dependency.PathSegments));
+						List<Dependency> dependenciesForId = dependencyCache.GetDependenciesForId(referencerNode.Id);
+
+						foreach (Dependency dependency in dependenciesForId)
+						{
+							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary);
+							referencerNode.Dependencies.Add(
+								new Connection(dependencyNode, dependency.ConnectionType, dependency.PathSegments));
+						}
 					}
 				}
 

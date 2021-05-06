@@ -42,29 +42,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
 					{
 						AssetNode.ResolverData resolverData = assetNode.ResolverDatas[i];
-						Dependency[] dependencies = resolverData.Dependencies;
-				
+
 						CacheSerializerUtils.EncodeString(resolverData.ResolverId, ref bytes, ref offset);
-						CacheSerializerUtils.EncodeShort((short)dependencies.Length, ref bytes, ref offset);
-
-						for (var k = 0; k < dependencies.Length; k++)
-						{
-							Dependency dependency = dependencies[k];
-							CacheSerializerUtils.EncodeString(dependency.Id, ref bytes, ref offset);
-							CacheSerializerUtils.EncodeString(dependency.ConnectionType, ref bytes, ref offset);
-							CacheSerializerUtils.EncodeString(dependency.NodeType, ref bytes, ref offset);
-							CacheSerializerUtils.EncodeShort((short)dependency.PathSegments.Length, ref bytes, ref offset);
-
-							for (var p = 0; p < dependency.PathSegments.Length; p++)
-							{
-								PathSegment pathSegment = dependency.PathSegments[p];
-
-								CacheSerializerUtils.EncodeString(pathSegment.Name, ref bytes, ref offset);
-								CacheSerializerUtils.EncodeShort((short)pathSegment.Type, ref bytes, ref offset);
-							}
-
-							bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
-						}
+						CacheSerializerUtils.EncodeDependencies(resolverData.Dependencies, ref bytes, ref offset);
 
 						bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
 					}
@@ -113,33 +93,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						AssetNode.ResolverData data = new AssetNode.ResolverData();
 						
 						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-
-						int numDependencies = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
-						Dependency[] dependencies = new Dependency[numDependencies];
-
-						for (var k = 0; k < numDependencies; k++)
-						{
-							string id = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-							string connectionType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-							string nodeType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-							int pathLength = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
-							
-							PathSegment[] pathSegments = new PathSegment[pathLength];
-
-							for (var p = 0; p < pathLength; p++)
-							{
-								PathSegment pathSegment = new PathSegment();
-
-								pathSegment.Name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-								pathSegment.Type = (PathSegmentType)CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
-
-								pathSegments[p] = pathSegment;
-							}
-
-							dependencies[k] = new Dependency(id, connectionType, nodeType, pathSegments);
-						}
+						data.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
 						
-						data.Dependencies = dependencies;
 						assetNode.ResolverDatas.Add(data);
 					}
 

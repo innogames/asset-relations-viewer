@@ -62,12 +62,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
                 return null;
-
+            
             string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-            // Unity internal assets start with 000000 which should not be seen as a dependency
-            //if (guid.StartsWith("000000"))
-                //return null;
+            if (!guid.StartsWith("0000000") && !(AssetDatabase.IsSubAsset(value) || AssetDatabase.IsMainAsset(value)))
+            {
+                return null;
+            }
 
             return new Result {Id = assetId, ConnectionType = ConnectionType, NodeType = NodeType};
         }

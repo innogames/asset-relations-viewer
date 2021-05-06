@@ -58,7 +58,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public class ResolverData
 		{
 			public string ResolverId;
-			public Dependency[] Dependencies = new Dependency[0];
+			public List<Dependency> Dependencies = new List<Dependency>();
 		}
 
 		public string AssetId;

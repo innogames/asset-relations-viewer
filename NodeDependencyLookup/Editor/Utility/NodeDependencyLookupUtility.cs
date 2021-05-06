@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
@@ -337,10 +338,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string fileId = GetFileIdFromId(id);
             string guid = GetGuidFromAssetId(id);
             string path = AssetDatabase.GUIDToAssetPath(guid);
+            Profiler.BeginSample("LoadAllAssets");
             Object[] assetsAtPath = LoadAllAssetsAtPath(path);
+            Profiler.EndSample();
 
             foreach (Object asset in assetsAtPath)
             {
+                if (asset == null)
+                {
+                    continue;
+                }
+                
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
                 if (afileId.ToString() == fileId)
                 {
@@ -363,29 +371,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             if (path.EndsWith(".unity"))
             {
-                return new Object[] {AssetDatabase.LoadMainAssetAtPath(path)};
+                return new [] {AssetDatabase.LoadMainAssetAtPath(path)};
             }
-            else
-            {
-                return AssetDatabase.LoadAllAssetsAtPath(path);
-            }
+
+            return AssetDatabase.LoadAllAssetsAtPath(path);
         }
 
-        public static string[] GetAllAssetPathes(ProgressBase progress)
+        public static string[] GetAllAssetPathes(ProgressBase progress, bool unityBuiltin)
         {
-            string[] pathes = AssetDatabase.FindAssets("");
-
-            for (int i = 0; i < pathes.Length; ++i)
-            {
-                pathes[i] = AssetDatabase.GUIDToAssetPath(pathes[i]);
-            }
+            string[] pathes = AssetDatabase.GetAllAssetPaths();
 
             pathes = AssetDatabase.GetAllAssetPaths();
 
             List<string> pathList = new List<string>();
-            
-            //pathList.Add(AssetDatabase.GUIDToAssetPath(BuiltinGuid));
-            //pathList.Add(AssetDatabase.GUIDToAssetPath(BuiltinExtraGuid));
 
             foreach (string path in pathes)
             {
@@ -397,13 +395,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static void AddAssetsToList(HashSet<string> assetList, string path)
         {
+            Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             Object[] allAssets = LoadAllAssetsAtPath(path);
 
             foreach (Object asset in allAssets)
             {
+                if (asset == null)
+                {
+                    continue;
+                }
+                
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
 
-                if (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset))
+                if ((AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
                 {
                     assetList.Add($"{guid}_{fileID}");
                 }

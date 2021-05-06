@@ -36,10 +36,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return false;
 			}
 
-			if (IsSceneAndPacked(path) || IsInResources(path))
+			/*if (IsSceneAndPacked(path) || IsInResources(path))
 			{
 				return true;
-			}
+			}*/
 
 			return false;
 		}

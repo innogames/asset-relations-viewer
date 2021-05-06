@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public Color NodeColorOwn = new Color(0.60f, 0.25f, 0.2f);
         public Color NodeColor = new Color(0.1f, 0.1f, 0.15f);
 		
-        public int NodeWidth = 16 * 36;
+        public int NodeWidth = 16 * 32;
         public int NodeSpaceX = 16 * 8;
         public int NodeSpaceY = 8;
 		

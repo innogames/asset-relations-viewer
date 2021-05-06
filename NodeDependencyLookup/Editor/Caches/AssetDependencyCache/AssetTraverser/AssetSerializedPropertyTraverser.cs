@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Playables;
+using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -75,8 +77,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
+			Profiler.BeginSample("Getting serialized object");
 			SerializedObject serializedObject = new SerializedObject(obj);
+			
 			SerializedProperty property = serializedObject.GetIterator();
+			Profiler.EndSample();
 
 			Type objType = obj.GetType();
 			
@@ -84,13 +89,26 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			rootItem.value = obj;
 			rootItem.type = objType;
 
+			Type type = typeof(SerializedProperty);
+			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+			
 			do
 			{
-				if (property.type == "char")
+				SerializedPropertyType propertyType = property.propertyType;
+				
+				if (propertyType == SerializedPropertyType.Character |
+				    propertyType == SerializedPropertyType.Integer |
+				    propertyType == SerializedPropertyType.Float |
+				    propertyType == SerializedPropertyType.String |
+				    propertyType == SerializedPropertyType.Vector4 |
+				    propertyType == SerializedPropertyType.Vector2 |
+				    propertyType == SerializedPropertyType.Vector3 |
+				    propertyType == SerializedPropertyType.ArraySize
+				    )
 				{
 					continue;
 				}
-				
+
 				if (!onlyOverriden || property.prefabOverride)
 				{
 					string propertyPath = property.propertyPath;
@@ -121,7 +139,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			bool changed = false;
 
 			string[] tokens = path.Split( '.' );
-			
+
 			for (int i = 0; i < tokens.Length; ++i)
 			{
 				string elementName = tokens[i];
@@ -229,12 +247,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (result == null)
 					continue;
 				
-				string assetGuid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-				string resultGuid = NodeDependencyLookupUtility.GetGuidFromAssetId(result.Id);
-
-				// TODO this currently prevent subassets in the same file to find each other as a dependency
-				if (assetGuid == resultGuid)
-				//if (assetId == result.Id)
+				if (assetId == result.Id)
 				{
 					continue;
 				}

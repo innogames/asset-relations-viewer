@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
-using UnityEditor.VersionControl;
 using UnityEngine;
-using Node = UnityEditor.Graphs.AnimationBlendTree.Node;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
@@ -43,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (asset != null)
 			{
-				return $"{asset.name} in {path}";
+				return $"{asset.name}";
 			}
 
 			if (!string.IsNullOrEmpty(path))

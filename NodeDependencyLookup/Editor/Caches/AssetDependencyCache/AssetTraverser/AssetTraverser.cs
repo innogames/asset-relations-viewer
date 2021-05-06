@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -22,6 +23,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Traverse(string id, Object obj, Stack<PathSegment> stack)
 		{
+			Profiler.BeginSample($"Traverse: {obj.name}");
+
 			if (obj is GameObject)
 			{
 				GameObject go = obj as GameObject;
@@ -35,6 +38,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				TraverseObject(id, obj, stack, false);
 			}
+
+			Profiler.EndSample();
 		}
 
 		public void TraverseScene(string id, Object obj, Stack<PathSegment> stack)
@@ -123,6 +128,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				int count = componentToCount[componentName]++;
+				
 				string segmentName = count > 1 ? string.Format("{0}_{1}", componentName, count) : componentName;
 
 				stack.Push(new PathSegment(segmentName, PathSegmentType.Component));

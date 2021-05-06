@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -71,6 +72,72 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 			
             return new string(charArray);
+        }
+
+        public static void EncodePathSegments(PathSegment[] pathSegments, ref byte[] bytes, ref int offset)
+        {
+            EncodeShort((short)pathSegments.Length, ref bytes, ref offset);
+
+            for (var p = 0; p < pathSegments.Length; p++)
+            {
+                PathSegment pathSegment = pathSegments[p];
+
+                EncodeString(pathSegment.Name, ref bytes, ref offset);
+                EncodeShort((short)pathSegment.Type, ref bytes, ref offset);
+            }
+        }
+        
+        public static PathSegment[] DecodePathSegments(ref byte[] bytes, ref int offset)
+        {
+            int pathLength = DecodeShort(ref bytes, ref offset);
+            PathSegment[] pathSegments = new PathSegment[pathLength];
+
+            for (var p = 0; p < pathLength; p++)
+            {
+                PathSegment pathSegment = new PathSegment();
+
+                pathSegment.Name = DecodeString(ref bytes, ref offset);
+                pathSegment.Type = (PathSegmentType)DecodeShort(ref bytes, ref offset);
+
+                pathSegments[p] = pathSegment;
+            }
+
+            return pathSegments;
+        }
+        
+        public static void EncodeDependencies(List<Dependency> dependencies, ref byte[] bytes, ref int offset)
+        {
+            EncodeShort((short)dependencies.Count, ref bytes, ref offset);
+
+            for (var k = 0; k < dependencies.Count; k++)
+            {
+                Dependency dependency = dependencies[k];
+                EncodeString(dependency.Id, ref bytes, ref offset);
+                EncodeString(dependency.ConnectionType, ref bytes, ref offset);
+                EncodeString(dependency.NodeType, ref bytes, ref offset);
+
+                EncodePathSegments(dependency.PathSegments, ref bytes, ref offset);
+
+                bytes = EnsureSize(bytes, offset);
+            }
+        }
+        
+        public static List<Dependency> DecodeDependencies(ref byte[] bytes, ref int offset)
+        {
+            int numDependencies = DecodeShort(ref bytes, ref offset);
+            List<Dependency> dependencies = new List<Dependency>();
+
+            for (var k = 0; k < numDependencies; k++)
+            {
+                string id = DecodeString(ref bytes, ref offset);
+                string connectionType = DecodeString(ref bytes, ref offset);
+                string nodeType = DecodeString(ref bytes, ref offset);
+                PathSegment[] pathSegments = DecodePathSegments(ref bytes, ref offset);
+							
+                dependencies.Add(new Dependency(id, connectionType, nodeType, pathSegments));
+            }
+
+            return dependencies;
         }
     }
 }

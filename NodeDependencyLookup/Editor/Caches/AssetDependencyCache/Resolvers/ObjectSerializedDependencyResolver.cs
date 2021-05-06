@@ -78,8 +78,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			string[] filters = 
 			{
-				"t:Texture",
 				"t:Script",
+				"t:SpriteAtlas",
 			};
 			
 			foreach (string filter in filters)
@@ -97,7 +97,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			foreach (string assetId in changedAssets)
 			{
-				if (!_inValidGuids.Contains(assetId))
+				string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+				if (!_inValidGuids.Contains(guid))
 				{
 					cache._hierarchyTraverser.AddAssetId(assetId, TraverserSubSystem);
 				}

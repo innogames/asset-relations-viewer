@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEngine;
@@ -12,7 +13,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public override string GetSortingKey(RelationType relationType)
 		{
-			return GetRelationArray(relationType)[0].VNode.GetSortingKey(relationType);
+			string sortingKey = GetRelationArray(relationType)[0].VNode.GetSortingKey(relationType);
+			return sortingKey;
 		}
 
 		public override EnclosedBounds GetBoundsOwn(NodeDisplayData displayData)

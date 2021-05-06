@@ -1,3 +1,9 @@
+**1.2.0**
+ - Added support for subassets
+ - Added support for unity internal assets
+ - Split assets and files into different caches
+ - Sped up the ObjectSerializedDependencyResolver asset traversal
+
 **1.1.1**
  - Renamed some classes
  - Sped up the ObjectSerializedDependencyResolver by skipping over char properties fast.
