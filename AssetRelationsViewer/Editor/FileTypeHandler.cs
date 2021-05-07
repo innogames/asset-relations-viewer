@@ -1,5 +1,7 @@
-﻿using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+﻿using System.IO;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
@@ -14,6 +16,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return "File";
 		}
 
+		public string GetSortingKey(string name)
+		{
+			return $"File {name}";
+		}
+
 		public bool HasFilter()
 		{
 			return false;
@@ -26,7 +33,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public string GetName(string id)
 		{
-			return AssetDatabase.GUIDToAssetPath(id);
+			return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
 		}
 
 		public VisualizationNodeData CreateNodeCachedData(string id)

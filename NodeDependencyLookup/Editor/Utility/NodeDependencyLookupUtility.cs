@@ -39,15 +39,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             NodeDependencyLookupContext.ResetContexts();
         }
 
-        public static bool NeedsCacheUpdate(CreatedDependencyCache usage)
+        public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
         {
-            foreach (CreatedResolver resolverUsage in usage.ResolverUsages)
-            {
-                if (resolverUsage.IsActive)
-                    return true;
-            }
-
-            return false;
+            Dictionary<string, CreatedResolver> resolverUsagesLookup = createdCache.ResolverUsagesLookup;
+            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].ConnectionTypes.Contains(connectionType);
         }
 
         public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -182,7 +177,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 return path;
             }
 
-
 #if UNITY_2019_2_OR_NEWER
             if (EditorSettings.assetPipelineMode == AssetPipelineMode.Version1)
             {
@@ -190,14 +184,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
             else
             {
+#if UNITY_2020_2_OR_NEWER
+                Hash128 artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
+#else
                 Hash128 artifactHash = AssetDatabaseExperimental.GetArtifactHash(guid);
+#endif
 
                 if (!artifactHash.isValid)
                 {
                     return null;
                 }
 
+#if UNITY_2020_2_OR_NEWER
+                ArtifactID artifactID = new ArtifactID();
+                artifactID.value = artifactHash;
+                AssetDatabaseExperimental.GetArtifactPaths(artifactID, out string[] paths);
+#else
                 AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out string[] paths);
+#endif
 
                 foreach (string artifactPath in paths)
                 {
@@ -207,7 +211,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     return Path.GetFullPath(artifactPath);
                 }
             }
-#else // For older version that dont have asset database V2 yet
+#else // For older unity versions that dont have asset database V2 yet
                 return return GetAssetDatabaseVersion1LibraryDataPath(guid);
 #endif
 
@@ -314,9 +318,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return size;
         }
 
-        private const string BuiltinExtraGuid = "0000000000000000f000000000000000";
-        private const string BuiltinGuid = "0000000000000000e000000000000000";
-
         public static string GetGuidFromAssetId(string id)
         {
             return id.Split('_')[0];
@@ -407,7 +408,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
 
-                if ((AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
+                if (!(mainAsset is GameObject) || (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
                 {
                     assetList.Add($"{guid}_{fileID}");
                 }
@@ -451,7 +452,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         /**
-         * Return the dependency lookup for Objects using the SimpleObjectResolver
+         * Return the dependency lookup for Objects using the ObjectDependencyResolver
          */
         public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache,
             string savePath,

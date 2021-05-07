@@ -28,5 +28,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public abstract Texture2D AssetPreviewTexture { get; }
 		public abstract Texture2D ThumbNailTexture { get; }
+
+		public string GetSortingKey()
+		{
+			return TypeHandler.GetSortingKey(Name);
+		}
 	}
 }

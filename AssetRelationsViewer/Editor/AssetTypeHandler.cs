@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
@@ -21,6 +20,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public string GetHandledType()
 		{
 			return "Asset";
+		}
+
+		public string GetSortingKey(string name)
+		{
+			return $"Asset {name}";
 		}
 
 		public bool HasFilter()

@@ -3,6 +3,8 @@
  - Added support for unity internal assets
  - Split assets and files into different caches
  - Sped up the ObjectSerializedDependencyResolver asset traversal
+ - ObjectSerializedDependencyResolver and AssetToFileDependencyResolver are now the default activated dependency resolvers
+ - Removed compiler warnings due to deprecated code in Unity 2020.2
 
 **1.1.1**
  - Renamed some classes

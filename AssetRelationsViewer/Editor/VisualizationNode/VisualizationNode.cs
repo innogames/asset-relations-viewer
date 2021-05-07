@@ -12,7 +12,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public override string GetSortingKey(RelationType relationType)
 		{
-			return NodeData.Name;
+			return NodeData.GetSortingKey();
 		}
 
 		public override EnclosedBounds GetBoundsOwn(NodeDisplayData displayData)

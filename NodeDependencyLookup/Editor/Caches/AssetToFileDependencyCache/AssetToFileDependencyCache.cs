@@ -7,11 +7,13 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    // Cache to find get mapping of assets to the file the asset is included in
     public class AssetToFileDependencyCache : IDependencyCache
     {
         public const string Version = "1.10";
         public const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
-        
+        public const string ConnectionType = "File";
+
         private Dictionary<string, FileToAssetMappingNode> _fileNodesDict = new Dictionary<string, FileToAssetMappingNode>();
         private FileToAssetsMapping[] _fileToAssetsMappings = new FileToAssetsMapping[0];
         
@@ -168,12 +170,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 FileToAssetsMapping fileToAssetsMapping = resultList[fileId];
                 FileToAssetMappingNode fileToAssetMappingNode = fileToAssetsMapping.GetFileNode(assetId);
 
-                // TODO
-                List<Dependency> dependencies = new List<Dependency>();
-
-                resolver.GetDependenciesForId(assetId, dependencies);
-
-                fileToAssetMappingNode.Dependencies = dependencies;
+                fileToAssetMappingNode.Dependencies.Clear();
+                resolver.GetDependenciesForId(assetId, fileToAssetMappingNode.Dependencies);
+                
                 fileToAssetsMapping.Timestamp = NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
             }
         }
@@ -184,8 +183,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 foreach (FileToAssetMappingNode fileNode in fileToAssetsMapping.FileNodes)
                 {
-                    // TODO
-                    //if (fileNode.Existing)
+                    if (fileNode.Existing)
                     {
                         nodes.Add(fileNode);
                     }
@@ -200,7 +198,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public List<Dependency> GetDependenciesForId(string id)
         {
-            return _fileNodesDict[id].Dependencies;
+            if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AssetToFileDependencyResolver.Id, ConnectionType))
+            {
+                return _fileNodesDict[id].Dependencies;
+            }
+            
+            return new List<Dependency>();
         }
 
         public void Load(string directory)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -66,7 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
             string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-            if (!guid.StartsWith("0000000") && !(AssetDatabase.IsSubAsset(value) || AssetDatabase.IsMainAsset(value)))
+            if (!(guid.StartsWith("0000000") || value is ScriptableObject || AssetDatabase.IsSubAsset(value) || AssetDatabase.IsMainAsset(value)))
             {
                 return null;
             }

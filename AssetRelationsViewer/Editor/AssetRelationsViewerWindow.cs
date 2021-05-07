@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
@@ -39,7 +37,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		
 		private const string OwnName = "AssetRelationsViewer";
 
-		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1";
+		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1.2";
 		
 		private NodeDisplayData DisplayData = new NodeDisplayData();
 		
@@ -208,19 +206,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void SetDefaultResolverAndCacheState()
 		{
-			AssetDependencyCache assetDependencyCache = new AssetDependencyCache();
-			ObjectDependencyResolver objectDependencyResolver = new ObjectDependencyResolver();
+			AddDefaultCacheActivation(new AssetDependencyCache(), new ObjectSerializedDependencyResolver());
+			AddDefaultCacheActivation(new AssetToFileDependencyCache(), new AssetToFileDependencyResolver());
+		}
 
-			CacheState assetDependencyCacheState = new CacheState(assetDependencyCache);
-			ResolverState resolverState = new ResolverState(objectDependencyResolver);
+		private void AddDefaultCacheActivation(IDependencyCache cache, IDependencyResolver resolver)
+		{
+			CacheState cacheState = new CacheState(cache);
+			ResolverState resolverState = new ResolverState(resolver);
 			
-			assetDependencyCacheState.ResolverStates.Add(resolverState);
+			cacheState.ResolverStates.Add(resolverState);
 
-			assetDependencyCacheState.IsActive = true;
+			cacheState.IsActive = true;
 			resolverState.IsActive = true;
-			resolverState.ActiveConnectionTypes = new HashSet<string>(objectDependencyResolver.GetConnectionTypes());
+			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetConnectionTypes());
 
-			assetDependencyCacheState.SaveState();
+			cacheState.SaveState();
 		}
 		
 		public void InvalidateNodeStructure()
@@ -911,9 +912,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DrawRelations(VisualizationNodeBase node, int depth, RelationType relationType)
 		{
-			foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
+			List<VisualizationConnection> visualizationConnections = node.GetRelations(relationType);
+
+			foreach (VisualizationConnection childConnection in visualizationConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, relationType, false);
+				DrawConnectionForNodes(node, childConnection, relationType, false, visualizationConnections.Count);
 				
 				VisualizationNodeBase childNode = childConnection.VNode;
 	
@@ -936,11 +939,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			foreach (VisualizationConnection childConnection in childConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, InvertRelationType(relationType), true);
+				DrawConnectionForNodes(node, childConnection, InvertRelationType(relationType), true, childConnections.Count);
 			}
 		}
 
-		private void DrawConnectionForNodes(VisualizationNodeBase node, VisualizationConnection childConnection, RelationType relationType, bool isRecursion)
+		private void DrawConnectionForNodes(VisualizationNodeBase node, VisualizationConnection childConnection, RelationType relationType, bool isRecursion, int connectionCount)
 		{
 			VisualizationNodeBase childNode = childConnection.VNode;
 			VisualizationNodeBase current = relationType == RelationType.DEPENDENCY ? node : childNode;
@@ -949,10 +952,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Vector2 currentPos = current.GetPosition(_viewAreaData);
 			Vector2 targetPos = target.GetPosition(_viewAreaData);
 
-			float distanceBlend = Mathf.Pow(1 - Mathf.Clamp01(Mathf.Abs(currentPos.y - targetPos.y) / 20000.0f), 3);
+			float distanceBlend = 1;
+			
+			if (connectionCount > 20)
+			{
+				distanceBlend = Mathf.Pow(1 - Mathf.Clamp01(Mathf.Abs(currentPos.y - targetPos.y) / 20000.0f), 3);
+			}
+
 			float alphaAmount = (isRecursion ? 0.15f : 1.0f) * distanceBlend;
 
 			DrawRecursionButton(isRecursion, node, childNode, relationType);
+
+			if (childConnection.IsIndicator)
+			{
+				return;
+			}
 
 			if (alphaAmount > 0.01)
 			{

@@ -9,6 +9,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		string GetHandledType();
 
+		string GetSortingKey(string name);
+
 		bool HasFilter();
 		bool IsFiltered(string id);
 			
