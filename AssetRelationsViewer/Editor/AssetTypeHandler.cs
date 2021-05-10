@@ -7,158 +7,173 @@ using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-	public class AssetTypeHandler : ITypeHandler
-	{
-		private HashSet<string> _filteredNodes;
-		private PrefValueString _filterString = new PrefValueString("AssetTypeHandler_FilterString", String.Empty);
+    public class AssetTypeHandler : ITypeHandler
+    {
+        private HashSet<string> _filteredNodes;
+        private PrefValueString _filterString = new PrefValueString("AssetTypeHandler_FilterString", String.Empty);
 
-		private Object _selectedAsset;
-		private AssetRelationsViewerWindow _viewerWindow;
+        private Object _selectedAsset;
+        private AssetRelationsViewerWindow _viewerWindow;
 
-		private PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
+        private PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
 
-		public string GetHandledType()
-		{
-			return "Asset";
-		}
+        public string GetHandledType()
+        {
+            return "Asset";
+        }
 
-		public string GetSortingKey(string name)
-		{
-			return $"Asset {name}";
-		}
+        public string GetSortingKey(string name)
+        {
+            return $"Asset {name}";
+        }
 
-		public bool HasFilter()
-		{
-			return _filteredNodes != null;
-		}
+        public bool HasFilter()
+        {
+            return _filteredNodes != null;
+        }
 
-		public bool IsFiltered(string id)
-		{
-			return _filteredNodes.Contains(id);
-		}
+        public bool IsFiltered(string id)
+        {
+            return _filteredNodes.Contains(id);
+        }
 
-		public string GetName(string id)
-		{
-			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
-			string path = AssetDatabase.GUIDToAssetPath(guid);
+        public string GetName(string id)
+        {
+            Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (asset != null)
-			{
-				return $"{asset.name}";
-			}
+            if (asset != null)
+            {
+                return $"{asset.name}";
+            }
 
-			if (!string.IsNullOrEmpty(path))
-			{
-				return path;
-			}
-			
-			return id;
-		}
+            if (!string.IsNullOrEmpty(path))
+            {
+                return path;
+            }
 
-		public VisualizationNodeData CreateNodeCachedData(string id)
-		{
-			return new AssetVisualizationNodeData(id, GetHandledType());
-		}
+            return id;
+        }
 
-		public void SelectInEditor(string id)
-		{
-			Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(id));
-		}
+        public VisualizationNodeData CreateNodeCachedData(string id)
+        {
+            return new AssetVisualizationNodeData(id, GetHandledType());
+        }
 
-		public void OnGui()
-		{
-			DisplayFilterOptions();
-		}
+        public void SelectInEditor(string id)
+        {
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
+            long fileId = long.Parse(NodeDependencyLookupUtility.GetFileIdFromAssetId(id));
 
-		public void OnSelectAsset(string id, string type)
-		{
-			if (type == GetHandledType())
-			{
-				_selectedAsset = NodeDependencyLookupUtility.GetAssetById(id);
-			}
-			else
-			{
-				_selectedAsset = null;
-			}
-		}
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Object[] allAssets = NodeDependencyLookupUtility.LoadAllAssetsAtPath(path);
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
-		{
-			_viewerWindow = window;
-			_filteredNodes = CreateFilter(_filterString);
+            foreach (Object asset in allAssets)
+            {
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
 
-			if (_explorerSyncModePref.GetValue())
-			{
-				RegisterOnSelectionChanged();
-			}
-			else
-			{
-				UnregisterOnSelectionChanged();
-			}
-		}
+                if (afileId == fileId)
+                {
+                    Selection.activeObject = asset;
+                }
+            }
+        }
 
-		public bool HandlesCurrentNode()
-		{
-			return _selectedAsset != null;
-		}
+        public void OnGui()
+        {
+            DisplayFilterOptions();
+        }
 
-		private void DisplayFilterOptions()
-		{
-			EditorGUILayout.BeginVertical();
+        public void OnSelectAsset(string id, string type)
+        {
+            if (type == GetHandledType())
+            {
+                _selectedAsset = NodeDependencyLookupUtility.GetAssetById(id);
+            }
+            else
+            {
+                _selectedAsset = null;
+            }
+        }
 
-			Object newSelectedAsset = EditorGUILayout.ObjectField(_selectedAsset, typeof(Object), false);
+        public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
+            AssetRelationsViewerWindow window)
+        {
+            _viewerWindow = window;
+            _filteredNodes = CreateFilter(_filterString);
 
-			if (newSelectedAsset != _selectedAsset)
-			{
-				string fileId = NodeDependencyLookupUtility.GetAssetIdForAsset(newSelectedAsset);
-				_viewerWindow.ChangeSelection(fileId, GetHandledType());
+            if (_explorerSyncModePref.GetValue())
+            {
+                RegisterOnSelectionChanged();
+            }
+            else
+            {
+                UnregisterOnSelectionChanged();
+            }
+        }
 
-				_selectedAsset = newSelectedAsset;
-			}
+        public bool HandlesCurrentNode()
+        {
+            return _selectedAsset != null;
+        }
 
-			float origWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = 50;
-			_filterString.DirtyOnChange(EditorGUILayout.TextField("Filter:", _filterString, GUILayout.MinWidth(200)));
-			EditorGUIUtility.labelWidth = origWidth;
+        private void DisplayFilterOptions()
+        {
+            EditorGUILayout.BeginVertical();
 
-			if (GUILayout.Button("Apply"))
-			{
-				_filteredNodes = CreateFilter(_filterString);
-				_viewerWindow.InvalidateNodeStructure();
-			}
+            Object newSelectedAsset = EditorGUILayout.ObjectField(_selectedAsset, typeof(Object), false);
 
-			AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:", b =>
-			{
-				if (b)
-				{
-					RegisterOnSelectionChanged();
-				}
-				else
-				{
-					UnregisterOnSelectionChanged();
-				}
-			});
+            if (newSelectedAsset != _selectedAsset)
+            {
+                string fileId = NodeDependencyLookupUtility.GetAssetIdForAsset(newSelectedAsset);
+                _viewerWindow.ChangeSelection(fileId, GetHandledType());
 
-			EditorGUILayout.EndVertical();
-		}
+                _selectedAsset = newSelectedAsset;
+            }
 
-		private void RegisterOnSelectionChanged()
-		{
-			Selection.selectionChanged += _viewerWindow.OnAssetSelectionChanged;
-		}
-		
-		private void UnregisterOnSelectionChanged()
-		{
-			Selection.selectionChanged -= _viewerWindow.OnAssetSelectionChanged;
-		}
+            float origWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 50;
+            _filterString.DirtyOnChange(EditorGUILayout.TextField("Filter:", _filterString, GUILayout.MinWidth(200)));
+            EditorGUIUtility.labelWidth = origWidth;
 
-		private HashSet<string> CreateFilter(string filter)
-		{
-			if (string.IsNullOrEmpty(filter))
-				return null;
+            if (GUILayout.Button("Apply"))
+            {
+                _filteredNodes = CreateFilter(_filterString);
+                _viewerWindow.InvalidateNodeStructure();
+            }
 
-			return new HashSet<string>(AssetDatabase.FindAssets(filter));
-		}
-	}
+            AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:", b =>
+            {
+                if (b)
+                {
+                    RegisterOnSelectionChanged();
+                }
+                else
+                {
+                    UnregisterOnSelectionChanged();
+                }
+            });
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void RegisterOnSelectionChanged()
+        {
+            Selection.selectionChanged += _viewerWindow.OnAssetSelectionChanged;
+        }
+
+        private void UnregisterOnSelectionChanged()
+        {
+            Selection.selectionChanged -= _viewerWindow.OnAssetSelectionChanged;
+        }
+
+        private HashSet<string> CreateFilter(string filter)
+        {
+            if (string.IsNullOrEmpty(filter))
+                return null;
+
+            return new HashSet<string>(AssetDatabase.FindAssets(filter));
+        }
+    }
 }

@@ -323,7 +323,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return id.Split('_')[0];
         }
 
-        public static string GetFileIdFromId(string id)
+        public static string GetFileIdFromAssetId(string id)
         {
             return id.Split('_')[1];
         }
@@ -336,7 +336,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static Object GetAssetById(string id)
         {
-            string fileId = GetFileIdFromId(id);
+            string fileId = GetFileIdFromAssetId(id);
             string guid = GetGuidFromAssetId(id);
             string path = AssetDatabase.GUIDToAssetPath(guid);
             Profiler.BeginSample("LoadAllAssets");
