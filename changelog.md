@@ -1,3 +1,6 @@
+**1.2.1**
+ - Added dependency resolver to resolve gameobjects dependencies inside the currently opened scene/prefab
+
 **1.2.0**
  - Added support for subassets
  - Added support for unity internal assets
