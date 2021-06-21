@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    /// <summary>
+    /// Resolver to find gameobject -> gameobject dependencies within a scene
+    /// </summary>
     public class OpenSceneDependencyCache : IDependencyCache
     {
         private const string ConnectionType = "InScene";
@@ -41,12 +42,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static GameObject[] GetRootGameObjects()
         {
+#if UNITY_2018_3_OR_NEWER
             PrefabStage currentPrefabStage = PrefabStageUtility.GetCurrentPrefabStage();
 
             if (currentPrefabStage != null)
             {
                 return new[] {currentPrefabStage.prefabContentsRoot};
             }
+#endif
 
             List<GameObject> rootGameObjects = new List<GameObject>();
 
@@ -260,7 +263,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class InSceneDependencyMappingNode : IResolvedNode
     {
         public string NodeId;
-
         public string Id => NodeId;
         public string Type => "InScene";
         public bool Existing => true;

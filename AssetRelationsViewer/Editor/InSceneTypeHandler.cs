@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
-using ICSharpCode.NRefactory.Ast;
 using UnityEditor;
 using UnityEngine;
 
@@ -82,11 +81,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnGui()
         {
-            EditorPrefs.SetBool(SyncPrefKey,
+            EditorPrefs.SetBool(SyncPrefKey, 
                 EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
-            EditorGUILayout.ObjectField(m_currentNode, typeof(GameObject), true);
 
-            if (m_currentNode != null && GUILayout.Button("Select"))
+            GameObject newSelection = EditorGUILayout.ObjectField(m_currentNode, typeof(GameObject), true) as GameObject;
+
+            bool selectionChanged = newSelection != null && newSelection != m_currentNode;
+            m_currentNode = newSelection;
+            
+            if (selectionChanged || (m_currentNode != null && GUILayout.Button("Select")))
             {
                 _viewerWindow.ChangeSelection(m_currentNode.GetHashCode().ToString(), HandledType);
             }

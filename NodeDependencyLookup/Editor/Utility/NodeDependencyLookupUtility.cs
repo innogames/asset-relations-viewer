@@ -459,7 +459,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             ProgressBase progress)
         {
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
-            usageDefinitionList.Add<AssetDependencyCache, ObjectDependencyResolver>();
+            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>();
 
             LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress, loadFromCache, true, false,
                 savePath);

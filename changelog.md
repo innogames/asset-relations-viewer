@@ -1,5 +1,6 @@
 **1.2.2**
  - Added dependency resolver to resolve gameobjects dependencies inside the currently opened scene/prefab
+ - Removed old ObjectDependencyResolver since its fully replaced by the ObjectSerializedDependencyResolver 
 
 **1.2.0**
  - Added support for subassets
