@@ -1,4 +1,4 @@
-**1.2.1**
+**1.2.2**
  - Added dependency resolver to resolve gameobjects dependencies inside the currently opened scene/prefab
 
 **1.2.0**
