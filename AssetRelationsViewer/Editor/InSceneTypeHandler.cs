@@ -99,7 +99,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             if (type == HandledType && _hashToGameObject.ContainsKey(id))
             {
-                Selection.activeObject = _hashToGameObject[id];
+                m_currentNode = _hashToGameObject[id];
+                Selection.activeObject = m_currentNode;
             }
         }
 

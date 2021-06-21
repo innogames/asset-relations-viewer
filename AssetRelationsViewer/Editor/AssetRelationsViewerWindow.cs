@@ -574,6 +574,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			GUI.contentColor = origColor;
 
+			EditorGUILayout.Space(10);
 			EditorGUILayout.EndScrollView();
 			EditorGUILayout.EndVertical();
 		}
