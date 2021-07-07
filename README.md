@@ -28,7 +28,7 @@ Plugin to display dependencies between assets in a tree based view within the Un
 
 #### For Unity 2018.3 or later (Using Unity Package Manager)
 
-Find the manifest.json file in the Packages folder of your project and edit it to look like this:
+Find the manifest.json file in the packages folder of your project and edit it to look like this:
 ```js
 {
   "dependencies": {
@@ -38,6 +38,14 @@ Find the manifest.json file in the Packages folder of your project and edit it t
 }
 ```
 
+If you are in production and not want to get automatic updates always use a tagged version like:
+
+```js
+	...
+    "com.innogames.asset-relations-viewer": "https://github.com/innogames/asset-relations-viewer.git#1.2.3",
+    ...
+
+```
 
 <br><br><br><br>
 ## First Usage
