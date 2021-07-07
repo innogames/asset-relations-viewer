@@ -89,6 +89,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (CreatedDependencyCache cacheUsage in caches)
             {
+                if (cacheUsage.ResolverUsages.Count == 0)
+                {
+                    continue;
+                }
+                
                 IDependencyCache cache = cacheUsage.Cache;
 
                 if (loadCache && !cacheUsage.IsLoaded)
@@ -278,8 +283,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static int GetNodeSize(bool own, bool tree, string id, string type, HashSet<string> traversedNodes,
-            NodeDependencyLookupContext stateContext)
+            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache = null)
         {
+            if (ownSizeCache == null)
+            {
+                ownSizeCache = new Dictionary<string, int>();
+            }
+            
             string key = GetNodeKey(id, type);
 
             if (traversedNodes.Contains(key) || !stateContext.NodeHandlerLookup.ContainsKey(type))
@@ -295,7 +305,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (own && (!tree || nodeHandler.ContributesToTreeSize()))
             {
-                size += nodeHandler.GetOwnFileSize(id, type, stateContext);
+                if (!ownSizeCache.ContainsKey(key))
+                {
+                    ownSizeCache[key] = nodeHandler.GetOwnFileSize(id, type, stateContext);
+                }
+                
+                size += ownSizeCache[key];
             }
 
             if (tree)
@@ -309,7 +324,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                         if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
                         {
                             Node childNode = connection.Node;
-                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext);
+                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext, ownSizeCache);
                         }
                     }
                 }

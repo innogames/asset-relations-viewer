@@ -51,6 +51,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
+		private Dictionary<string, int> _cachedSizes = new Dictionary<string, int>();
 
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 		
@@ -173,7 +174,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 							foreach (string connectionType in connectionTypes)
 							{
 								if (resolverState.ActiveConnectionTypes.Contains(connectionType))
+								{
 									activeConnectionTypes.Add(connectionType);
+								}
 							}
 							
 							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
@@ -566,6 +569,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					cacheState.SaveState();
 					ReloadContext(stateChanged);
+					stateChanged = false;
 					InvalidateNodeStructure();
 				}
 				
@@ -772,8 +776,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				if (_showThumbnails || DisplayData.ShowAdditionalInformation)
 				{
-					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
-					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
+					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
+					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
 				}
 
 				data.Id = id;
@@ -799,6 +803,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
+			_cachedSizes.Clear();
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();

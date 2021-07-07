@@ -11,7 +11,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		internal class Entry
 		{
-			public bool IsActive = true;
 			public readonly Type CacheType;
 			public readonly Type ResolverType;
 			public List<string> ConnectionTypes;

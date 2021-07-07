@@ -119,6 +119,16 @@ By default only the ObjectSerializedDependencyResolver which only finds hard lin
 Uses own implementation which is based on SerializedObjects and SerializedProperties to find assets and other dependency types.
 Since this solution is based on an own dependency search implementation, it is much slower than the ObjectDependencyResolver.
 
+## AssetToFileDependencyCache
+To enable subassets to be supported by the AssetRelationsViewer assets needed to be split into asset and file nodes since a file can have multiple assets like fbx files for example.
+In order to see in which file an asset is the AssetToFileDependencyCache needs to be activated
+
+### Resolvers
+The AssetToFileDependencyCache only supports the AssetToFileDependencyResolver. It is currently not intended to be extendable with additional resolvers.
+
+#### AssetToFileDependencyResolver
+Shows dependencies between assets and the files they are contained in.
+
 ## OpenSceneDependencyCache
 Temporary cache to store gameobject->gameobject dependencies inside a scene.
 When its activated one can click on any gameobject in the scene hierarchy so select it. After that in the Options: InScene menu one can click on "Select" to then view it in the AssetRelationsViewer.

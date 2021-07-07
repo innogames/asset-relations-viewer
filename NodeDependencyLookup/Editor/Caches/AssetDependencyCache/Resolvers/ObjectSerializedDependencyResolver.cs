@@ -79,7 +79,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			string[] filters = 
 			{
 				"t:Script",
-				"t:SpriteAtlas",
 			};
 			
 			foreach (string filter in filters)

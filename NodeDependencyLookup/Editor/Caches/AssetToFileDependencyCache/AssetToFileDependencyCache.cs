@@ -10,9 +10,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     // Cache to find get mapping of assets to the file the asset is included in
     public class AssetToFileDependencyCache : IDependencyCache
     {
-        public const string Version = "1.10";
-        public const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
-        public const string ConnectionType = "File";
+        private const string Version = "1.10";
+        private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
+        private const string ConnectionType = "File";
 
         private Dictionary<string, FileToAssetMappingNode> _fileNodesDict = new Dictionary<string, FileToAssetMappingNode>();
         private FileToAssetsMapping[] _fileToAssetsMappings = new FileToAssetsMapping[0];
@@ -41,21 +41,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(progress, true);
             long[] timeStampsForFiles = NodeDependencyLookupUtility.GetTimeStampsForFiles(assetIds);
             
-            return GetNeedsUpdate(assetIds, timeStampsForFiles, _fileToAssetsMappings);
+            return GetNeedsUpdate(assetIds, timeStampsForFiles);
         }
         
-        private bool GetNeedsUpdate(string[] pathes, long[] timestamps, FileToAssetsMapping[] fileToAssetMappings)
+        private bool GetNeedsUpdate(string[] pathes, long[] timestamps)
         {
-            Dictionary<string, FileToAssetsMapping> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetMappings);
+            Dictionary<string, FileToAssetsMapping> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetsMappings);
 
             for (int i = 0; i < pathes.Length; ++i)
             {
                 string path = pathes[i];
+                string guid = AssetDatabase.AssetPathToGUID(path);
 
-                if (list.ContainsKey(path))
+                if (list.ContainsKey(guid))
                 {
-                    FileToAssetsMapping fileToAssetsMapping = list[path];
-                    fileToAssetsMapping.SetExisting();
+                    FileToAssetsMapping fileToAssetsMapping = list[guid];
                     long timeStamp = timestamps[i];
 
                     if (fileToAssetsMapping.Timestamp != timeStamp)
