@@ -1,3 +1,6 @@
+**1.2.4**
+ - Increased version to make a new release
+
 **1.2.3**
  - Fixed issue with dependency resolvers getting updated several times when a dependency resolver gets activated/deactivated in the AssetRelationsViewer
  - Sped up calculation for asset sizes by adding cache
