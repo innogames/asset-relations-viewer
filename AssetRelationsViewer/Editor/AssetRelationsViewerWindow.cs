@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
@@ -39,7 +37,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		
 		private const string OwnName = "AssetRelationsViewer";
 
-		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1";
+		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1.2";
 		
 		private NodeDisplayData DisplayData = new NodeDisplayData();
 		
@@ -53,6 +51,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
+		private Dictionary<string, int> _cachedSizes = new Dictionary<string, int>();
 
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 		
@@ -175,7 +174,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 							foreach (string connectionType in connectionTypes)
 							{
 								if (resolverState.ActiveConnectionTypes.Contains(connectionType))
+								{
 									activeConnectionTypes.Add(connectionType);
+								}
 							}
 							
 							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
@@ -208,19 +209,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void SetDefaultResolverAndCacheState()
 		{
-			AssetDependencyCache assetDependencyCache = new AssetDependencyCache();
-			ObjectDependencyResolver resolver = new ObjectDependencyResolver();
-			
-			CacheState assetDependencyCacheState = new CacheState(assetDependencyCache);
+			AddDefaultCacheActivation(new AssetDependencyCache(), new ObjectSerializedDependencyResolver());
+			AddDefaultCacheActivation(new AssetToFileDependencyCache(), new AssetToFileDependencyResolver());
+		}
+
+		private void AddDefaultCacheActivation(IDependencyCache cache, IDependencyResolver resolver)
+		{
+			CacheState cacheState = new CacheState(cache);
 			ResolverState resolverState = new ResolverState(resolver);
 			
-			assetDependencyCacheState.ResolverStates.Add(resolverState);
+			cacheState.ResolverStates.Add(resolverState);
 
-			assetDependencyCacheState.IsActive = true;
+			cacheState.IsActive = true;
 			resolverState.IsActive = true;
 			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetConnectionTypes());
 
-			assetDependencyCacheState.SaveState();
+			cacheState.SaveState();
 		}
 		
 		public void InvalidateNodeStructure()
@@ -238,10 +242,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				return;
 			}
+
+			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Selection.activeObject, out string guid, out long fileId);
+			string assetId = $"{guid}_{fileId}";
 			
-			string guid = AssetDatabase.AssetPathToGUID(assetPath);
 			
-			ChangeSelection(guid, "Asset");
+			ChangeSelection(assetId, "Asset");
 			Repaint();
 		}
 
@@ -348,6 +354,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			if (GUILayout.Button("Save and Refresh"))
 			{
 				AssetDatabase.SaveAssets();
+				ReloadContext();
+			}
+			
+			if (GUILayout.Button("Clear and refresh"))
+			{
+				AssetDatabase.SaveAssets();
+				NodeDependencyLookupUtility.ClearCachedContexts();
+				NodeDependencyLookupUtility.ClearCacheFiles();
+				_nodeDependencyLookupContext.CreatedCaches.Clear();
 				ReloadContext();
 			}
 
@@ -554,6 +569,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					cacheState.SaveState();
 					ReloadContext(stateChanged);
+					stateChanged = false;
 					InvalidateNodeStructure();
 				}
 				
@@ -562,6 +578,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			GUI.contentColor = origColor;
 
+			EditorGUILayout.Space(10);
 			EditorGUILayout.EndScrollView();
 			EditorGUILayout.EndVertical();
 		}
@@ -759,8 +776,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				if (_showThumbnails || DisplayData.ShowAdditionalInformation)
 				{
-					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
-					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext);
+					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
+					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
 				}
 
 				data.Id = id;
@@ -786,6 +803,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
+			_cachedSizes.Clear();
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();
@@ -900,9 +918,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DrawRelations(VisualizationNodeBase node, int depth, RelationType relationType)
 		{
-			foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
+			List<VisualizationConnection> visualizationConnections = node.GetRelations(relationType);
+
+			foreach (VisualizationConnection childConnection in visualizationConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, relationType, false);
+				DrawConnectionForNodes(node, childConnection, relationType, false, visualizationConnections.Count);
 				
 				VisualizationNodeBase childNode = childConnection.VNode;
 	
@@ -925,11 +945,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			foreach (VisualizationConnection childConnection in childConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, InvertRelationType(relationType), true);
+				DrawConnectionForNodes(node, childConnection, InvertRelationType(relationType), true, childConnections.Count);
 			}
 		}
 
-		private void DrawConnectionForNodes(VisualizationNodeBase node, VisualizationConnection childConnection, RelationType relationType, bool isRecursion)
+		private void DrawConnectionForNodes(VisualizationNodeBase node, VisualizationConnection childConnection, RelationType relationType, bool isRecursion, int connectionCount)
 		{
 			VisualizationNodeBase childNode = childConnection.VNode;
 			VisualizationNodeBase current = relationType == RelationType.DEPENDENCY ? node : childNode;
@@ -938,10 +958,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Vector2 currentPos = current.GetPosition(_viewAreaData);
 			Vector2 targetPos = target.GetPosition(_viewAreaData);
 
-			float distanceBlend = Mathf.Pow(1 - Mathf.Clamp01(Mathf.Abs(currentPos.y - targetPos.y) / 20000.0f), 3);
+			float distanceBlend = 1;
+			
+			if (connectionCount > 20)
+			{
+				distanceBlend = Mathf.Pow(1 - Mathf.Clamp01(Mathf.Abs(currentPos.y - targetPos.y) / 20000.0f), 3);
+			}
+
 			float alphaAmount = (isRecursion ? 0.15f : 1.0f) * distanceBlend;
 
 			DrawRecursionButton(isRecursion, node, childNode, relationType);
+
+			if (childConnection.IsIndicator)
+			{
+				return;
+			}
 
 			if (alphaAmount > 0.01)
 			{
@@ -1123,7 +1154,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			visualizationNode.SetRelations(visualizationNode.GetRelations(relationType, true, true).OrderBy(p =>
 			{
-				return Path.GetFileNameWithoutExtension(p.VNode.GetSortingKey(relationType));
+				return p.VNode.GetSortingKey(relationType);
+
 			}).ToList(), relationType);
 		}
 

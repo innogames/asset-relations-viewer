@@ -28,7 +28,7 @@ Plugin to display dependencies between assets in a tree based view within the Un
 
 #### For Unity 2018.3 or later (Using Unity Package Manager)
 
-Find the manifest.json file in the Packages folder of your project and edit it to look like this:
+Find the manifest.json file in the packages folder of your project and edit it to look like this:
 ```js
 {
   "dependencies": {
@@ -38,6 +38,14 @@ Find the manifest.json file in the Packages folder of your project and edit it t
 }
 ```
 
+If you are in production and not want to get automatic updates always use a tagged version like:
+
+```js
+	...
+    "com.innogames.asset-relations-viewer": "https://github.com/innogames/asset-relations-viewer.git#1.2.3",
+    ...
+
+```
 
 <br><br><br><br>
 ## First Usage
@@ -106,24 +114,39 @@ Options specific to assets
 **>**: Makes the clicked on node the current viewed node in the AssetRelationsViewer
 
 <br><br><br><br>
-## Resolvers
-The AssetRelationsViewer supports different resolvers to find dependencies for assets. By default there are two built in ones, but additional ones can be added as plugins, to not only find dependencies for assets, but also 
 
-#### ObjectDependencyResolver
-Uses Unitys internal AssetDatabase.GetDependencies() function to find dependencies for assets.
-Its fast and reliable, but can only find dependencies between assets.
+## AssetDependencyCache
+The AssetDependencyCache finds and stores asset->asset dependencies. 
+To speed up loading the timestamps and dependencies of all assets in the project are saved to a file so only changed files have to be checked for their dependencies again.
 
-##### Known issues
-Nested Prefabs or Prefab Variants arent handled correctly when using the ObjectDependencyResolver since it uses Unitys AssetDatabase.GetDependencies() function which wasnt updated for this. 
-The problem is that dependencies of nested prefabs will be shown as own for prefabs or scenes. This issue can be avoided by only using the SerializeObjectDependecyResolver which unfortunately is slower.
-A feature request for Unity exists which hopefully fixed the mentioned issue with AssetDatabase.GetDependencies() in the future.
+### Resolvers
+The AssetDependencyCache supports different resolvers to find dependencies for assets. 
+By default only the ObjectSerializedDependencyResolver which only finds hard linked asset->asset dependencies is supported, but additional ones can be added to also find asset->asset references by Addressables for example.
 
 #### ObjectSerializedDependencyResolver
 Uses own implementation which is based on SerializedObjects and SerializedProperties to find assets and other dependency types.
 Since this solution is based on an own dependency search implementation, it is much slower than the ObjectDependencyResolver.
 
-##### Known issues
-The ObjectSerializedDependencyResolver can only find dependencies that are serialized in the asset. In theory it can be the case that AssetDatabase.GetDependencies() could return dependencies that cant be found by the ObjectSerializedDependencyResolver.
+## AssetToFileDependencyCache
+To enable subassets to be supported by the AssetRelationsViewer assets needed to be split into asset and file nodes since a file can have multiple assets like fbx files for example.
+In order to see in which file an asset is the AssetToFileDependencyCache needs to be activated
+
+### Resolvers
+The AssetToFileDependencyCache only supports the AssetToFileDependencyResolver. It is currently not intended to be extendable with additional resolvers.
+
+#### AssetToFileDependencyResolver
+Shows dependencies between assets and the files they are contained in.
+
+## OpenSceneDependencyCache
+Temporary cache to store gameobject->gameobject dependencies inside a scene.
+When its activated one can click on any gameobject in the scene hierarchy so select it. After that in the Options: InScene menu one can click on "Select" to then view it in the AssetRelationsViewer.
+Note that after switching or updating a scene you need to click on "Refresh" in the AssetRelationsViewer to view the current scene dependencies. 
+
+### Resolvers
+The OpenSceneDependencyCache only supports the InSceneDependencyResolver. It is currently not intended to be extendable with additional resolvers.
+
+#### InSceneDependencyResolver
+The InSceneDependencyResolver finds gameobject->gameobjects dependencies within the opened scene or prefab.  
 
 <br><br><br><br>
 ## Showing dependency pathes

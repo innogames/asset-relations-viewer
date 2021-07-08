@@ -19,7 +19,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void SetValidGUIDs();
 		void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress);
-		void GetDependenciesForId(string guid, List<Dependency> dependencies);
+		void GetDependenciesForId(string fileId, List<Dependency> dependencies);
 		bool IsGuidValid(string path);
 	}
 

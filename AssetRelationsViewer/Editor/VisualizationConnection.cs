@@ -35,6 +35,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return false;
         }
 
+        public bool IsIndicator;
         public readonly VisualizationNodeBase VNode;
         public readonly List<Data> Datas;
         public readonly bool IsRecursion;

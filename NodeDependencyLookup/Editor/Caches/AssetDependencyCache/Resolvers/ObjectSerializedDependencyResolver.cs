@@ -21,12 +21,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public readonly SerializedPropertyTraverserSubSystem TraverserSubSystem = new ObjectSerializedPropertyTraverserSubSystem();
 		
-		public void GetDependenciesForId(string guid, List<Dependency> dependencies)
+		public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
 		{
 			List<Dependency> subSystemDependencies = new List<Dependency>();
 			HashSet<string> foundDependenciesHashSet = new HashSet<string>();
 
-			GetDependenciesForIdFromSerializedPropertyTraverser(guid, subSystemDependencies);
+			GetDependenciesForIdFromSerializedPropertyTraverser(assetId, subSystemDependencies);
 			
 			foreach (Dependency dependency in subSystemDependencies)
 			{
@@ -35,16 +35,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void GetDependenciesForIdFromSerializedPropertyTraverser(string guid, List<Dependency> dependencies)
+		public void GetDependenciesForIdFromSerializedPropertyTraverser(string assetId, List<Dependency> dependencies)
 		{
-			if (TraverserSubSystem.Dependencies.ContainsKey(guid))
+			if (TraverserSubSystem.Dependencies.ContainsKey(assetId))
 			{
-				foreach (var foundDependency in TraverserSubSystem.Dependencies[guid])
+				foreach (var foundDependency in TraverserSubSystem.Dependencies[assetId])
 				{
-					string dependencyGuid = foundDependency.Id;
+					string dependency = foundDependency.Id;
 
 					// Avoid adding node itself as dependency
-					if (dependencyGuid != guid)
+					if (dependency != assetId)
 					{
 						dependencies.Add(foundDependency);
 					}
@@ -78,7 +78,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			string[] filters = 
 			{
-				"t:Texture",
 				"t:Script",
 			};
 			
@@ -95,11 +94,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			TraverserSubSystem.Clear();
 			
-			foreach (string guid in changedAssets)
+			foreach (string assetId in changedAssets)
 			{
+				string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 				if (!_inValidGuids.Contains(guid))
 				{
-					cache._hierarchyTraverser.AddGuid(guid, TraverserSubSystem);
+					cache._hierarchyTraverser.AddAssetId(assetId, TraverserSubSystem);
 				}
 			}
 		}

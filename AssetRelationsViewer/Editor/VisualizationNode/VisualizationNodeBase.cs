@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		public List<VisualizationConnection> Dependencies = new List<VisualizationConnection>();
 		public List<VisualizationConnection> Referencers = new List<VisualizationConnection>();
-		
+
 		protected int PosX = Int32.MaxValue;
 		protected int PosY = Int32.MaxValue;
 		public int ExtendedNodeWidth; // extended with

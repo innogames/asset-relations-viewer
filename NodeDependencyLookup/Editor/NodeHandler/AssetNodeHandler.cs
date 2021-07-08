@@ -23,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
 		{
-			return NodeDependencyLookupUtility.GetPackedAssetSize(id);
+			return 0;
 		}
 
 		public bool IsNodePackedToApp(string id, string type)
@@ -35,10 +35,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return false;
 			}
 
-			if (IsSceneAndPacked(path) || IsInResources(path))
+			/*if (IsSceneAndPacked(path) || IsInResources(path))
 			{
 				return true;
-			}
+			}*/
 
 			return false;
 		}

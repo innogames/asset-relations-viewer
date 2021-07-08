@@ -5,9 +5,11 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-
+using UnityEngine.Profiling;
+using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
+
 #endif
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -37,15 +39,44 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             NodeDependencyLookupContext.ResetContexts();
         }
 
-        public static bool NeedsCacheUpdate(CreatedDependencyCache usage)
+        public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
         {
-            foreach (CreatedResolver resolverUsage in usage.ResolverUsages)
+            Dictionary<string, CreatedResolver> resolverUsagesLookup = createdCache.ResolverUsagesLookup;
+            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].ConnectionTypes.Contains(connectionType);
+        }
+
+        public static long[] GetTimeStampsForFiles(string[] pathes)
+        {
+            long[] timestamps = new long[pathes.Length];
+
+            for (int i = 0; i < pathes.Length; ++i)
             {
-                if (resolverUsage.IsActive)
-                    return true;
+                timestamps[i] = GetTimeStampForPath(pathes[i]);
             }
 
-            return false;
+            return timestamps;
+        }
+
+        public static long GetTimeStampForFileId(string fileId)
+        {
+            string guid = GetGuidFromAssetId(fileId);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+
+            if (string.IsNullOrEmpty(path))
+            {
+                return 0;
+            }
+
+            return GetTimeStampForPath(path);
+        }
+
+        public static long GetTimeStampForPath(string path)
+        {
+            long fileTimeStamp = File.GetLastWriteTime(path).ToFileTimeUtc();
+            long metaFileTimeStamp = File.GetLastWriteTime(path + ".meta").ToFileTimeUtc();
+            long timeStamp = Math.Max(fileTimeStamp, metaFileTimeStamp);
+
+            return timeStamp;
         }
 
         public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
@@ -58,6 +89,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (CreatedDependencyCache cacheUsage in caches)
             {
+                if (cacheUsage.ResolverUsages.Count == 0)
+                {
+                    continue;
+                }
+                
                 IDependencyCache cache = cacheUsage.Cache;
 
                 if (loadCache && !cacheUsage.IsLoaded)
@@ -66,7 +102,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     cacheUsage.IsLoaded = true;
                 }
 
-                if (updateCache && cache.NeedsUpdate())
+                if (updateCache && cache.NeedsUpdate(progress))
                 {
                     if (cache.CanUpdate())
                     {
@@ -119,10 +155,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// Used to get the size of an asset inside the packed build.
         /// Currently sounds are not correct since the file isnt going to be written into the libraray in the final format.
         /// </summary>
-        public static int GetPackedAssetSize(string guid)
+        public static int GetPackedAssetSize(string assetId)
         {
-            string fullpath = GetLibraryFullPath(guid);
-            
+            string fullpath = GetLibraryFullPath(GetGuidFromAssetId(assetId));
+
             if (!String.IsNullOrEmpty(fullpath) && File.Exists(fullpath))
             {
                 FileInfo info = new FileInfo(fullpath);
@@ -138,14 +174,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 return null;
             }
-            
+
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            
+
             if (Path.GetExtension(path).Equals(".asset"))
             {
                 return path;
             }
-
 
 #if UNITY_2019_2_OR_NEWER
             if (EditorSettings.assetPipelineMode == AssetPipelineMode.Version1)
@@ -154,24 +189,37 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
             else
             {
+#if UNITY_2020_2_OR_NEWER
+                Hash128 artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
+#else
                 Hash128 artifactHash = AssetDatabaseExperimental.GetArtifactHash(guid);
+#endif
 
-                string[] paths;
+                if (!artifactHash.isValid)
+                {
+                    return null;
+                }
 
-                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out paths);
-            
+#if UNITY_2020_2_OR_NEWER
+                ArtifactID artifactID = new ArtifactID();
+                artifactID.value = artifactHash;
+                AssetDatabaseExperimental.GetArtifactPaths(artifactID, out string[] paths);
+#else
+                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out string[] paths);
+#endif
+
                 foreach (string artifactPath in paths)
                 {
-                    if(artifactPath.EndsWith(".info")) 
+                    if (artifactPath.EndsWith(".info"))
                         continue;
-                
+
                     return Path.GetFullPath(artifactPath);
                 }
             }
-#else // For older version that dont have asset database V2 yet
+#else // For older unity versions that dont have asset database V2 yet
                 return return GetAssetDatabaseVersion1LibraryDataPath(guid);
 #endif
-            
+
             return null;
         }
 
@@ -235,8 +283,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static int GetNodeSize(bool own, bool tree, string id, string type, HashSet<string> traversedNodes,
-            NodeDependencyLookupContext stateContext)
+            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache = null)
         {
+            if (ownSizeCache == null)
+            {
+                ownSizeCache = new Dictionary<string, int>();
+            }
+            
             string key = GetNodeKey(id, type);
 
             if (traversedNodes.Contains(key) || !stateContext.NodeHandlerLookup.ContainsKey(type))
@@ -252,7 +305,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (own && (!tree || nodeHandler.ContributesToTreeSize()))
             {
-                size += nodeHandler.GetOwnFileSize(id, type, stateContext);
+                if (!ownSizeCache.ContainsKey(key))
+                {
+                    ownSizeCache[key] = nodeHandler.GetOwnFileSize(id, type, stateContext);
+                }
+                
+                size += ownSizeCache[key];
             }
 
             if (tree)
@@ -266,7 +324,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                         if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
                         {
                             Node childNode = connection.Node;
-                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext);
+                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext, ownSizeCache);
                         }
                     }
                 }
@@ -275,16 +333,101 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return size;
         }
 
-        public static string[] GetAllAssetPathes()
+        public static string GetGuidFromAssetId(string id)
         {
-            string[] pathes = AssetDatabase.FindAssets("");
+            return id.Split('_')[0];
+        }
 
-            for (int i = 0; i < pathes.Length; ++i)
+        public static string GetFileIdFromAssetId(string id)
+        {
+            return id.Split('_')[1];
+        }
+
+        public static string GetAssetIdForAsset(Object asset)
+        {
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileId);
+            return $"{guid}_{fileId}";
+        }
+
+        public static Object GetAssetById(string id)
+        {
+            string fileId = GetFileIdFromAssetId(id);
+            string guid = GetGuidFromAssetId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Profiler.BeginSample("LoadAllAssets");
+            Object[] assetsAtPath = LoadAllAssetsAtPath(path);
+            Profiler.EndSample();
+
+            foreach (Object asset in assetsAtPath)
             {
-                pathes[i] = AssetDatabase.GUIDToAssetPath(pathes[i]);
+                if (asset == null)
+                {
+                    continue;
+                }
+                
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
+                if (afileId.ToString() == fileId)
+                {
+                    return asset;
+                }
             }
 
-            return pathes;
+            return null;
+        }
+
+        public static Object GetMainAssetById(string id)
+        {
+            string guid = GetGuidFromAssetId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+
+            return AssetDatabase.LoadAssetAtPath<Object>(path);
+        }
+
+        public static Object[] LoadAllAssetsAtPath(string path)
+        {
+            if (path.EndsWith(".unity"))
+            {
+                return new [] {AssetDatabase.LoadMainAssetAtPath(path)};
+            }
+
+            return AssetDatabase.LoadAllAssetsAtPath(path);
+        }
+
+        public static string[] GetAllAssetPathes(ProgressBase progress, bool unityBuiltin)
+        {
+            string[] pathes = AssetDatabase.GetAllAssetPaths();
+
+            pathes = AssetDatabase.GetAllAssetPaths();
+
+            List<string> pathList = new List<string>();
+
+            foreach (string path in pathes)
+            {
+                pathList.Add(path);
+            }
+
+            return pathList.ToArray();
+        }
+
+        public static void AddAssetsToList(HashSet<string> assetList, string path)
+        {
+            Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
+            Object[] allAssets = LoadAllAssetsAtPath(path);
+
+            foreach (Object asset in allAssets)
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+                
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
+
+                if (!(mainAsset is GameObject) || (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
+                {
+                    assetList.Add($"{guid}_{fileID}");
+                }
+            }
         }
 
         public static List<Type> GetTypesForBaseType(Type interfaceType)
@@ -324,13 +467,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         /**
-         * Return the dependency lookup for Objects using the SimpleObjectResolver
+         * Return the dependency lookup for Objects using the ObjectDependencyResolver
          */
-        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache, string savePath,
+        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache,
+            string savePath,
             ProgressBase progress)
         {
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
-            usageDefinitionList.Add<AssetDependencyCache, ObjectDependencyResolver>();
+            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>();
 
             LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress, loadFromCache, true, false,
                 savePath);

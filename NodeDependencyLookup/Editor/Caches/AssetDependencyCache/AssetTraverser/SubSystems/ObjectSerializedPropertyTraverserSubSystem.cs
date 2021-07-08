@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -31,12 +32,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private void AddPrefabAsDependency(string id, Object obj, Stack<PathSegment> stack)
         {
-            string assetPath = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(obj));
+            Object correspondingObjectFromSource = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(correspondingObjectFromSource);
+            string assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
-            if (guid != id)
+            if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(id))
             {
-                AddDependency(id, new Dependency(guid, ConnectionType, NodeType, stack.ToArray()));
+                AddDependency(id, new Dependency(assetId, ConnectionType, NodeType, stack.ToArray()));
             }
         }
 
@@ -60,14 +63,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
                 return null;
+            
+            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-            string guid = AssetDatabase.AssetPathToGUID(assetPath);
-
-            // Unity internal assets start with 000000 which should not be seen as a dependency
-            if (guid.StartsWith("000000"))
+            if (!(guid.StartsWith("0000000") || value is ScriptableObject || AssetDatabase.IsSubAsset(value) || AssetDatabase.IsMainAsset(value)))
+            {
                 return null;
+            }
 
-            return new Result {Id = guid, ConnectionType = ConnectionType, NodeType = NodeType};
+            return new Result {Id = assetId, ConnectionType = ConnectionType, NodeType = NodeType};
         }
     }
 }
