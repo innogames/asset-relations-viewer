@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -66,6 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void TraverseGameObject(string id, Object obj, Stack<PathSegment> stack, Object currentPrefab, bool isRoot)
 		{
 			var go = obj as GameObject;
+			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
 
 #if UNITY_2018_3_OR_NEWER
@@ -76,6 +78,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (PrefabUtility.GetCorrespondingObjectFromSource(go))
 				{
 					onlyOverriden = true;
+					isPrefabInstance = true;
 					var prefabObj = PrefabUtility.GetPrefabInstanceHandle(obj);
 
 					if(prefabObj != currentPrefab)
@@ -111,13 +114,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 #endif
 
-			Dictionary<string, int> componentToCount = new Dictionary<string, int>(); 
+			Dictionary<string, int> componentToCount = new Dictionary<string, int>();
+
+			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;
 
 			foreach (Component component in go.GetComponents<Component>())
 			{
 				if (component == null)
 				{
 					continue;
+				}
+
+				bool componentOverriden = onlyOverriden;
+				
+				if (isPrefabInstance)
+				{
+					bool isAddedComponent = addedComponents.Any(addedComponent => addedComponent.instanceComponent == component);
+					componentOverriden &= !isAddedComponent;
 				}
 
 				string componentName = component.GetType().Name;
@@ -127,12 +140,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					componentToCount.Add(componentName, 1);
 				}
 
-				int count = componentToCount[componentName]++;
+				int sameComponentCount = componentToCount[componentName]++;
+				string segmentName = sameComponentCount > 1 ? $"{componentName}_{sameComponentCount}" : componentName;
 				
-				string segmentName = count > 1 ? string.Format("{0}_{1}", componentName, count) : componentName;
-
 				stack.Push(new PathSegment(segmentName, PathSegmentType.Component));
-				TraverseObject(id, component, stack, onlyOverriden);
+				TraverseObject(id, component, stack, componentOverriden);
 				stack.Pop();
 			}
 

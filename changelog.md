@@ -1,3 +1,7 @@
+**1.3.0**
+ - Fixed several bugs regarding detection of if an asset is packed into the app or not and added cache to speed up the detection
+ - Fixed issue that added components to a PrefabInstance didnt show the usage of their script as a dependency
+
 **1.2.4**
  - Increased version to make a new release
 

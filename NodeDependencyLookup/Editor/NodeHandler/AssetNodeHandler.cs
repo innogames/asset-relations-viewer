@@ -26,26 +26,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return 0;
 		}
 
-		public bool IsNodePackedToApp(string id, string type)
+		public bool IsNodePackedToApp(string id, string type, bool alwaysExcluded = false)
 		{
-			string path = AssetDatabase.GUIDToAssetPath(id);
-
-			if (IsNodeEditorOnly(id, type))
+			if (alwaysExcluded)
 			{
-				return false;
+				return !IsNodeEditorOnly(id, type);
 			}
-
-			/*if (IsSceneAndPacked(path) || IsInResources(path))
-			{
-				return true;
-			}*/
-
-			return false;
+			
+			string path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(id));
+			return IsSceneAndPacked(path) || IsInResources(path) || id.StartsWith("0000000");
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
 		{
-			string path = AssetDatabase.GUIDToAssetPath(id);
+			string path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(id));
 			return path.Contains("/Editor/");
 		}
 

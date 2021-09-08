@@ -234,7 +234,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// </summary>
         public static bool IsNodePackedToApp(string id, string type, NodeDependencyLookupContext stateContext)
         {
-            return IsNodePackedToApp(id, type, stateContext, new HashSet<string>());
+            return IsNodePackedToApp(id, type, stateContext, new Dictionary<string, bool>());
         }
 
         /// <summary>
@@ -242,15 +242,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /// If the asset is just in a bundle this is currently not tracked. Trying to find a solution for this.
         /// </summary>
         public static bool IsNodePackedToApp(string id, string type, NodeDependencyLookupContext stateContext,
-            HashSet<string> visitedKeys)
+            Dictionary<string, bool> checkedPackedStates)
         {
-            if (visitedKeys.Contains(id))
+            if (checkedPackedStates.ContainsKey(id))
             {
-                return false;
+                return checkedPackedStates[id];
             }
-
-            visitedKeys.Add(id);
-
+            
+            checkedPackedStates.Add(id, false);
+            
             Node node = stateContext.RelationsLookup.GetNode(id, type);
 
             if (node == null)
@@ -262,9 +262,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 INodeHandler nodeHandler = pair.Value;
 
-                if (nodeHandler.GetHandledNodeTypes().Contains(type) && nodeHandler.IsNodePackedToApp(id, type))
+                if (nodeHandler.GetHandledNodeTypes().Contains(type))
                 {
-                    return true;
+                    if (!nodeHandler.IsNodePackedToApp(id, type, true))
+                    {
+                        return false;
+                    }
+
+                    if (nodeHandler.IsNodePackedToApp(id, type, false))
+                    {
+                        checkedPackedStates[id] = true;
+                        return true;
+                    }
                 }
             }
 
@@ -273,8 +282,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 Node refNode = connection.Node;
 
                 if (!stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsIndirect &&
-                    IsNodePackedToApp(refNode.Id, refNode.Type, stateContext, visitedKeys))
+                    IsNodePackedToApp(refNode.Id, refNode.Type, stateContext, checkedPackedStates))
                 {
+                    checkedPackedStates[id] = true;
                     return true;
                 }
             }
@@ -396,8 +406,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static string[] GetAllAssetPathes(ProgressBase progress, bool unityBuiltin)
         {
             string[] pathes = AssetDatabase.GetAllAssetPaths();
-
-            pathes = AssetDatabase.GetAllAssetPaths();
 
             List<string> pathList = new List<string>();
 

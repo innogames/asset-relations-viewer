@@ -12,7 +12,7 @@
 		// Returns the filesize if the node. In case of an asset it would be the serialized filesize
 		int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext);
 		// Returns if a node is packed to the app or not. Helpful to find out if an asset is actually used in the final game or not
-		bool IsNodePackedToApp(string id, string type);
+		bool IsNodePackedToApp(string id, string type, bool alwaysExcluded = false);
 		// Returns if a node it just used within the editor. For assets this would be case if its in an editor folder
 		bool IsNodeEditorOnly(string id, string type);
 		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
