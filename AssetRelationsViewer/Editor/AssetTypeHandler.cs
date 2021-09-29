@@ -102,20 +102,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             _viewerWindow = window;
             _filteredNodes = CreateFilter(_filterString);
-
-            if (_explorerSyncModePref.GetValue())
-            {
-                RegisterOnSelectionChanged();
-            }
-            else
-            {
-                UnregisterOnSelectionChanged();
-            }
+            Selection.selectionChanged += HandleSyncToExplorer;
         }
 
         public bool HandlesCurrentNode()
         {
             return _selectedAsset != null;
+        }
+        
+        private void HandleSyncToExplorer()
+        {
+            if (_explorerSyncModePref.GetValue())
+            {
+                _viewerWindow.OnAssetSelectionChanged();
+            }
         }
 
         private void DisplayFilterOptions()
@@ -143,29 +143,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _viewerWindow.InvalidateNodeStructure();
             }
 
-            AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:", b =>
-            {
-                if (b)
-                {
-                    RegisterOnSelectionChanged();
-                }
-                else
-                {
-                    UnregisterOnSelectionChanged();
-                }
-            });
-
+            AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:");
             EditorGUILayout.EndVertical();
-        }
-
-        private void RegisterOnSelectionChanged()
-        {
-            Selection.selectionChanged += _viewerWindow.OnAssetSelectionChanged;
-        }
-
-        private void UnregisterOnSelectionChanged()
-        {
-            Selection.selectionChanged -= _viewerWindow.OnAssetSelectionChanged;
         }
 
         private HashSet<string> CreateFilter(string filter)

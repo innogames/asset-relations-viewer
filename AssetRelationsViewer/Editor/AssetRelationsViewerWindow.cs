@@ -52,6 +52,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
 		private Dictionary<string, int> _cachedSizes = new Dictionary<string, int>();
+		private Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
 
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 		
@@ -788,7 +789,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				
 				data.Name = typeHandler.GetName(id);
 				data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(id, type);
-				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, new HashSet<string>());
+				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, _cachedPackedInfo);
 
 				_cachedVisualizationNodeDatas.Add(key, data);
 			}
@@ -804,6 +805,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void Refresh()
 		{
 			_cachedSizes.Clear();
+			_cachedPackedInfo.Clear();
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();

@@ -26,21 +26,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return NodeDependencyLookupUtility.GetPackedAssetSize(id);
         }
 
-        public bool IsNodePackedToApp(string id, string type)
+        public bool IsNodePackedToApp(string id, string type, bool alwaysExcluded)
         {
+            if (alwaysExcluded)
+            {
+                return !IsNodeEditorOnly(id, type);
+            }
+			
             string path = AssetDatabase.GUIDToAssetPath(id);
-
-            if (IsNodeEditorOnly(id, type))
-            {
-                return false;
-            }
-
-            if (IsSceneAndPacked(path) || IsInResources(path))
-            {
-                return true;
-            }
-
-            return false;
+            return IsSceneAndPacked(path) || IsInResources(path) || id.StartsWith("0000000");
         }
 
         public bool IsNodeEditorOnly(string id, string type)

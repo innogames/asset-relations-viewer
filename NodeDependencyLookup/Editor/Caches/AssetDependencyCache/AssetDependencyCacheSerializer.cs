@@ -53,8 +53,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			CacheSerializerUtils.EncodeString(EOF, ref bytes, ref offset);
 
-			Deserialize(bytes);
-			
 			return bytes;
 		}
 		
@@ -85,7 +83,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					string assetId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 					AssetNode assetNode = new AssetNode(assetId);
-
 					int numResolverDatas = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
 
 					for (int j = 0; j < numResolverDatas; ++j)
@@ -94,7 +91,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						
 						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 						data.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
-						
 						assetNode.ResolverDatas.Add(data);
 					}
 

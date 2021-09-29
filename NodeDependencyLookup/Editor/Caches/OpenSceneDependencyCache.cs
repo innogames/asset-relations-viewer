@@ -312,9 +312,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return 0;
         }
 
-        public bool IsNodePackedToApp(string id, string type)
+        public bool IsNodePackedToApp(string id, string type, bool alwaysExcluded)
         {
-            return true;
+            return false;
         }
 
         public bool IsNodeEditorOnly(string id, string type)

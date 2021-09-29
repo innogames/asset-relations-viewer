@@ -94,16 +94,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			do
 			{
 				SerializedPropertyType propertyType = property.propertyType;
-				
-				if (propertyType == SerializedPropertyType.Character |
-				    propertyType == SerializedPropertyType.Integer |
-				    propertyType == SerializedPropertyType.Float |
-				    propertyType == SerializedPropertyType.String |
-				    propertyType == SerializedPropertyType.Vector4 |
-				    propertyType == SerializedPropertyType.Vector2 |
-				    propertyType == SerializedPropertyType.Vector3 |
-				    propertyType == SerializedPropertyType.ArraySize
-				    )
+
+				if (propertyType != SerializedPropertyType.ObjectReference && propertyType != SerializedPropertyType.Generic)
 				{
 					continue;
 				}
