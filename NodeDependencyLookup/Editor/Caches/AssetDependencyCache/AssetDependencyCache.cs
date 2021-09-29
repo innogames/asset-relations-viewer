@@ -18,7 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class AssetDependencyCache : IDependencyCache
 	{
-		public const string Version = "1.10";
+		public const string Version = "1.30";
 		public const string FileName = "AssetDependencyCacheData_" + Version + ".cache";
 
 		private FileToAssetNode[] _fileToAssetNodes = new FileToAssetNode[0];
@@ -42,6 +42,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Load(string directory)
 		{
+			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Loading cache", 0);
 			string path = Path.Combine(directory, FileName);
 
 			if (_isLoaded)
@@ -62,6 +63,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Save(string directory)
 		{
+			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Saving cache", 0);
 			string path = Path.Combine(directory, FileName);
 
 			if (!Directory.Exists(directory))
