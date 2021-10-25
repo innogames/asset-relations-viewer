@@ -48,6 +48,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var sceneAsset = obj as SceneAsset;
 			string path = AssetDatabase.GetAssetPath(sceneAsset);
 
+			if (path.StartsWith("Packages"))
+			{
+				return;
+			}
+
 			Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
 			TraverseObject(id, obj, new Stack<PathSegment>(), false);
