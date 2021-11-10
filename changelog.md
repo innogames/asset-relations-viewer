@@ -1,3 +1,6 @@
+**1.3.2**
+	- Various optimizations to support dependency trees which would result in millions of displayed nodes
+
 **1.3.1**
 	- Scenes from packages are avoided from being scanned since they cant be loaded from readonly packages
 

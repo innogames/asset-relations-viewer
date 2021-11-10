@@ -45,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private string _selectedId;
 		private string _selectedType;
 
-		private int _maxHierarchyDepth = 64;
+		private int _maxHierarchyDepth = 256;
 
 		private VisualizationNode _nodeStructure = null;
 		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
@@ -378,11 +378,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void RefreshNodeVisualizationData()
 		{
+			EditorUtility.DisplayProgressBar("Layouting dependency tree", "Updating tree", 0.0f);
+			
 			InvalidateNodePositionData(_nodeStructure, RelationType.DEPENDENCY);
 			InvalidateNodePositionData(_nodeStructure, RelationType.REFERENCER);
-			
+
 			PrepareSubTree(RelationType.DEPENDENCY);
 			PrepareSubTree(RelationType.REFERENCER);
+			
+			EditorUtility.ClearProgressBar();
 		}
 		
 		private void DisplayNodeDisplayOptions()
@@ -672,7 +676,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			if (_nodeStructureDirty || _nodeStructure == null)
 			{
-				EditorUtility.DisplayProgressBar("Updating tree", "Updating tree", 0.0f);
+				EditorUtility.DisplayProgressBar("Building dependency tree", "Updating tree", 0.0f);
 
 				_nodeDisplayOptions.ConnectionTypesToDisplay = GetConnectionTypesToDisplay();
 
@@ -1049,18 +1053,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes, Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
-			// prevent the tree from becoming too big
-			if (iterations >= 0xFFFF)
-			{
-				return;
-			}
-
-			iterations++;
-			
 			visualizationNode.Key = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
 			bool containedNode = addedVisualizationNodes.Contains(visualizationNode.Key);
 			
-			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && nodeDisplayOptions.ShowHierarchyOnce))
+			bool nodeLimitReached = iterations > 0xFFFF;
+			
+			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && (nodeDisplayOptions.ShowHierarchyOnce || nodeLimitReached)))
 			{
 				return;
 			}
@@ -1069,6 +1067,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				return;
 			}
+			
+			iterations++;
 
 			addedVisualizationNodes.Add(visualizationNode.Key);
 			visualizationNodeStack.Push(visualizationNode);
