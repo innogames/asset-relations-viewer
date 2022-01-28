@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -45,7 +46,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			public static Dictionary<string, Node> CreateRelationMapping(List<CreatedDependencyCache> dependencyCaches)
 			{
-				List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
 				Dictionary<string, List<IDependencyCache>> typeToCaches = new Dictionary<string, List<IDependencyCache>>();
 				Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
 
@@ -60,19 +60,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 					
 					typeToCaches[handledNodeType].Add(cache);
+					
+					List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
 
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
-				}
-				
-				// create dependency structure here
-				foreach (var resolvedNode in resolvedNodes)
-				{
-					Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary);
 					
-					foreach (IDependencyCache dependencyCache in typeToCaches[referencerNode.Type])
+					// create dependency structure here
+					foreach (var resolvedNode in resolvedNodes)
 					{
-						List<Dependency> dependenciesForId = dependencyCache.GetDependenciesForId(referencerNode.Id);
+						Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary);
+						
+						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(referencerNode.Id);
 
 						foreach (Dependency dependency in dependenciesForId)
 						{
