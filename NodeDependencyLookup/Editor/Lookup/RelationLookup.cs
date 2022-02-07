@@ -56,6 +56,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				Dictionary<string, List<IDependencyCache>> typeToCaches = new Dictionary<string, List<IDependencyCache>>();
 				Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
+				int index = 0;
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
@@ -77,13 +78,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					// create dependency structure here
 					foreach (var resolvedNode in resolvedNodes)
 					{
-						Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary);
+						Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary, ref index);
 						
 						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(referencerNode.Id);
 
 						foreach (Dependency dependency in dependenciesForId)
 						{
-							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary);
+							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary, ref index);
 							referencerNode.Dependencies.Add(
 								new Connection(dependencyNode, dependency.ConnectionType, dependency.PathSegments));
 						}
@@ -106,13 +107,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return nodeDictionary;
 			}
 
-			private static Node GetOrCreateNode(string id, string type, Dictionary<string, Node> nodeDictionary)
+			private static Node GetOrCreateNode(string id, string type, Dictionary<string, Node> nodeDictionary, ref int index)
 			{
 				string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
 
 				if (!nodeDictionary.ContainsKey(key))
 				{
-					nodeDictionary.Add(key, new Node(id, type));
+					nodeDictionary.Add(key, new Node(id, type, index));
+					index++;
 				}
 
 				return nodeDictionary[key];

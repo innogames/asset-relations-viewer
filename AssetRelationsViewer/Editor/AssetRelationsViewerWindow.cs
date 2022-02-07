@@ -4,6 +4,7 @@ using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -121,12 +122,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
 
-			window.LoadDependencyCache();
+			window.Initialize();
 			return window;
 		}
 
 		public void OnEnable()
 		{
+			isInitialized = false;
+			
 			HandleFirstStartup();
 			
 			CreateCacheStates();
@@ -136,6 +139,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			SetHandlerSelection();
 
 			SetNodeHandlerContext();
+		}
+
+		private bool isInitialized = false;
+
+		private void Initialize()
+		{
+			if (isInitialized)
+			{
+				return;
+			}
+			
+			LoadDependencyCache();
+			
+			isInitialized = true;
 		}
 
 		private void LoadDependencyCache(bool update = true)
@@ -675,6 +692,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			ChangeSelection(_selectedId, _selectedType);
 		}
 
+		private void CalculateAllNodeSizes()
+		{
+			EditorUtility.DisplayProgressBar("CalculateAllNodeSizes", "", 0);
+			List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
+
+			foreach (Node node in allNodes)
+			{
+				NodeDependencyLookupUtility.GetOwnNodeSize(node.Id, node.Type, node.Key, _nodeDependencyLookupContext, _cachedNodeSizes);
+			}
+			
+			EditorUtility.ClearProgressBar();
+		}
+
 		private void PrepareDrawTree(Node rootNode)
 		{
 			_visibleNodes.Clear();
@@ -698,7 +728,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (_visualizationDirty)
 				{
 					RefreshNodeVisualizationData();
-					UpdateNodeSizes();
+					//UpdateNodeSizes();
+					CalculateAllNodeSizes();
 					_visualizationDirty = false;
 				}
 				
@@ -786,7 +817,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (KeyValuePair<string, VisualizationNodeData> pair in _cachedVisualizationNodeDatas)
 			{
 				VisualizationNodeData data = pair.Value;
-				data.OwnSize = NodeDependencyLookupUtility.GetOwnNodeSize(data.Id, data.Type, data.Key, new HashSet<string>(), _nodeDependencyLookupContext, _cachedNodeSizes);
+				data.OwnSize = NodeDependencyLookupUtility.GetOwnNodeSize(data.Id, data.Type, data.Key, _nodeDependencyLookupContext, _cachedNodeSizes);
 			}
 
 			EditorUtility.ClearProgressBar();
@@ -1088,7 +1119,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			visualizationNode.SetKey(connection.Node.Key);
 			bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
 			
-			bool nodeLimitReached = iterations > 0xFFFF;
+			bool nodeLimitReached = iterations > 0xFFF;
 			
 			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && (nodeDisplayOptions.ShowHierarchyOnce || nodeLimitReached)))
 			{
