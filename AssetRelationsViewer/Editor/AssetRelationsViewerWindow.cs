@@ -7,11 +7,12 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-	public interface ITypeColorProvider
+	public interface INodeDisplayDataProvider
 	{
 		Color GetConnectionColorForType(string typeId);
+		int GetTreeSizeForNode(string key);
 	}
-	
+
 	public interface ISelectionChanger
 	{
 		void ChangeSelection(string id, string type, bool addUndoStep = true);
@@ -21,7 +22,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	/// Editor window for the dependency viewer.
 	/// 
 	/// </summary>
-	public class AssetRelationsViewerWindow : EditorWindow, ITypeColorProvider, ISelectionChanger
+	public class AssetRelationsViewerWindow : EditorWindow, INodeDisplayDataProvider, ISelectionChanger
 	{
 		private class UndoStep
 		{
@@ -50,8 +51,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private VisualizationNode _nodeStructure = null;
 		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
+		private HashSet<string> _visibleNodes = new HashSet<string>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
-		private Dictionary<string, int> _cachedSizes = new Dictionary<string, int>();
+		private Dictionary<string, int> _cachedNodeSizes = new Dictionary<string, int>();
+		private Dictionary<string, HashSet<Node>> _cachedSubTreeLookup = new Dictionary<string, HashSet<Node>>();
 		private Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
 
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
@@ -674,6 +677,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void PrepareDrawTree(Node rootNode)
 		{
+			_visibleNodes.Clear();
+			
 			if (_nodeStructureDirty || _nodeStructure == null)
 			{
 				EditorUtility.DisplayProgressBar("Building dependency tree", "Updating tree", 0.0f);
@@ -693,6 +698,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (_visualizationDirty)
 				{
 					RefreshNodeVisualizationData();
+					UpdateNodeSizes();
 					_visualizationDirty = false;
 				}
 				
@@ -766,10 +772,37 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			GUI.EndScrollView();
 		}
+		
 
-		private VisualizationNodeData AddNodeCacheForNode(string id, string type)
+		private void UpdateNodeSizes()
 		{
-			string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
+			if (!_showThumbnails && !DisplayData.ShowAdditionalInformation)
+			{
+				return;
+			}
+			
+			EditorUtility.DisplayProgressBar("Updating node size information", "", 0);
+
+			foreach (KeyValuePair<string, VisualizationNodeData> pair in _cachedVisualizationNodeDatas)
+			{
+				VisualizationNodeData data = pair.Value;
+				data.OwnSize = NodeDependencyLookupUtility.GetOwnNodeSize(data.Id, data.Type, data.Key, new HashSet<string>(), _nodeDependencyLookupContext, _cachedNodeSizes);
+			}
+
+			EditorUtility.ClearProgressBar();
+		}
+		
+		public int GetTreeSizeForNode(string key)
+		{
+			HashSet<string> traversedNodes = new HashSet<string>();
+			
+			return NodeDependencyLookupUtility.GetTreeSize(key, _nodeDependencyLookupContext,
+				_cachedNodeSizes, _cachedSubTreeLookup, traversedNodes);
+		}
+
+		private VisualizationNodeData AddNodeCacheForNode(string id, string type, string key)
+		{
+			_visibleNodes.Add(key);
 			
 			if (!_cachedVisualizationNodeDatas.ContainsKey(key))
 			{
@@ -779,14 +812,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				VisualizationNodeData data = typeHandler.CreateNodeCachedData(id);
 				_nodeDependencyLookupContext.NodeHandlerLookup = GetNodeHandlerLookup();
 
-				if (_showThumbnails || DisplayData.ShowAdditionalInformation)
-				{
-					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
-					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
-				}
-
 				data.Id = id;
 				data.Type = type;
+				data.Key = key;
 
 				data.NodeHandler = nodeHandler;
 				data.TypeHandler = typeHandler;
@@ -808,8 +836,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
-			_cachedSizes.Clear();
+			_cachedNodeSizes.Clear();
 			_cachedPackedInfo.Clear();
+			_cachedSubTreeLookup.Clear();
+			
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();
@@ -892,7 +922,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			return _nodeDependencyLookupContext.ConnectionTypeLookup.GetDependencyType(typeId).Colour;
 		}
-		
+
 		private void InvalidateNodePositionData(VisualizationNodeBase node, RelationType relationType)
 		{
 			node.InvalidatePositionData();
@@ -1000,8 +1030,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void BuildNodeStructure(Node node)
 		{
 			Connection rootConnection = new Connection(node, "Root", new PathSegment[0]);
-			
-			_nodeStructure = GetVisualizationNode(rootConnection.Node.Id, rootConnection.Node.Type);
+
+			Node rootConnectionNode = rootConnection.Node;
+			_nodeStructure = GetVisualizationNode(rootConnectionNode);
 
 			int iterations = 0;
 			CreateNodeHierarchyRec(new HashSet<string>(), new Stack<VisualizationNode>(), _nodeStructure, rootConnection, 0, RelationType.DEPENDENCY, _nodeDisplayOptions, ref iterations);
@@ -1042,9 +1073,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private VisualizationNode HasRecursion(string key, Stack<VisualizationNode> visualizationNodeStack)
 		{
+			int hash = key.GetHashCode();
 			foreach (VisualizationNode node in visualizationNodeStack)
 			{
-				if (node.Key == key)
+				if (node.Hash == hash && node.Key == key)
 					return node;
 			}
 
@@ -1053,8 +1085,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes, Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
-			visualizationNode.Key = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
-			bool containedNode = addedVisualizationNodes.Contains(visualizationNode.Key);
+			visualizationNode.SetKey(connection.Node.Key);
+			bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
 			
 			bool nodeLimitReached = iterations > 0xFFFF;
 			
@@ -1078,18 +1110,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (MergedNode mergedNode in mergedNodes)
 			{
 				Node childNode = mergedNode.Target.Node;
-				string childNodeKey = NodeDependencyLookupUtility.GetNodeKey(childNode.Id, childNode.Type);
 
-				if (addedVisualizationNodes.Contains(childNodeKey) && _nodeDisplayOptions.ShowNodesOnce)
+				if (addedVisualizationNodes.Contains(childNode.Key) && _nodeDisplayOptions.ShowNodesOnce)
 				{
 					continue;
 				}
-
-				VisualizationNode recursionNode = HasRecursion(childNodeKey, visualizationNodeStack);
+				
+				VisualizationNode recursionNode = HasRecursion(childNode.Key, visualizationNodeStack);
 				bool isRecursion = recursionNode != null;
-				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode.Id, childNode.Type);
+				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode);
 
-				visualizationChildNode.IsFiltered = IsNodeFiltered(childNode.Id, childNode.Type);
+				visualizationChildNode.IsFiltered = IsNodeFiltered(childNode.Key);
 
 				if (!isRecursion)
 				{
@@ -1142,10 +1173,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return !node.IsFiltered;
 		}
 
-		private bool IsNodeFiltered(string id, string type)
+		private bool IsNodeFiltered(string key)
 		{
-			string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
-			
 			VisualizationNodeData nodeData = _cachedVisualizationNodeDatas[key];
 			ITypeHandler typeHandler = nodeData.TypeHandler;
 
@@ -1161,9 +1190,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}).ToList(), relationType);
 		}
 
-		private VisualizationNode GetVisualizationNode(string id, string type)
+		private VisualizationNode GetVisualizationNode(Node node)
 		{
-			return new VisualizationNode{NodeData = AddNodeCacheForNode(id, type)};
+			return new VisualizationNode{NodeData = AddNodeCacheForNode(node.Id, node.Type, node.Key)};
 		}
 		
 		/// <summary>

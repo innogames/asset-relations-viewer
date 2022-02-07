@@ -23,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		
 		public abstract EnclosedBounds GetBoundsOwn(NodeDisplayData displayData);
 		
-		public abstract void Draw(int depth, RelationType relationType, ITypeColorProvider colorProvider,
+		public abstract void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider,
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData);
 
 		public virtual void CalculateCachedDataInternal()

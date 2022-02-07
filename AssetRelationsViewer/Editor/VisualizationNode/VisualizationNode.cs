@@ -9,6 +9,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		public VisualizationNodeData NodeData;
 		public string Key;
+		public int Hash;
+
+		public void SetKey(string value)
+		{
+			Key = value;
+			Hash = value.GetHashCode();
+		}
 
 		public override string GetSortingKey(RelationType relationType)
 		{
@@ -29,7 +36,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return new EnclosedBounds(0, 0, (int)width, (int)height);
 		}
 
-		public override void Draw(int depth, RelationType relationType, ITypeColorProvider colorProvider, 
+		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, 
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
 			Vector2 position = GetPosition(viewAreaData);
@@ -64,7 +71,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			if (depth > 0)
 			{
 				string typeId = GetRelations(AssetRelationsViewerWindow.InvertRelationType(relationType))[0].Datas[0].Type; // TODO move
-				textColor = colorProvider.GetConnectionColorForType(typeId);
+				textColor = displayDataProvider.GetConnectionColorForType(typeId);
 			}
 				
 			textColor *= ARVStyles.TextColorMod;
@@ -76,6 +83,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (displayData.ShowAdditionalInformation)
 			{
+				if (NodeData.HierarchySize == -1)
+				{
+					NodeData.HierarchySize = displayDataProvider.GetTreeSizeForNode(NodeData.Key);
+				}
+				
 				string text = string.Format("Size: {0}kb | TreeSize: {1}kb ", NodeData.OwnSize, NodeData.HierarchySize);
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
 			}

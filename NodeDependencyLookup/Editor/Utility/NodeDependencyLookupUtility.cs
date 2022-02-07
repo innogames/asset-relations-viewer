@@ -9,7 +9,6 @@ using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
-
 #endif
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -19,6 +18,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /// </summary>
     public static class NodeDependencyLookupUtility
     {
+        public class CachedNodeSize
+        {
+            public int Size;
+            public HashSet<Node> FlattenedSubTree;
+        }
+        
         public const string DEFAULT_CACHE_SAVE_PATH = "AssetRelationsViewer/Cache/";
 
         [MenuItem("Window/Node Dependency Lookup/Clear Cache Files")]
@@ -292,16 +297,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static int GetNodeSize(bool own, bool tree, string id, string type, HashSet<string> traversedNodes,
+        public static int GetOwnNodeSize(string id, string type, string key, HashSet<string> traversedNodes,
             NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache = null)
         {
-            if (ownSizeCache == null)
-            {
-                ownSizeCache = new Dictionary<string, int>();
-            }
-            
-            string key = GetNodeKey(id, type);
-
             if (traversedNodes.Contains(key) || !stateContext.NodeHandlerLookup.ContainsKey(type))
             {
                 return 0;
@@ -313,34 +311,88 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             INodeHandler nodeHandler = stateContext.NodeHandlerLookup[type];
 
-            if (own && (!tree || nodeHandler.ContributesToTreeSize()))
+            if (nodeHandler.ContributesToTreeSize())
             {
                 if (!ownSizeCache.ContainsKey(key))
                 {
-                    ownSizeCache[key] = nodeHandler.GetOwnFileSize(id, type, stateContext);
+                    ownSizeCache[key] = nodeHandler.GetOwnFileSize(type, id, key, traversedNodes, stateContext);
                 }
                 
                 size += ownSizeCache[key];
             }
 
-            if (tree)
-            {
-                Node node = stateContext.RelationsLookup.GetNode(id, type);
+            return size;
+        }
 
-                if (node != null)
+        public static int GetTreeSize(string key,
+            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache, Dictionary<string, HashSet<Node>> subTreeLookup, HashSet<string> traversedNodes)
+        {
+            int size = 0;
+            
+            Node node = stateContext.RelationsLookup.GetNode(key);
+            HashSet<Node> flattedHierarchy = new HashSet<Node>();
+            
+            traversedNodes.Clear();
+
+            TraverseHardDependencyNodesRec(node, stateContext, ref flattedHierarchy, subTreeLookup, traversedNodes);
+            
+            foreach (Node traversedNode in flattedHierarchy)
+            {
+                string traversedNodeKey = traversedNode.Key;
+
+                if (!ownSizeCache.ContainsKey(traversedNodeKey))
                 {
-                    foreach (Connection connection in node.GetRelations(RelationType.DEPENDENCY))
-                    {
-                        if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
-                        {
-                            Node childNode = connection.Node;
-                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext, ownSizeCache);
-                        }
-                    }
+                    GetOwnNodeSize(traversedNode.Id, traversedNode.Type, traversedNode.Key, new HashSet<string>(), stateContext, ownSizeCache);
+                }
+
+                if (ownSizeCache.ContainsKey(traversedNodeKey))
+                {
+                    size += ownSizeCache[traversedNodeKey];
                 }
             }
 
             return size;
+        }
+
+        public static void TraverseHardDependencyNodesRec(Node node, NodeDependencyLookupContext stateContext, 
+            ref HashSet<Node> flattenedNodes, Dictionary<string, HashSet<Node>> subTreeLookup, HashSet<string> traversedNodes)
+        {
+            if (node == null)
+            {
+                return;
+            }
+
+            if (traversedNodes.Contains(node.Key))
+            {
+                return;
+            }
+
+            traversedNodes.Add(node.Key);
+            
+            if(subTreeLookup.ContainsKey(node.Key))
+            {
+                flattenedNodes = subTreeLookup[node.Key];
+                return;
+            }
+            
+            flattenedNodes.Add(node);
+
+            HashSet<Node> subTree = new HashSet<Node>();
+            
+            foreach (Connection connection in node.Dependencies)
+            {
+                if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
+                {
+                    TraverseHardDependencyNodesRec(connection.Node, stateContext, ref subTree, subTreeLookup, traversedNodes);
+                }
+                
+                foreach (Node subNode in subTree)
+                {
+                    flattenedNodes.Add(subNode);
+                }
+            }
+
+            subTreeLookup[node.Key] = flattenedNodes;
         }
 
         public static string GetGuidFromAssetId(string id)

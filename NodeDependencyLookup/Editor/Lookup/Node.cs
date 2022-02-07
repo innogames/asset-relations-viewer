@@ -11,8 +11,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly List<Connection> Dependencies = new List<Connection>();
 		public readonly List<Connection> Referencers = new List<Connection>();
 
-		public string Id;
-		public string Type;
+		public readonly string Id;
+		public readonly string Type;
+		public readonly string Key;
+
+		public Node(string id, string type)
+		{
+			Id = id;
+			Type = type;
+			Key = NodeDependencyLookupUtility.GetNodeKey(id, type);
+		}
 
 		public List<Connection> GetRelations(RelationType type)
 		{

@@ -18,14 +18,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			public Node GetNode(string id, string type)
 			{
-				string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
-
+				return GetNode(NodeDependencyLookupUtility.GetNodeKey(id, type));
+			}
+			
+			public Node GetNode(string key)
+			{
 				if (_lookup.ContainsKey(key))
 				{
 					return _lookup[key];
 				}
 
 				return null;
+			}
+
+			public List<Node> GetAllNodes()
+			{
+				return _lookup.Values.ToList();
 			}
 		}
 
@@ -104,7 +112,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (!nodeDictionary.ContainsKey(key))
 				{
-					nodeDictionary.Add(key, new Node {Id = id, Type = type});
+					nodeDictionary.Add(key, new Node(id, type));
 				}
 
 				return nodeDictionary[key];

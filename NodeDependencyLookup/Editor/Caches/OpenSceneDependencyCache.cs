@@ -307,7 +307,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return HandledTypes;
         }
 
-        public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
+        public int GetOwnFileSize(string type, string id, string key, HashSet<string> traversedNodes,
+            NodeDependencyLookupContext stateContext)
         {
             return 0;
         }
