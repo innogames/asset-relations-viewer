@@ -79,7 +79,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Vector2 m_cachesScrollPosition;
 		private Vector2 m_handlersScrollPosition;
 		
-		private HierarchySizeThread hierarchySizeThread;
+		private NodeSizeThread nodeSizeThread;
 
 		public class NodeDisplayOptions
 		{
@@ -140,13 +140,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			SetNodeHandlerContext();
 
-			hierarchySizeThread = new HierarchySizeThread(this);
-			hierarchySizeThread.Start();
+			nodeSizeThread = new NodeSizeThread(this);
+			nodeSizeThread.Start();
 		}
 
 		private void OnDisable()
 		{
-			hierarchySizeThread.Kill();
+			nodeSizeThread.Kill();
 		}
 
 		private bool isInitialized = false;
@@ -283,7 +283,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public void EnqueueTreeSizeCalculationForNode(VisualizationNodeData node)
 		{
 			node.HierarchySize = -2;
-			hierarchySizeThread.EnqueueNodeData(node);
+			nodeSizeThread.EnqueueNodeData(node);
+		}
+
+		public void CalculateOwnSizeForNode(VisualizationNodeData node)
+		{
+			_cachedNodeSizes.TryGetValue(node.Key, out node.OwnSize);
 		}
 		
 		public void CalculateTreeSizeForNode(VisualizationNodeData node, HashSet<string> traversedNodes)
@@ -876,7 +881,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				data.NodeHandler = nodeHandler;
 				data.TypeHandler = typeHandler;
-				
+
 				data.Name = typeHandler.GetName(id);
 				data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(id, type);
 				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, _cachedPackedInfo);
@@ -894,8 +899,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
-			hierarchySizeThread.Kill();
-			hierarchySizeThread.Start();
+			nodeSizeThread.Kill();
+			nodeSizeThread.Start();
 			
 			_cachedPackedInfo.Clear();
 			_cachedSubTreeLookup.Clear();

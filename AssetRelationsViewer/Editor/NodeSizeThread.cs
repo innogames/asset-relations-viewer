@@ -3,14 +3,14 @@ using System.Threading;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-	public class HierarchySizeThread
+	public class NodeSizeThread
 	{
 		private readonly Stack<VisualizationNodeData> stack = new Stack<VisualizationNodeData>();
 		private readonly AssetRelationsViewerWindow viewerWindow;
 		private readonly HashSet<string> traversedNodes = new HashSet<string>();
 		private Thread thread;
 
-		public HierarchySizeThread(AssetRelationsViewerWindow window)
+		public NodeSizeThread(AssetRelationsViewerWindow window)
 		{
 			viewerWindow = window;
 		}
@@ -30,6 +30,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void EnqueueNodeData(VisualizationNodeData nodeData)
 		{
+			viewerWindow.CalculateOwnSizeForNode(nodeData);
 			stack.Push(nodeData);
 		}
 		
