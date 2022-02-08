@@ -26,7 +26,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			float height = displayData.AssetPreviewSize;
 				
-			if (displayData.ShowAdditionalInformation)
+			if (displayData.ShowSizes)
 			{
 				height = Math.Max(32, height);
 			}
@@ -81,14 +81,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			string name = isMissing ? "Missing!!!" : NodeData.Name;
 			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), name, style);
 			
-			if (displayData.ShowAdditionalInformation)
+			if (displayData.ShowSizes)
 			{
 				if (NodeData.HierarchySize == -1)
 				{
-					NodeData.HierarchySize = displayDataProvider.GetTreeSizeForNode(NodeData.Key);
+					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
 				}
+
+				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
 				
-				string text = string.Format("Size: {0}kb | TreeSize: {1}kb ", NodeData.OwnSize, NodeData.HierarchySize);
+				string text = $"Size: {NodeData.OwnSize}kb | TreeSize: {threeSizeText}";
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
 			}
 			

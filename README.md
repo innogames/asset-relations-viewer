@@ -42,7 +42,7 @@ If you are in production and not want to get automatic updates always use a tagg
 
 ```js
 	...
-    "com.innogames.asset-relations-viewer": "https://github.com/innogames/asset-relations-viewer.git#1.3.2",
+    "com.innogames.asset-relations-viewer": "https://github.com/innogames/asset-relations-viewer.git#1.4.0",
     ...
 
 ```

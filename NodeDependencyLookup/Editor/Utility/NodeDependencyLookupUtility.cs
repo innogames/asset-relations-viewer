@@ -326,14 +326,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             
             Node node = stateContext.RelationsLookup.GetNode(key);
 
-            traversedNodes.Clear();
-
-            Profiler.BeginSample("TraverseHardDependencyNodesRec");
-            HashSet<Node> flattedHierarchy = TraverseHardDependencyNodesRec(node, stateContext, subTreeLookup, traversedNodes);
-            //subTreeLookup[node.Key] = flattedHierarchy;
-            Profiler.EndSample();
+            HashSet<Node> flattedHierarchy = new HashSet<Node>();
+            TraverseHardDependencyNodesRecNoFlattened(node, stateContext, flattedHierarchy);
             
-            Profiler.BeginSample("GetNodeSized");
             foreach (Node traversedNode in flattedHierarchy)
             {
                 string traversedNodeKey = traversedNode.Key;
@@ -342,13 +337,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 {
                     size += nodeSize;
                 }
-                else
-                {
-                    size += GetOwnNodeSize(traversedNode.Id, traversedNode.Type, traversedNode.Key, stateContext, ownSizeCache);
-                }
             }
-            
-            Profiler.EndSample();
 
             return size;
         }
@@ -365,11 +354,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (traversedNodes.Contains(node.Key))
             {
-                if(subTreeLookup.ContainsKey(node.Key))
-                {
-                    return subTreeLookup[node.Key];
-                }
-                
                 return result;
             }
             
@@ -394,8 +378,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
             }
 
-            subTreeLookup[node.Key] = result;
+            //subTreeLookup[node.Key] = result;
             return result;
+        }
+        
+        public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext stateContext, 
+            HashSet<Node> traversedNodes)
+        {
+            if (node == null)
+            {
+                return;
+            }
+
+            if (traversedNodes.Contains(node))
+            {
+                return;
+            }
+
+            traversedNodes.Add(node);
+
+            foreach (Connection connection in node.Dependencies)
+            {
+                if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
+                {
+                    TraverseHardDependencyNodesRecNoFlattened(connection.Node, stateContext, traversedNodes);
+                }
+            }
         }
 
         public static string GetGuidFromAssetId(string id)

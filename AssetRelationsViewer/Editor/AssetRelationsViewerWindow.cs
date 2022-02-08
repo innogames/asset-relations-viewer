@@ -4,14 +4,13 @@ using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
 	public interface INodeDisplayDataProvider
 	{
 		Color GetConnectionColorForType(string typeId);
-		int GetTreeSizeForNode(string key);
+		void EnqueueTreeSizeCalculationForNode(VisualizationNodeData nodeData);
 	}
 
 	public interface ISelectionChanger
@@ -75,11 +74,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
 		
 		private PrefValueBool MergeRelations = new PrefValueBool("MergeRelations", true);
-		
 		private PrefValueBool Showthumbnails = new PrefValueBool("Showthumbnails", false);
 		
 		private Vector2 m_cachesScrollPosition;
 		private Vector2 m_handlersScrollPosition;
+		
+		private HierarchySizeThread hierarchySizeThread;
 
 		public class NodeDisplayOptions
 		{
@@ -139,6 +139,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			SetHandlerSelection();
 
 			SetNodeHandlerContext();
+
+			hierarchySizeThread = new HierarchySizeThread(this);
+			hierarchySizeThread.Start();
+		}
+
+		private void OnDisable()
+		{
+			hierarchySizeThread.Kill();
 		}
 
 		private bool isInitialized = false;
@@ -167,6 +175,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress, true, update);
 			
 			SetNodeHandlerContext();
+			_cachedNodeSizes.Clear();
 		}
 
 		private void SetNodeHandlerContext()
@@ -247,7 +256,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			cacheState.SaveState();
 		}
-		
+
 		public void InvalidateNodeStructure()
 		{
 			_nodeStructureDirty = true;
@@ -267,9 +276,27 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Selection.activeObject, out string guid, out long fileId);
 			string assetId = $"{guid}_{fileId}";
 			
-			
 			ChangeSelection(assetId, "Asset");
 			Repaint();
+		}
+		
+		public void EnqueueTreeSizeCalculationForNode(VisualizationNodeData node)
+		{
+			node.HierarchySize = -2;
+			hierarchySizeThread.EnqueueNodeData(node);
+		}
+		
+		public void CalculateTreeSizeForNode(VisualizationNodeData node, HashSet<string> traversedNodes)
+		{
+			traversedNodes.Clear();
+
+			if (node == null)
+			{
+				return;
+			}
+			
+			node.HierarchySize =  NodeDependencyLookupUtility.GetTreeSize(node.Key, _nodeDependencyLookupContext,
+				_cachedNodeSizes, _cachedSubTreeLookup, traversedNodes);
 		}
 
 		private void OnGUI()
@@ -638,7 +665,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			EditorGUILayout.BeginVertical("Box");
 			
-			TogglePref(DisplayData.ShowAdditionalInformation, "Show Size Information", b => RefreshNodeStructure());
+			TogglePref(DisplayData.ShowSizes, "Show Size Information", b => RefreshNodeStructure());
 			TogglePref(Showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
 
 			EditorGUILayout.Space();
@@ -694,12 +721,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void CalculateAllNodeSizes()
 		{
-			EditorUtility.DisplayProgressBar("CalculateAllNodeSizes", "", 0);
+			if (!DisplayData.ShowSizes)
+			{
+				return;
+			}
+			
+			EditorUtility.DisplayProgressBar("Calculating all node sizes", "", 0);
 			List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
 
 			foreach (Node node in allNodes)
 			{
-				NodeDependencyLookupUtility.GetOwnNodeSize(node.Id, node.Type, node.Key, _nodeDependencyLookupContext, _cachedNodeSizes);
+				if (!_cachedNodeSizes.ContainsKey(node.Key))
+				{
+					NodeDependencyLookupUtility.GetOwnNodeSize(node.Id, node.Type, node.Key,
+						_nodeDependencyLookupContext, _cachedNodeSizes);
+				}
 			}
 			
 			EditorUtility.ClearProgressBar();
@@ -728,7 +764,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (_visualizationDirty)
 				{
 					RefreshNodeVisualizationData();
-					//UpdateNodeSizes();
 					CalculateAllNodeSizes();
 					_visualizationDirty = false;
 				}
@@ -807,7 +842,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void UpdateNodeSizes()
 		{
-			if (!_showThumbnails && !DisplayData.ShowAdditionalInformation)
+			if (!_showThumbnails && !DisplayData.ShowSizes)
 			{
 				return;
 			}
@@ -821,14 +856,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 
 			EditorUtility.ClearProgressBar();
-		}
-		
-		public int GetTreeSizeForNode(string key)
-		{
-			HashSet<string> traversedNodes = new HashSet<string>();
-			
-			return NodeDependencyLookupUtility.GetTreeSize(key, _nodeDependencyLookupContext,
-				_cachedNodeSizes, _cachedSubTreeLookup, traversedNodes);
 		}
 
 		private VisualizationNodeData AddNodeCacheForNode(string id, string type, string key)
@@ -867,7 +894,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
-			_cachedNodeSizes.Clear();
+			hierarchySizeThread.Kill();
+			hierarchySizeThread.Start();
+			
 			_cachedPackedInfo.Clear();
 			_cachedSubTreeLookup.Clear();
 			
