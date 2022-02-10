@@ -30,7 +30,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void EnqueueNodeData(VisualizationNodeData nodeData)
 		{
-			viewerWindow.CalculateOwnSizeForNode(nodeData);
+			viewerWindow.GetCachedOwnSizeForNode(nodeData);
 			stack.Push(nodeData);
 		}
 		

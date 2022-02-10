@@ -297,9 +297,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static int GetOwnNodeSize(string id, string type, string key,
-            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache = null)
+        public struct NodeSize
         {
+            public int Size;
+            public bool ContributesToTreeSize;
+        }
+
+        public static int GetOwnNodeSize(string id, string type, string key,
+            NodeDependencyLookupContext stateContext, Dictionary<string, NodeSize> ownSizeCache)
+        {
+            if (ownSizeCache.TryGetValue(key, out NodeSize tsize))
+            {
+                return tsize.Size;
+            }
+            
             if (!stateContext.NodeHandlerLookup.ContainsKey(type))
             {
                 return 0;
@@ -309,18 +320,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             INodeHandler nodeHandler = stateContext.NodeHandlerLookup[type];
 
-            if (nodeHandler.ContributesToTreeSize())
-            {
-                int nodeSize = nodeHandler.GetOwnFileSize(type, id, key, stateContext);
-                ownSizeCache[key] = nodeSize;
-                size += ownSizeCache[key];
-            }
+            int nodeSize = nodeHandler.GetOwnFileSize(type, id, key, stateContext, ownSizeCache);
+            ownSizeCache[key] = new NodeSize {Size = nodeSize, ContributesToTreeSize = nodeHandler.ContributesToTreeSize()};
+            size += nodeSize;
 
             return size;
         }
 
         public static int GetTreeSize(string key,
-            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache, Dictionary<string, HashSet<Node>> subTreeLookup, HashSet<string> traversedNodes)
+            NodeDependencyLookupContext stateContext, Dictionary<string, NodeSize> ownSizeCache)
         {
             int size = 0;
             
@@ -333,55 +341,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 string traversedNodeKey = traversedNode.Key;
                 
-                if(ownSizeCache.TryGetValue(traversedNodeKey, out int nodeSize))
+                if(ownSizeCache.TryGetValue(traversedNodeKey, out NodeSize nodeSize) && nodeSize.ContributesToTreeSize)
                 {
-                    size += nodeSize;
+                    size += nodeSize.Size;
                 }
             }
 
             return size;
         }
 
-        public static HashSet<Node> TraverseHardDependencyNodesRec(Node node, NodeDependencyLookupContext stateContext, 
-            Dictionary<string, HashSet<Node>> subTreeLookup, HashSet<string> traversedNodes)
-        {
-            HashSet<Node> result = new HashSet<Node>();
-
-            if (node == null)
-            {
-                return result;
-            }
-
-            if (traversedNodes.Contains(node.Key))
-            {
-                return result;
-            }
-            
-            if(subTreeLookup.ContainsKey(node.Key))
-            {
-                return subTreeLookup[node.Key];
-            }
-
-            traversedNodes.Add(node.Key);
-            result.Add(node);
-
-            foreach (Connection connection in node.Dependencies)
-            {
-                if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
-                {
-                    HashSet<Node> subTree = TraverseHardDependencyNodesRec(connection.Node, stateContext, subTreeLookup, traversedNodes);
-                    
-                    foreach (Node subNode in subTree)
-                    {
-                        result.Add(subNode);
-                    }
-                }
-            }
-
-            //subTreeLookup[node.Key] = result;
-            return result;
-        }
-        
         public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext stateContext, 
             HashSet<Node> traversedNodes)
         {

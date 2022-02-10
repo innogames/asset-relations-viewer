@@ -23,8 +23,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 		
 		public int GetOwnFileSize(string type, string id, string key,
-			NodeDependencyLookupContext stateContext)
+			NodeDependencyLookupContext stateContext,
+			Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache)
 		{
+			Node node = stateContext.RelationsLookup.GetNode(key);
+			
+			foreach (Connection dependency in node.Dependencies)
+			{
+				if (dependency.Type == "File")
+				{
+					Node dependencyNode = dependency.Node;
+					return NodeDependencyLookupUtility.GetOwnNodeSize(dependencyNode.Id, dependencyNode.Type,
+						dependencyNode.Key, stateContext, ownSizeCache);
+				}
+			}
+
 			return 0;
 		}
 
@@ -47,7 +60,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public bool ContributesToTreeSize()
 		{
-			return true;
+			return false;
 		}
 
 		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

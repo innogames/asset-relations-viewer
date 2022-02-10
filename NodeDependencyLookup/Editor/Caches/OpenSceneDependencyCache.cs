@@ -308,7 +308,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public int GetOwnFileSize(string type, string id, string key,
-            NodeDependencyLookupContext stateContext)
+            NodeDependencyLookupContext stateContext,
+            Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache)
         {
             return 0;
         }

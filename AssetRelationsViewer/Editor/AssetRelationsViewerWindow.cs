@@ -53,8 +53,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 		private HashSet<string> _visibleNodes = new HashSet<string>();
 		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
-		private Dictionary<string, int> _cachedNodeSizes = new Dictionary<string, int>();
-		private Dictionary<string, HashSet<Node>> _cachedSubTreeLookup = new Dictionary<string, HashSet<Node>>();
+		private Dictionary<string, NodeDependencyLookupUtility.NodeSize> _cachedNodeSizes = new Dictionary<string, NodeDependencyLookupUtility.NodeSize>();
 		private Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
 
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
@@ -286,9 +285,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			nodeSizeThread.EnqueueNodeData(node);
 		}
 
-		public void CalculateOwnSizeForNode(VisualizationNodeData node)
+		public void GetCachedOwnSizeForNode(VisualizationNodeData node)
 		{
-			_cachedNodeSizes.TryGetValue(node.Key, out node.OwnSize);
+			if (_cachedNodeSizes.ContainsKey(node.Key))
+			{
+				node.OwnSize = _cachedNodeSizes[node.Key].Size;
+			}
 		}
 		
 		public void CalculateTreeSizeForNode(VisualizationNodeData node, HashSet<string> traversedNodes)
@@ -301,7 +303,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 			
 			node.HierarchySize =  NodeDependencyLookupUtility.GetTreeSize(node.Key, _nodeDependencyLookupContext,
-				_cachedNodeSizes, _cachedSubTreeLookup, traversedNodes);
+				_cachedNodeSizes);
 		}
 
 		private void OnGUI()
@@ -903,8 +905,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			nodeSizeThread.Start();
 			
 			_cachedPackedInfo.Clear();
-			_cachedSubTreeLookup.Clear();
-			
+
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();
