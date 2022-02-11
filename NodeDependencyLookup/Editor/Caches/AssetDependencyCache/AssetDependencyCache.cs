@@ -86,7 +86,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string GetHandledNodeType()
 		{
-			return "Asset";
+			return AssetNodeType.Name;
 		}
 
 		public void AddExistingNodes(List<IResolvedNode> nodes)

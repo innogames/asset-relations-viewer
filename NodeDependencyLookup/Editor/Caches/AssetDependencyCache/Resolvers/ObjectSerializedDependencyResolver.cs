@@ -14,8 +14,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private static ConnectionType ObjectType = new ConnectionType(new Color(0.8f, 0.8f, 0.8f), false, true);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
-
-		public const string NodeType = "Asset";
+		
 		public const string ResolvedType = "Object";
 		public const string Id = "ObjectSerializedDependencyResolver";
 		

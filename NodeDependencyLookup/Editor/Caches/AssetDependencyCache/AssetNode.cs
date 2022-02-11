@@ -64,7 +64,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public string AssetId;
 		
 		public string Id{get { return AssetId; }}
-		public string Type{get { return "Asset"; }}
+		public string Type{get { return AssetNodeType.Name; }}
 		public bool Existing { get; set; }
 		
 		public List<ResolverData> ResolverDatas = new List<ResolverData>();

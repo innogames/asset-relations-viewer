@@ -5,12 +5,17 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    public class FileNodeType
+    {
+        public const string Name = "File";
+    }
+
     /**
 	 * NodeHandler for files
 	 */
     public class FileNodeHandler : INodeHandler
     {
-        private string[] HandledTypes = {"File"};
+        private string[] HandledTypes = {FileNodeType.Name};
 		
         public string GetId()
         {

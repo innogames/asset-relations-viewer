@@ -13,7 +13,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public string GetHandledType()
 		{
-			return "File";
+			return FileNodeType.Name;
 		}
 
 		public string GetSortingKey(string name)

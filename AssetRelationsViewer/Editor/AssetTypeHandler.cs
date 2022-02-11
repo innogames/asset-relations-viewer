@@ -19,7 +19,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public string GetHandledType()
         {
-            return "Asset";
+            return AssetNodeType.Name;
         }
 
         public string GetSortingKey(string name)

@@ -275,7 +275,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Selection.activeObject, out string guid, out long fileId);
 			string assetId = $"{guid}_{fileId}";
 			
-			ChangeSelection(assetId, "Asset");
+			ChangeSelection(assetId, AssetNodeType.Name);
 			Repaint();
 		}
 		

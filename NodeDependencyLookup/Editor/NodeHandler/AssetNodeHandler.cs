@@ -5,12 +5,17 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	public class AssetNodeType
+	{
+		public const string Name = "Asset";
+	}
+
 	/**
 	 * NodeHandler for assets
 	 */
 	public class AssetNodeHandler : INodeHandler
 	{
-		private string[] HandledTypes = {"Asset"};
+		private string[] HandledTypes = {AssetNodeType.Name};
 		
 		public string GetId()
 		{
@@ -30,7 +35,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			foreach (Connection dependency in node.Dependencies)
 			{
-				if (dependency.Type == "File")
+				if (dependency.Type == FileNodeType.Name)
 				{
 					Node dependencyNode = dependency.Node;
 					return NodeDependencyLookupUtility.GetOwnNodeSize(dependencyNode.Id, dependencyNode.Type,

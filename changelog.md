@@ -1,9 +1,14 @@
+**1.4.0**
+ - Optimized performance of dependency tree calculation
+ - Calculation of hierarchy tree filesizes is now done in thread an calculated on the fly when node gets visible
+ - Fixed bug where optimization to save calculations in the reflection stack (which can find generic dependencies) could lead to wrong results
+
 **1.3.2**
-	- Various optimizations to support dependency trees which would result in millions of displayed nodes
-	- Fixed bug where the same nodes dependencies would be added multiple times when using the AssetToFile dependency resolver
+ - Various optimizations to support dependency trees which would result in millions of displayed nodes
+ - Fixed bug where the same nodes dependencies would be added multiple times when using the AssetToFile dependency resolver
 
 **1.3.1**
-	- Scenes from packages are avoided from being scanned since they cant be loaded from readonly packages
+ - Scenes from packages are avoided from being scanned since they cant be loaded from readonly packages
 
 **1.3.0**
  - Fixed several bugs regarding detection of if an asset is packed into the app or not and added cache to speed up the detection

@@ -13,7 +13,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     public class InSceneTypeHandler : ITypeHandler
     {
-        private const string HandledType = "InScene";
         private const string SyncPrefKey = "InSceneSync";
         private AssetRelationsViewerWindow _viewerWindow;
 
@@ -24,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public string GetHandledType()
         {
-            return HandledType;
+            return InSceneNodeType.Name;
         }
 
         public string GetSortingKey(string name)
@@ -91,13 +90,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             
             if (selectionChanged || (m_currentNode != null && GUILayout.Button("Select")))
             {
-                _viewerWindow.ChangeSelection(m_currentNode.GetHashCode().ToString(), HandledType);
+                _viewerWindow.ChangeSelection(m_currentNode.GetHashCode().ToString(), InSceneNodeType.Name);
             }
         }
 
         public void OnSelectAsset(string id, string type)
         {
-            if (type == HandledType && _hashToGameObject.ContainsKey(id))
+            if (type == InSceneNodeType.Name && _hashToGameObject.ContainsKey(id))
             {
                 m_currentNode = _hashToGameObject[id];
                 Selection.activeObject = m_currentNode;
@@ -117,7 +116,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
                 foreach (IResolvedNode node in resolvedNodes)
                 {
-                    if (node.Type == HandledType)
+                    if (node.Type == InSceneNodeType.Name)
                         nodes.Add(node.Id);
                 }
             }
@@ -167,7 +166,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
                 if (EditorPrefs.GetBool(SyncPrefKey))
                 {
-                    _viewerWindow.ChangeSelection(hashCode, "InScene");
+                    _viewerWindow.ChangeSelection(hashCode, InSceneNodeType.Name);
                 }
 
                 _viewerWindow.Repaint();

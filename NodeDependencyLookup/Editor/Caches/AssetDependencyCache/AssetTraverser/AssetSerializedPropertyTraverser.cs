@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using DG.DemiEditor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -127,8 +128,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (string.IsNullOrEmpty(path))
 				return -1;
 
-			bool changed = false;
-
 			string[] tokens = path.Split( '.' );
 
 			for (int i = 0; i < tokens.Length; ++i)
@@ -138,12 +137,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				
 				ReflectionStackItem parent = stack[stackPos - 1];
 				ReflectionStackItem item = stack[stackPos];
-
-				if (item != null && item.elementName == elementName && !changed)
-					continue;
-
-				changed = true;
 				
+				if (parent.type == null)
+					return -1;
+
 				item.elementName = elementName;
 				item.fieldName = elementName;
 				item.arrayIndex = -1;
@@ -153,9 +150,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					item.arrayIndex = System.Convert.ToInt32(elementName.Substring(elementName.IndexOf("[")).Replace("[", "").Replace("]", ""));
 					item.fieldName = elementName.Substring(0, elementName.IndexOf("["));
 				}
-
-				if (parent.type == null)
-					return -1;
 
 				item.fieldInfo = parent.type.GetField( item.fieldName , FLAGS);
 

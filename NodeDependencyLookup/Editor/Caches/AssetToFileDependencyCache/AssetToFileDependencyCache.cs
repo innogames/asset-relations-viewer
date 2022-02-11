@@ -193,7 +193,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public string GetHandledNodeType()
         {
-            return "Asset";
+            return AssetNodeType.Name;
         }
 
         public List<Dependency> GetDependenciesForId(string id)
@@ -297,7 +297,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public List<Dependency> Dependencies = new List<Dependency>();
         public bool IsExisting = true;
         public string Id => AssetId;
-        public string Type => "Asset";
+        public string Type => AssetNodeType.Name;
         public bool Existing => IsExisting;
     }
 
@@ -309,7 +309,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
     public class AssetToFileDependencyResolver : IAssetToFileDependencyResolver
     {
-        private static ConnectionType FileType = new ConnectionType(new Color(0.7f, 0.9f, 0.7f), false, true);
+        private static ConnectionType FileConnectionType = new ConnectionType(new Color(0.7f, 0.9f, 0.7f), false, true);
 
         public const string ResolvedType = "File";
         public const string Id = "AssetToFileDependencyResolver";
@@ -328,7 +328,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public ConnectionType GetDependencyTypeForId(string typeId)
         {
-            return FileType;
+            return FileConnectionType;
         }
 
         public void Initialize(AssetToFileDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress)
@@ -340,7 +340,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             Progress.IncreaseProgress();
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-            dependencies.Add(new Dependency(fileId, ResolvedType, "File", new []{new PathSegment("File", PathSegmentType.Property)}));
+            dependencies.Add(new Dependency(fileId, ResolvedType, FileNodeType.Name, new []{new PathSegment(FileNodeType.Name, PathSegmentType.Property)}));
         }
     }
 }
