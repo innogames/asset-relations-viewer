@@ -459,11 +459,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 {
                     continue;
                 }
-                
-                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
 
                 if (!(mainAsset is GameObject) || (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
                 {
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
                     assetList.Add($"{guid}_{fileID}");
                 }
             }

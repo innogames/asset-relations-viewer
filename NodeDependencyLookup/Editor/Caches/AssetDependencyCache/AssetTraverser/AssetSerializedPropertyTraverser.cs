@@ -44,7 +44,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				
 				Progress.IncreaseProgress();
 				Progress.UpdateProgress("SerializedPropertySearcher", asset.name);
-				Traverse(pair.Key, NodeDependencyLookupUtility.GetAssetById(pair.Key), new Stack<PathSegment>());
+				Traverse(pair.Key, asset, new Stack<PathSegment>());
 			}
 		}
 
@@ -90,10 +90,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Type type = typeof(SerializedProperty);
 			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+
+			SerializedPropertyType propertyType;
 			
 			do
 			{
-				SerializedPropertyType propertyType = property.propertyType;
+				propertyType = property.propertyType;
 
 				if (propertyType != SerializedPropertyType.ObjectReference && propertyType != SerializedPropertyType.Generic)
 				{
@@ -105,7 +107,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					string propertyPath = property.propertyPath;
 
 					string modifiedPath = propertyPath.Replace(".Array.data[", "[");
-
 					int stackIndex = UpdateStack(modifiedPath, ReflectionStack);
 
 					if (stackIndex != -1)
@@ -119,7 +120,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 
-			} while (property.Next(true));
+			} while (property.Next(propertyType == SerializedPropertyType.Generic));
 		}
 
 		private int UpdateStack(string path, ReflectionStackItem[] stack)
@@ -217,8 +218,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			SerializedPropertyType type = property.propertyType;
 
-			stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-			
 			if (!m_assetIdToResolver.ContainsKey(assetId))
 			{
 				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", assetId);
@@ -236,10 +235,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 			
+				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
 				subSystem.AddDependency(assetId, new Dependency(result.Id, result.ConnectionType, result.NodeType, stack.ToArray()));
+				stack.Pop();
 			}
-
-			stack.Pop();
 		}
 	}
 }
