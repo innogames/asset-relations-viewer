@@ -395,9 +395,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string fileId = GetFileIdFromAssetId(id);
             string guid = GetGuidFromAssetId(id);
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            Profiler.BeginSample("LoadAllAssets");
             Object[] assetsAtPath = LoadAllAssetsAtPath(path);
-            Profiler.EndSample();
 
             foreach (Object asset in assetsAtPath)
             {

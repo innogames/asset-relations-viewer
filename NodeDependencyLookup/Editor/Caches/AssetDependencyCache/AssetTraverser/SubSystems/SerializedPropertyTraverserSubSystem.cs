@@ -22,7 +22,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
         
         // Returns a dependency result of the given serialized property is a UnityEngine.Object
-        public abstract Result GetDependency(Type objType, object obj, SerializedProperty property, string propertyPath, SerializedPropertyType type, Stack<PathSegment> stack);
+        public abstract Result GetDependency(object obj, string propertyPath, SerializedPropertyType type,
+            Stack<PathSegment> stack);
 
         public void AddDependency(string id, Dependency dependency)
         {

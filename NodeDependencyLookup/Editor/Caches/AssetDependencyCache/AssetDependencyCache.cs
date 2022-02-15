@@ -210,7 +210,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (progressPercentage - lastDisplayedPercentage > 0.01f)
 				{
-					EditorUtility.DisplayProgressBar(progressBarTitle,$"Finding changed assets {result.Count}", (float)i / pathes.Length);
+					EditorUtility.DisplayProgressBar(progressBarTitle,$"Finding and loading changed assets {result.Count}", (float)i / pathes.Length);
 					lastDisplayedPercentage = progressPercentage;
 				}
 

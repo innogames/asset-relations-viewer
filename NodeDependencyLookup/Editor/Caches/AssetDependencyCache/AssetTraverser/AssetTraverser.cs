@@ -3,7 +3,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -24,7 +23,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Traverse(string id, Object obj, Stack<PathSegment> stack)
 		{
-			Profiler.BeginSample($"Traverse: {obj.name}");
+			// TODO avoid adding them at another place
+			if (obj is Mesh)
+			{
+				return;
+			}
 
 			if (obj is GameObject)
 			{
@@ -39,8 +42,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				TraverseObject(id, obj, stack, false);
 			}
-
-			Profiler.EndSample();
 		}
 
 		public void TraverseScene(string id, Object obj, Stack<PathSegment> stack)
@@ -84,7 +85,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					onlyOverriden = true;
 					isPrefabInstance = true;
-					var prefabObj = PrefabUtility.GetPrefabInstanceHandle(obj);
+					Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(obj);
 
 					if(prefabObj != currentPrefab)
 					{
@@ -92,7 +93,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						{
 							TraversePrefab(id, obj, stack);
 						}
-						else if (prefabAssetType == PrefabAssetType.Variant)
+						else
 						{
 							TraversePrefabVariant(id, obj, stack);
 						}

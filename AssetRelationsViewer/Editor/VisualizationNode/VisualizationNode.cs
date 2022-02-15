@@ -90,7 +90,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
 				
-				string text = $"{NodeData.OwnSize}kb | Tree: {threeSizeText}";
+				string text = $"{NodeData.OwnSize}kb | deps: {threeSizeText}";
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
 			}
 			

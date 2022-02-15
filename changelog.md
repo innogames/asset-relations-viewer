@@ -1,5 +1,6 @@
 **1.4.0**
- - Optimized performance of dependency tree calculation
+ - Optimized performance of initial dependency calculation
+ - Optimized performance of dependency tree view calculation
  - Calculation of hierarchy tree filesizes is now done in thread an calculated on the fly when node gets visible
  - Fixed bug where optimization to save calculations in the reflection stack (which can find generic dependencies) could lead to wrong results
 
