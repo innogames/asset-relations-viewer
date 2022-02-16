@@ -8,23 +8,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	public interface ITypeHandler
 	{
 		string GetHandledType();
-
 		string GetSortingKey(string name);
-
 		bool HasFilter();
 		bool IsFiltered(string id);
-			
 		string GetName(string id);
+		string GetTypeName(string id);
 		VisualizationNodeData CreateNodeCachedData(string id);
-
 		void SelectInEditor(string id);
-
 		void OnGui();
-
 		void OnSelectAsset(string id, string type);
-		
 		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow viewerWindow);
-
 		bool HandlesCurrentNode();
 	}
 }

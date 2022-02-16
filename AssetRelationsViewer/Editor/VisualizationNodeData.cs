@@ -14,6 +14,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		protected Texture2D _thumbNail = null;
 
 		public string Name;
+		public string TypeName;
 		
 		public string Id;
 		public string Type;

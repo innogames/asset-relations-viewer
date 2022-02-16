@@ -14,14 +14,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public abstract class AssetTraverser
 	{
 		// Traverses an object (Monobehaviour, ScriptableObject) to get the dependencies from it
-		public abstract void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden);
+		protected abstract void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden);
 		
 		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
-		public abstract void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
-		
-		public abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+		protected abstract void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
 
-		public void Traverse(string id, Object obj, Stack<PathSegment> stack)
+		protected abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+
+		protected void Traverse(string id, Object obj, Stack<PathSegment> stack)
 		{
 			// TODO avoid adding them at another place
 			if (obj is Mesh)
@@ -29,14 +29,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			if (obj is GameObject)
+			if (obj is GameObject gameObject)
 			{
-				GameObject go = obj as GameObject;
-				TraverseGameObject(id, go, stack, null, true);
+				TraverseGameObject(id, gameObject, stack, null, true);
 			}
-			else if (obj is SceneAsset)
+			else if (obj is SceneAsset sceneAsset)
 			{
-				TraverseScene(id, obj, stack);
+				TraverseScene(id, sceneAsset, stack);
 			}
 			else
 			{
@@ -44,9 +43,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void TraverseScene(string id, Object obj, Stack<PathSegment> stack)
+		private void TraverseScene(string id, SceneAsset sceneAsset, Stack<PathSegment> stack)
 		{
-			var sceneAsset = obj as SceneAsset;
 			string path = AssetDatabase.GetAssetPath(sceneAsset);
 
 			if (path.StartsWith("Packages"))
@@ -56,7 +54,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
-			TraverseObject(id, obj, new Stack<PathSegment>(), false);
+			TraverseObject(id, sceneAsset, new Stack<PathSegment>(), false);
 
 			foreach (GameObject go in scene.GetRootGameObjects())
 			{
@@ -70,14 +68,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #pragma warning restore 618
 		}
 
-		public void TraverseGameObject(string id, Object obj, Stack<PathSegment> stack, Object currentPrefab, bool isRoot)
+		private void TraverseGameObject(string id, GameObject go, Stack<PathSegment> stack, Object currentPrefab, bool isRoot)
 		{
-			var go = obj as GameObject;
 			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
 
 #if UNITY_2018_3_OR_NEWER
-			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(obj);
+			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(go);
 
 			if (prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant)
 			{
@@ -85,17 +82,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					onlyOverriden = true;
 					isPrefabInstance = true;
-					Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(obj);
+					Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(go);
 
 					if(prefabObj != currentPrefab)
 					{
 						if (prefabAssetType == PrefabAssetType.Regular)
 						{
-							TraversePrefab(id, obj, stack);
+							TraversePrefab(id, go, stack);
 						}
 						else
 						{
-							TraversePrefabVariant(id, obj, stack);
+							TraversePrefabVariant(id, go, stack);
 						}
 						
 						currentPrefab = prefabObj;
@@ -105,16 +102,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #endif
 			
 #if !UNITY_2018_3_OR_NEWER
-			PrefabType prefabType = PrefabUtility.GetPrefabType(obj);
+			PrefabType prefabType = PrefabUtility.GetPrefabType(go);
 
 			if (prefabType == PrefabType.PrefabInstance)
 			{
 				onlyOverriden = true;
-				var prefabObj = PrefabUtility.GetPrefabParent(obj);
+				var prefabObj = PrefabUtility.GetPrefabParent(go);
 
 				if(prefabObj != currentPrefab)
 				{
-					TraversePrefab(id, prefabAssetType, obj, stack);
+					TraversePrefab(id, prefabAssetType, go, stack);
 					currentPrefab = prefabObj;
 				}
 			}

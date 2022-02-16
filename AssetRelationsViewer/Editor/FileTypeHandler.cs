@@ -36,6 +36,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
 		}
 
+		public string GetTypeName(string id)
+		{
+			return "File";
+		}
+
 		public VisualizationNodeData CreateNodeCachedData(string id)
 		{
 			return new FileVisualizationNodeData(id, GetHandledType());

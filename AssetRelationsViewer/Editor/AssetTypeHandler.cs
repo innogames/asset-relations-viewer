@@ -56,6 +56,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return id;
         }
 
+        public string GetTypeName(string id)
+        {
+            Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+            return asset.GetType().Name;
+        }
+
         public VisualizationNodeData CreateNodeCachedData(string id)
         {
             return new AssetVisualizationNodeData(id, GetHandledType());

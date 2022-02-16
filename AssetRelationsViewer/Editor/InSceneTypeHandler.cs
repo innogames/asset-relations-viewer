@@ -51,6 +51,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return _hashToGameObject[id].name;
         }
 
+        public string GetTypeName(string id)
+        {
+            return "GameObject";
+        }
+
         public VisualizationNodeData CreateNodeCachedData(string id)
         {
             return new InSceneVisualizationNodeData();

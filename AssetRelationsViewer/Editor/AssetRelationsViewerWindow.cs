@@ -672,7 +672,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			EditorGUILayout.BeginVertical("Box");
 			
-			TogglePref(DisplayData.ShowSizes, "Show Size Information", b => RefreshNodeStructure());
+			TogglePref(DisplayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure());
 			TogglePref(Showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
 
 			EditorGUILayout.Space();
@@ -728,7 +728,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void CalculateAllNodeSizes()
 		{
-			if (!DisplayData.ShowSizes)
+			if (!DisplayData.ShowAdditionalInformation)
 			{
 				return;
 			}
@@ -849,7 +849,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void UpdateNodeSizes()
 		{
-			if (!_showThumbnails && !DisplayData.ShowSizes)
+			if (!_showThumbnails && !DisplayData.ShowAdditionalInformation)
 			{
 				return;
 			}
@@ -885,6 +885,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				data.TypeHandler = typeHandler;
 
 				data.Name = typeHandler.GetName(id);
+				data.TypeName = typeHandler.GetTypeName(id);
 				data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(id, type);
 				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, _cachedPackedInfo);
 

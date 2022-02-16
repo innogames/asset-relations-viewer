@@ -26,9 +26,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			float height = displayData.AssetPreviewSize;
 				
-			if (displayData.ShowSizes)
+			if (displayData.ShowAdditionalInformation)
 			{
-				height = Math.Max(32, height);
+				height = Math.Max(48, height);
 			}
 			
 			float width = displayData.AssetPreviewSize + displayData.NodeWidth;
@@ -81,17 +81,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			string name = isMissing ? "Missing!!!" : NodeData.Name;
 			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), name, style);
 			
-			if (displayData.ShowSizes)
+			if (displayData.ShowAdditionalInformation)
 			{
 				if (NodeData.HierarchySize == -1)
 				{
 					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
 				}
+				
+				string typeText = $"[{NodeData.TypeName}]";
+				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), typeText);
 
 				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
 				
 				string text = $"{NodeData.OwnSize}kb | deps: {threeSizeText}";
-				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
+				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 32, 200, 16), text);
 			}
 			
 			DrawIsFilteredOverlay(position, displayData);

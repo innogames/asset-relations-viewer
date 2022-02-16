@@ -81,7 +81,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public List<PropertyEntry> PropertyEntries = new List<PropertyEntry>(16);
 		}
 
-		public override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
+		protected override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
 		{
 			// this can happen if the linked asset doesnt exist anymore
 			if (obj == null)
@@ -201,7 +201,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return tokens.Length;
 		}
 
-		public override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
 		{
 			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[id])
 			{
@@ -209,7 +209,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
 		{
 			if (!assetIdToResolver.ContainsKey(id))
 			{
