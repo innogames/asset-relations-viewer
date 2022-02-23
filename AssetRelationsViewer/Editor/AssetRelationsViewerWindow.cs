@@ -56,6 +56,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Dictionary<string, NodeDependencyLookupUtility.NodeSize> _cachedNodeSizes = new Dictionary<string, NodeDependencyLookupUtility.NodeSize>();
 		private Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
 
+		private bool skipNodeSizeUpdate;
+
 		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 		
 		private ViewAreaData _viewAreaData = new ViewAreaData();
@@ -174,7 +176,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress, true, update);
 			
 			SetNodeHandlerContext();
-			_cachedNodeSizes.Clear();
+
+			if (update)
+			{
+				_cachedNodeSizes.Clear();
+			}
 		}
 
 		private void SetNodeHandlerContext()
@@ -335,14 +341,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			GUILayout.BeginArea(area);
 
 			EditorGUILayout.BeginHorizontal(GUILayout.MaxWidth(700));
-			EditorGUILayout.BeginVertical();
+			EditorGUILayout.Space(1);
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
 			DrawBasicOptions();
 			DisplayMiscOptions();
 			EditorGUILayout.EndVertical();
 			DisplayNodeDisplayOptions();
 			DisplayCaches();
 			
-			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
 			
 			m_handlersScrollPosition = EditorGUILayout.BeginScrollView(m_handlersScrollPosition, GUILayout.Width(300));
 
@@ -386,7 +393,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DrawBasicOptions()
 		{
-			GUILayout.BeginVertical("Box");
 			GUILayout.BeginHorizontal();
 
 			GUI.enabled = _undoSteps.Count >= 2;
@@ -406,6 +412,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				ReloadContext();
 			}
+
+			EditorGUILayout.BeginHorizontal();
 			if (GUILayout.Button("Save and Refresh"))
 			{
 				AssetDatabase.SaveAssets();
@@ -414,14 +422,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (GUILayout.Button("Clear and refresh"))
 			{
-				AssetDatabase.SaveAssets();
-				NodeDependencyLookupUtility.ClearCachedContexts();
-				NodeDependencyLookupUtility.ClearCacheFiles();
-				_nodeDependencyLookupContext.CreatedCaches.Clear();
-				ReloadContext();
+				if (EditorUtility.DisplayDialog("Clear cache", "Continue?", "Yes", "No"))
+				{
+					AssetDatabase.SaveAssets();
+					NodeDependencyLookupUtility.ClearCachedContexts();
+					NodeDependencyLookupUtility.ClearCacheFiles();
+					_nodeDependencyLookupContext.CreatedCaches.Clear();
+					ReloadContext();
+				}
 			}
 
-			GUILayout.EndVertical();
+			EditorGUILayout.EndHorizontal();
 		}
 
 		private void RefreshNodeStructure()
@@ -445,7 +456,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		
 		private void DisplayNodeDisplayOptions()
 		{
-			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170));
 
 			TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
 			TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
@@ -488,6 +499,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					IDependencyResolver dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(rtype);
 					cacheState.ResolverStates.Add(new ResolverState(dependencyResolver));
 				}
+				
+				cacheState.UpdateActivation();
 				
 				_cacheStates.Add(cacheState);
 			}
@@ -569,77 +582,126 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayCaches()
 		{
-			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(280), GUILayout.Height(170));
 			
-			m_cachesScrollPosition = EditorGUILayout.BeginScrollView(m_cachesScrollPosition, GUILayout.Width(280));
+			EditorGUILayout.LabelField("Connection types:");
+			
+			m_cachesScrollPosition = EditorGUILayout.BeginScrollView(m_cachesScrollPosition);
+			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(200));
 			Color origColor = GUI.contentColor;
 			
 			bool stateChanged = false;
 			bool connectionTypeChanged = false;
+			bool needsUpdate = false;
+			bool loadedConnectionTypesChanged = false;
 
 			foreach (CacheState cacheState in _cacheStates)
 			{
 				GUI.contentColor = origColor;
 				
 				string s = cacheState.Cache.GetType().Name;
-				
-				ChangeValue(ref cacheState.IsActive, EditorGUILayout.ToggleLeft(s, cacheState.IsActive), ref stateChanged);
+				bool cacheStateActive = false;
 
-				if (cacheState.IsActive)
+				foreach (ResolverState resolverState in cacheState.ResolverStates)
 				{
-					foreach (ResolverState state in cacheState.ResolverStates)
+					GUI.contentColor = origColor;
+
+					bool resolverStateActive = false;
+
+					foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
 					{
-						GUI.contentColor = origColor;
-					
-						EditorGUI.indentLevel = 1;
-					
-						string id = state.Resolver.GetId();
+						bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
+						
+						GUI.contentColor = resolverState.Resolver.GetDependencyTypeForId(connectionType).Colour;
+						bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionType);
+						bool newIsActive = isActive;
 
-						ChangeValue(ref state.IsActive, EditorGUILayout.ToggleLeft(id, state.IsActive), ref stateChanged);
+						EditorGUILayout.BeginHorizontal();
+						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(connectionType, isActive), ref connectionTypeChanged);
 
-						if (!state.IsActive)
-							continue;
-					
-						EditorGUI.indentLevel = 2;
-
-						string[] connectionTypes = state.Resolver.GetConnectionTypes();
-
-						foreach (string connectionType in connectionTypes)
+						resolverStateActive |= newIsActive;
+	
+						if (newIsActive && !isActive)
 						{
-							GUI.contentColor = state.Resolver.GetDependencyTypeForId(connectionType).Colour;
-							bool isActive = state.ActiveConnectionTypes.Contains(connectionType);
-							bool newIsActive = isActive;
-							
-							ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(connectionType, isActive), ref connectionTypeChanged);
-
-							if (newIsActive && !isActive)
-							{
-								state.ActiveConnectionTypes.Add(connectionType);
-							}
-							else if (isActive && !newIsActive)
-							{
-								state.ActiveConnectionTypes.Remove(connectionType);
-							}
+							resolverState.ActiveConnectionTypes.Add(connectionType);
+							loadedConnectionTypesChanged |= isActiveAndLoaded;
+							resolverState.SaveState(); 
 						}
+						else if (isActive && !newIsActive)
+						{
+							resolverState.ActiveConnectionTypes.Remove(connectionType);
+							loadedConnectionTypesChanged |= isActiveAndLoaded;
+							resolverState.SaveState();
+						}
+						
+						if (isActiveAndLoaded)
+						{
+							GUI.contentColor = origColor;
+							EditorGUILayout.LabelField("L", GUILayout.MaxWidth(10));
+						}
+						else if (newIsActive)
+						{
+							GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
+							EditorGUILayout.LabelField("U", GUILayout.MaxWidth(10));
+							needsUpdate = true;
+						}
+						
+						EditorGUILayout.EndHorizontal();
 					}
 				}
-				
-				if (stateChanged || connectionTypeChanged)
-				{
-					cacheState.SaveState();
-					ReloadContext(stateChanged);
-					stateChanged = false;
-					InvalidateNodeStructure();
-				}
-				
+
 				EditorGUI.indentLevel = 0;
 			}
-
+			
 			GUI.contentColor = origColor;
 
-			EditorGUILayout.Space(10);
-			EditorGUILayout.EndScrollView();
 			EditorGUILayout.EndVertical();
+			EditorGUILayout.Space(2);
+			EditorGUILayout.EndScrollView();
+
+			if (loadedConnectionTypesChanged)
+			{
+				skipNodeSizeUpdate = true;
+				ReloadContext(false);
+				InvalidateNodeStructure();
+			}
+			
+			if (needsUpdate)
+			{
+				if (GUILayout.Button("Load caches"))
+				{
+					ApplyResolverList();
+				}
+			}
+			
+			EditorGUILayout.EndVertical();
+		}
+
+		private void ApplyResolverList()
+		{
+			foreach (CacheState cacheState in _cacheStates)
+			{
+				bool cacheNeedsActivation = false;
+
+				foreach (ResolverState resolverState in cacheState.ResolverStates)
+				{
+					bool resolverNeedsActivation = false;
+
+					foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
+					{
+						resolverNeedsActivation |= resolverState.ActiveConnectionTypes.Contains(connectionType);
+					}
+
+					resolverState.IsActive = resolverNeedsActivation;
+					cacheNeedsActivation |= resolverState.IsActive;
+				}
+
+				cacheState.IsActive = cacheNeedsActivation;
+				cacheState.SaveState();
+			}
+
+			ReloadContext(true);
+			InvalidateNodeStructure();
 		}
 
 		private HashSet<string> GetConnectionTypesToDisplay()
@@ -670,14 +732,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayMiscOptions()
 		{
-			EditorGUILayout.BeginVertical("Box");
-			
 			TogglePref(DisplayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure());
 			TogglePref(Showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
 
 			EditorGUILayout.Space();
-
-			EditorGUILayout.EndVertical();
 		}
 
 		private void DrawNotLoadedError()
@@ -728,7 +786,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void CalculateAllNodeSizes()
 		{
-			if (!DisplayData.ShowAdditionalInformation)
+			if (!DisplayData.ShowAdditionalInformation || skipNodeSizeUpdate)
 			{
 				return;
 			}
@@ -772,6 +830,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					RefreshNodeVisualizationData();
 					CalculateAllNodeSizes();
+					skipNodeSizeUpdate = false;
 					_visualizationDirty = false;
 				}
 				

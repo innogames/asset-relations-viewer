@@ -15,22 +15,24 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             return "Cache_" + type.Name;
         }
-			
-        private string GetPrefKey()
-        {
-            return GetPrefKey(Cache.GetType());
-        }
 
         public CacheState(IDependencyCache cache)
         {
             Cache = cache;
-            IsActive = EditorPrefs.GetBool(GetPrefKey());
+        }
+
+        public void UpdateActivation()
+        {
+            IsActive = false;
+            
+            foreach (ResolverState state in ResolverStates)
+            {
+                IsActive |= state.IsActive;
+            }
         }
 
         public void SaveState()
         {
-            EditorPrefs.SetBool(GetPrefKey(), IsActive);
-				
             foreach (ResolverState state in ResolverStates)
             {
                 state.SaveState();
