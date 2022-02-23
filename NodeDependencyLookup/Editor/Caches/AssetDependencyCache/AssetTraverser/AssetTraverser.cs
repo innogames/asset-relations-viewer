@@ -32,7 +32,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (obj is GameObject gameObject)
 			{
-				TraverseGameObject(id, gameObject, stack, null, true);
+				TraverseGameObject(id, gameObject, stack, null);
 			}
 			else if (obj is SceneAsset sceneAsset)
 			{
@@ -60,7 +60,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			foreach (GameObject go in scene.GetRootGameObjects())
 			{
 				stack.Push(new PathSegment(go.name, PathSegmentType.GameObject));
-				TraverseGameObject(id, go, stack, null, false);
+				TraverseGameObject(id, go, stack, null);
 				stack.Pop();
 			}
 
@@ -69,7 +69,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #pragma warning restore 618
 		}
 
-		private void TraverseGameObject(string id, GameObject go, Stack<PathSegment> stack, Object currentPrefab, bool isRoot)
+		private void TraverseGameObject(string id, GameObject go, Stack<PathSegment> stack, Object currentPrefab)
 		{
 			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
@@ -78,10 +78,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(go);
 
 			if ((prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant) &&
-				PrefabUtility.GetCorrespondingObjectFromSource(go) && PrefabUtility.GetPrefabInstanceStatus(go) != PrefabInstanceStatus.NotAPrefab)
+				PrefabUtility.GetCorrespondingObjectFromSource(go))
 			{
 				onlyOverriden = true;
-				isPrefabInstance = true;
+				isPrefabInstance = PrefabUtility.GetPrefabInstanceStatus(go) != PrefabInstanceStatus.NotAPrefab;
+
 				Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(go);
 
 				if(prefabObj != currentPrefab)
@@ -154,7 +155,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				GameObject child = go.transform.GetChild(i).gameObject;
 
 				stack.Push(new PathSegment(child.name, PathSegmentType.GameObject));
-				TraverseGameObject(id, child, stack, currentPrefab, false);
+				TraverseGameObject(id, child, stack, currentPrefab);
 				stack.Pop();
 			}
 		}
