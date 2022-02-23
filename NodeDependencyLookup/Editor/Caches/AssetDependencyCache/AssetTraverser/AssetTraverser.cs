@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -76,27 +77,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #if UNITY_2018_3_OR_NEWER
 			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(go);
 
-			if (prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant)
+			if ((prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant) &&
+				PrefabUtility.GetCorrespondingObjectFromSource(go) && PrefabUtility.GetPrefabInstanceStatus(go) != PrefabInstanceStatus.NotAPrefab)
 			{
-				if (PrefabUtility.GetCorrespondingObjectFromSource(go))
-				{
-					onlyOverriden = true;
-					isPrefabInstance = true;
-					Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(go);
+				onlyOverriden = true;
+				isPrefabInstance = true;
+				Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(go);
 
-					if(prefabObj != currentPrefab)
+				if(prefabObj != currentPrefab)
+				{
+					if (prefabAssetType == PrefabAssetType.Regular)
 					{
-						if (prefabAssetType == PrefabAssetType.Regular)
-						{
-							TraversePrefab(id, go, stack);
-						}
-						else
-						{
-							TraversePrefabVariant(id, go, stack);
-						}
-						
-						currentPrefab = prefabObj;
+						TraversePrefab(id, go, stack);
 					}
+					else
+					{
+						TraversePrefabVariant(id, go, stack);
+					}
+					
+					currentPrefab = prefabObj;
 				}
 			}
 #endif
@@ -116,9 +115,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 #endif
-
+			
 			Dictionary<string, int> componentToCount = new Dictionary<string, int>();
-
 			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;
 
 			foreach (Component component in go.GetComponents<Component>())
