@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     public class AssetTypeHandler : ITypeHandler
     {
         private HashSet<string> _filteredNodes;
-        private PrefValueString _filterString = new PrefValueString("AssetTypeHandler_FilterString", String.Empty);
+        private INodeHandler _nodeHandler;
 
         private Object _selectedAsset;
         private AssetRelationsViewerWindow _viewerWindow;
@@ -27,39 +27,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return $"Asset {name}";
         }
 
-        public bool HasFilter()
+        public void ApplyFilterString(string filterString)
         {
-            return _filteredNodes != null;
+            _filteredNodes = CreateFilter(filterString);
         }
 
-        public bool IsFiltered(string id)
+        public bool IsFiltered(string id, string nameFilter, string typeFilter)
         {
-            return _filteredNodes.Contains(id);
-        }
-
-        public string GetName(string id)
-        {
-            Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-
-            if (asset != null)
-            {
-                return $"{asset.name}";
-            }
-
-            if (!string.IsNullOrEmpty(path))
-            {
-                return path;
-            }
-
-            return id;
-        }
-
-        public string GetTypeName(string id)
-        {
-            Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-            return asset != null ? asset.GetType().Name : "Not found";
+            return _nodeHandler.GetName(id).Contains(nameFilter) && _nodeHandler.GetTypeName(id).Contains(typeFilter);
         }
 
         public VisualizationNodeData CreateNodeCachedData(string id)
@@ -104,10 +79,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
-            AssetRelationsViewerWindow window)
+            AssetRelationsViewerWindow window, INodeHandler nodeHandler)
         {
             _viewerWindow = window;
-            _filteredNodes = CreateFilter(_filterString);
+            _nodeHandler = nodeHandler;
             Selection.selectionChanged += HandleSyncToExplorer;
         }
 
@@ -136,17 +111,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _viewerWindow.ChangeSelection(fileId, GetHandledType());
 
                 _selectedAsset = newSelectedAsset;
-            }
-
-            float origWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 50;
-            _filterString.DirtyOnChange(EditorGUILayout.TextField("Filter:", _filterString, GUILayout.MinWidth(200)));
-            EditorGUIUtility.labelWidth = origWidth;
-
-            if (GUILayout.Button("Apply"))
-            {
-                _filteredNodes = CreateFilter(_filterString);
-                _viewerWindow.InvalidateNodeStructure();
             }
 
             AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:");

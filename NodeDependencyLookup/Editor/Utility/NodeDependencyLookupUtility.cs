@@ -137,7 +137,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (INodeHandler nodeHandler in GetNodeHandlers())
             {
-                result.Add(nodeHandler.GetId(), nodeHandler);
+                result.Add(nodeHandler.GetHandledNodeType(), nodeHandler);
             }
 
             return result;
@@ -262,23 +262,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 return false;
             }
+            
+            INodeHandler nodeHandler = stateContext.NodeHandlerLookup[type];
 
-            foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+            if (nodeHandler.GetHandledNodeType().Contains(type))
             {
-                INodeHandler nodeHandler = pair.Value;
-
-                if (nodeHandler.GetHandledNodeTypes().Contains(type))
+                if (!nodeHandler.IsNodePackedToApp(id, type, true))
                 {
-                    if (!nodeHandler.IsNodePackedToApp(id, type, true))
-                    {
-                        return false;
-                    }
+                    return false;
+                }
 
-                    if (nodeHandler.IsNodePackedToApp(id, type, false))
-                    {
-                        checkedPackedStates[id] = true;
-                        return true;
-                    }
+                if (nodeHandler.IsNodePackedToApp(id, type, false))
+                {
+                    checkedPackedStates[id] = true;
+                    return true;
                 }
             }
 

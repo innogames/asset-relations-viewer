@@ -15,9 +15,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     {
         private const string SyncPrefKey = "InSceneSync";
         private AssetRelationsViewerWindow _viewerWindow;
+        private InSceneDependencyNodeHandler _nodeHandler;
 
         private HashSet<string> _nodes = new HashSet<string>();
-        private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
 
         private GameObject m_currentNode = null;
 
@@ -31,29 +31,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return name;
         }
 
-        public bool HasFilter()
+        public void ApplyFilterString(string filterString)
         {
-            return false;
+            
         }
 
-        public bool IsFiltered(string id)
+        public bool IsFiltered(string id, string nameFilter, string typeFilter)
         {
-            return false;
-        }
-
-        public string GetName(string id)
-        {
-            if (!_hashToGameObject.ContainsKey(id))
-            {
-                return id;
-            }
-
-            return _hashToGameObject[id].name;
-        }
-
-        public string GetTypeName(string id)
-        {
-            return "GameObject";
+            string nodeName = _nodeHandler.GetName(id);
+            string typeName = _nodeHandler.GetTypeName(id);
+            return nodeName.Contains(nameFilter) && typeName.Contains(typeFilter);
         }
 
         public VisualizationNodeData CreateNodeCachedData(string id)
@@ -101,16 +88,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnSelectAsset(string id, string type)
         {
-            if (type == InSceneNodeType.Name && _hashToGameObject.ContainsKey(id))
+            GameObject node = _nodeHandler.GetGameObjectById(id);
+
+            if (type == InSceneNodeType.Name && node != null)
             {
-                m_currentNode = _hashToGameObject[id];
+                m_currentNode = node; 
                 Selection.activeObject = m_currentNode;
             }
         }
 
-        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow)
+        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow, INodeHandler nodeHandler)
         {
             _viewerWindow = viewerWindow;
+            _nodeHandler = nodeHandler as InSceneDependencyNodeHandler;
 
             HashSet<string> nodes = new HashSet<string>();
 
@@ -127,30 +117,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
 
             _nodes = new HashSet<string>(nodes);
-
-            BuildHashToGameObjectMapping();
+            _nodeHandler.BuildHashToGameObjectMapping();
 
             Selection.selectionChanged += SelectionChanged;
-        }
-
-        private void BuildHashToGameObjectMapping()
-        {
-            _hashToGameObject.Clear();
-
-            foreach (GameObject rootGameObject in OpenSceneDependencyCache.GetRootGameObjects())
-            {
-                BuildHashToGameObjectMapping(rootGameObject);
-            }
-        }
-
-        private void BuildHashToGameObjectMapping(GameObject go)
-        {
-            _hashToGameObject.Add(go.GetHashCode().ToString(), go);
-
-            for (int i = 0; i < go.transform.childCount; ++i)
-            {
-                BuildHashToGameObjectMapping(go.transform.GetChild(i).gameObject);
-            }
         }
 
         private void SelectionChanged()
@@ -167,7 +136,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodes.Contains(hashCode))
             {
-                m_currentNode = _hashToGameObject[hashCode];
+                m_currentNode = _nodeHandler.GetGameObjectById(hashCode);
 
                 if (EditorPrefs.GetBool(SyncPrefKey))
                 {

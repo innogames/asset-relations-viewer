@@ -10,6 +10,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		private Object _selectedAsset;
 		private AssetRelationsViewerWindow _viewerWindow;
+		private FileNodeHandler _nodeHandler;
 
 		public string GetHandledType()
 		{
@@ -21,24 +22,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return $"File {name}";
 		}
 
-		public bool HasFilter()
+		public void ApplyFilterString(string filterString)
 		{
-			return false;
+			
 		}
 
-		public bool IsFiltered(string id)
+		public bool IsFiltered(string id, string nameFilter, string typeFilter)
 		{
-			return true;
-		}
-
-		public string GetName(string id)
-		{
-			return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
-		}
-
-		public string GetTypeName(string id)
-		{
-			return "File";
+			string assetPath = AssetDatabase.GUIDToAssetPath(id);
+			string fileName = Path.GetFileName(assetPath);
+			string typeName = _nodeHandler.GetTypeName(id);
+			return fileName.Contains(nameFilter) && typeName.Contains(typeFilter);
 		}
 
 		public VisualizationNodeData CreateNodeCachedData(string id)
@@ -75,9 +69,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window, INodeHandler nodeHandler)
 		{
 			_viewerWindow = window;
+			_nodeHandler = nodeHandler as FileNodeHandler;
 		}
 
 		public bool HandlesCurrentNode()

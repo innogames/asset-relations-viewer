@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -15,16 +16,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class AssetNodeHandler : INodeHandler
 	{
-		private string[] HandledTypes = {AssetNodeType.Name};
-		
 		public string GetId()
 		{
 			return "AssetNodeHandler";
 		}
 
-		public string[] GetHandledNodeTypes()
+		public string GetHandledNodeType()
 		{
-			return HandledTypes;
+			return AssetNodeType.Name;
 		}
 		
 		public int GetOwnFileSize(string type, string id, string key,
@@ -66,6 +65,31 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public bool ContributesToTreeSize()
 		{
 			return false;
+		}
+
+		public string GetName(string id)
+		{
+			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
+			string path = AssetDatabase.GUIDToAssetPath(guid);
+
+			if (asset != null)
+			{
+				return $"{asset.name}";
+			}
+
+			if (!string.IsNullOrEmpty(path))
+			{
+				return path;
+			}
+
+			return id; 
+		}
+
+		public string GetTypeName(string id)
+		{
+			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+			return asset != null ? asset.GetType().Name : "Not found";
 		}
 
 		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

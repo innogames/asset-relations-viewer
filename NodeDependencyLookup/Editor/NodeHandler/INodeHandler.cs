@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		// Get the id of the nodehandler like "AssetNodeHandler"
 		string GetId();
 		// Returns which node types the handler handlers. For example "Asset"
-		string[] GetHandledNodeTypes();
+		string GetHandledNodeType();
 		// Returns the filesize if the node. In case of an asset it would be the serialized filesize
 		int GetOwnFileSize(string type, string id, string key,
 			NodeDependencyLookupContext stateContext,
@@ -21,5 +21,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		bool IsNodeEditorOnly(string id, string type);
 		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
 		bool ContributesToTreeSize();
+
+		string GetName(string id);
+		string GetTypeName(string id);
 	}
 }

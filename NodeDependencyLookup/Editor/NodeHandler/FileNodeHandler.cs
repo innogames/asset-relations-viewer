@@ -15,16 +15,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
     public class FileNodeHandler : INodeHandler
     {
-        private string[] HandledTypes = {FileNodeType.Name};
-		
         public string GetId()
         {
             return "FileNodeHandler";
         }
 
-        public string[] GetHandledNodeTypes()
+        public string GetHandledNodeType()
         {
-            return HandledTypes;
+            return FileNodeType.Name;
         }
 		
         public int GetOwnFileSize(string type, string id, string key,
@@ -54,6 +52,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public bool ContributesToTreeSize()
         {
             return true;
+        }
+
+        public string GetName(string id)
+        {
+            return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
+        }
+
+        public string GetTypeName(string id)
+        {
+            return "File";
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

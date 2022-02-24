@@ -297,16 +297,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
     public class InSceneDependencyNodeHandler : INodeHandler
     {
-        private string[] HandledTypes = {InSceneNodeType.Name};
-
+        private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
+        
         public string GetId()
         {
             return "InSceneDependencyNodeHandler";
         }
 
-        public string[] GetHandledNodeTypes()
+        public string GetHandledNodeType()
         {
-            return HandledTypes;
+            return InSceneNodeType.Name;
         }
 
         public int GetOwnFileSize(string type, string id, string key,
@@ -329,6 +329,56 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public bool ContributesToTreeSize()
         {
             return false;
+        }
+        
+        public void BuildHashToGameObjectMapping()
+        {
+            _hashToGameObject.Clear();
+
+            foreach (GameObject rootGameObject in OpenSceneDependencyCache.GetRootGameObjects())
+            {
+                BuildHashToGameObjectMapping(rootGameObject);
+            }
+        }
+
+        private void BuildHashToGameObjectMapping(GameObject go)
+        {
+            _hashToGameObject.Add(go.GetHashCode().ToString(), go);
+
+            for (int i = 0; i < go.transform.childCount; ++i)
+            {
+                BuildHashToGameObjectMapping(go.transform.GetChild(i).gameObject);
+            }
+        }
+
+        public string GetName(string id)
+        {
+            if (!_hashToGameObject.ContainsKey(id))
+            {
+                return id;
+            }
+
+            return _hashToGameObject[id].name;
+        }
+
+        public string GetTypeName(string id)
+        {
+            return "GameObject";
+        }
+
+        public GameObject GetGameObjectById(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return null;
+            }
+            
+            if (_hashToGameObject.TryGetValue(id, out GameObject go))
+            {
+                return go;
+            }
+
+            return null;
         }
     }
 }
