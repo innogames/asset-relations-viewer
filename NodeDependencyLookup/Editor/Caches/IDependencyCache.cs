@@ -18,7 +18,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		bool CanUpdate();
 		void Update(ProgressBase progress);
 		void AddExistingNodes(List<IResolvedNode> nodes);
-		string GetHandledNodeType();
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);
 		void Save(string directory);

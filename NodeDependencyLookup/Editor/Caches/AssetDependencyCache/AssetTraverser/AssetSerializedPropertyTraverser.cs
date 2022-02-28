@@ -23,7 +23,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
 		private ResolverProgress progress;
 		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
-		private ObjectPropertyList objectPropertyList = new ObjectPropertyList();
 
 		public void Search()
 		{
@@ -67,20 +66,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			assetIdToResolver[key].Add(resolver);
 		}
 
-		private class ObjectPropertyList
-		{
-			public struct PropertyEntry
-			{
-				public string Id;
-				public string PropertyPath;
-				public SerializedPropertyType PropertyType;
-				public Object ObjectValue;
-			}
-
-			public Stack<PathSegment> Stack;
-			public List<PropertyEntry> PropertyEntries = new List<PropertyEntry>(16);
-		}
-
 		protected override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
 		{
 			// this can happen if the linked asset doesnt exist anymore
@@ -102,9 +87,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
 
 			SerializedPropertyType propertyType;
-
-			objectPropertyList.PropertyEntries.Clear();
-			objectPropertyList.Stack = new Stack<PathSegment>(stack);
 			
 			do
 			{
@@ -118,23 +100,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (!onlyOverriden || property.prefabOverride)
 				{
 					Object objectValue = propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null;
-					objectPropertyList.PropertyEntries.Add(new ObjectPropertyList.PropertyEntry{Id = id, PropertyPath = property.propertyPath, PropertyType = propertyType, ObjectValue = objectValue});
+					string modifiedPath = property.propertyPath.Replace(".Array.data[", "[");
+					int stackIndex = UpdateStack(modifiedPath, ReflectionStack);
+
+					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : objectValue;
+					TraverseProperty(id, generic, propertyType, property.propertyPath, stack);
 				}
 			} while (property.Next(propertyType == SerializedPropertyType.Generic));
-			
-			IterateProperties(objectPropertyList);
-		}
-
-		private void IterateProperties(ObjectPropertyList item)
-		{
-			foreach (ObjectPropertyList.PropertyEntry entry in item.PropertyEntries)
-			{
-				string modifiedPath = entry.PropertyPath.Replace(".Array.data[", "[");
-				int stackIndex = UpdateStack(modifiedPath, ReflectionStack);
-
-				object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : entry.ObjectValue;
-				TraverseProperty(entry.Id, generic, entry.PropertyType, entry.PropertyPath, item.Stack);
-			}
 		}
 
 		private int UpdateStack(string path, ReflectionStackItem[] stack)

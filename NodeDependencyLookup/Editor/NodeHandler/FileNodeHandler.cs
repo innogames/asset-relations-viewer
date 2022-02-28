@@ -60,6 +60,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             type = "File";
         }
 
+        public long GetChangedTimeStamp(string id)
+        {
+            return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
+        }
+
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)
         {
             // nothing to do

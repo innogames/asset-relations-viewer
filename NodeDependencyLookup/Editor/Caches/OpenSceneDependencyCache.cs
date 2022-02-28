@@ -106,11 +106,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public string GetHandledNodeType()
-        {
-            return InSceneNodeType.Name;
-        }
-
         public List<Dependency> GetDependenciesForId(string id)
         {
             if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, InSceneDependencyResolver.Id,
@@ -362,6 +357,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 
             name = _hashToGameObject[id].name;
+        }
+
+        public long GetChangedTimeStamp(string id)
+        {
+            return -1;
         }
 
         public GameObject GetGameObjectById(string id)

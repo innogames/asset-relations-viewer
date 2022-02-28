@@ -84,11 +84,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public string GetHandledNodeType()
-		{
-			return AssetNodeType.Name;
-		}
-
 		public void AddExistingNodes(List<IResolvedNode> nodes)
 		{
 			foreach (FileToAssetNode fileToAssetNode in _fileToAssetNodes)

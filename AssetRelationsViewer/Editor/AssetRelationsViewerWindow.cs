@@ -75,13 +75,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Dictionary<string, INodeHandler> _nodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
 
-		private PrefValueBool MergeRelations = new PrefValueBool("MergeRelations", true);
-		private PrefValueBool Showthumbnails = new PrefValueBool("Showthumbnails", false);
+		private PrefValueBool _mergeRelations = new PrefValueBool("MergeRelations", true);
+		private PrefValueBool _showthumbnails = new PrefValueBool("Showthumbnails", false);
 		
-		private Vector2 m_cachesScrollPosition;
-		private Vector2 m_handlersScrollPosition;
+		private Vector2 _cachesScrollPosition;
+		private Vector2 _handlersScrollPosition;
 		
-		private NodeSizeThread nodeSizeThread;
+		private NodeSizeThread _nodeSizeThread;
 		
 		private string nodeSearchString = String.Empty;
 		private string typeSearchString = String.Empty;
@@ -100,7 +100,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private List<NodeFilterData> nodeSearchList = new List<NodeFilterData>();
 		private bool nodeSearchDirty = true;
 		
-		private bool isInitialized = false;
+		private bool _isInitialized = false;
+
+		private NodeDataCache _nodeDataCache = new NodeDataCache();
 
 		private class NodeFilterData
 		{
@@ -157,7 +159,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void OnEnable()
 		{
-			isInitialized = false;
+			_isInitialized = false;
 			
 			HandleFirstStartup();
 			
@@ -167,26 +169,29 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			SetHandlerContext();
 			SetHandlerSelection();
+			
+			_nodeDataCache.Initialize(_nodeHandlerLookup);
+			_nodeDataCache.LoadCache(NodeDependencyLookupUtility.DEFAULT_CACHE_SAVE_PATH);
 
-			nodeSizeThread = new NodeSizeThread(this);
-			nodeSizeThread.Start();
+			_nodeSizeThread = new NodeSizeThread(this);
+			_nodeSizeThread.Start();
 		}
 
 		private void OnDisable()
 		{
-			nodeSizeThread.Kill();
+			_nodeSizeThread.Kill();
 		}
 
 		private void Initialize()
 		{
-			if (isInitialized)
+			if (_isInitialized)
 			{
 				return;
 			}
 			
 			LoadDependencyCache();
-			
-			isInitialized = true;
+
+			_isInitialized = true;
 		}
 
 		private void LoadDependencyCache(bool update = true)
@@ -211,9 +216,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			nodeSearchDirty = true;
 		}
 
-		private void PrepareNodeSearch()
+		private void PrepareNodeSearch(bool isRefresh)
 		{
-			BuildNodeSearchLookup();
+			BuildNodeSearchLookup(isRefresh);
 			FilterNodeList();
 			nodeSearchDirty = false;
 		}
@@ -353,7 +358,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public void EnqueueTreeSizeCalculationForNode(VisualizationNodeData node)
 		{
 			node.HierarchySize = -2;
-			nodeSizeThread.EnqueueNodeData(node);
+			_nodeSizeThread.EnqueueNodeData(node);
 		}
 
 		public void GetCachedOwnSizeForNode(VisualizationNodeData node)
@@ -417,7 +422,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
 			
-			m_handlersScrollPosition = EditorGUILayout.BeginScrollView(m_handlersScrollPosition, GUILayout.Width(300));
+			_handlersScrollPosition = EditorGUILayout.BeginScrollView(_handlersScrollPosition, GUILayout.Width(300));
 
 			foreach (ITypeHandler typeHandler in _typeHandlers)
 			{
@@ -522,7 +527,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		
 		private void DisplayNodeDisplayOptions()
 		{
-			EditorGUILayout.BeginVertical("Box", GUILayout.Width(180), GUILayout.Height(170));
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(220), GUILayout.Height(170));
 			
 			TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
 			TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
@@ -532,7 +537,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes", b => InvalidateNodeStructure());
 			
 			TogglePref(DisplayData.HighlightPackagedAssets, "Highlight packaged assets", b => InvalidateNodeStructure());
-			TogglePref(MergeRelations, "Merge Relations", b => InvalidateNodeStructure());
+			TogglePref(_mergeRelations, "Merge Relations", b => InvalidateNodeStructure());
 
 			EditorGUILayout.EndVertical();
 		}
@@ -617,20 +622,36 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private NodeFilterData CreateSearchDataForNode(Node node)
 		{
-			INodeHandler nodeHandler = _nodeHandlerLookup[node.Type];
-			nodeHandler.GetNameAndType(node.Id, out string name, out string type);
-			NodeFilterData filterData = new NodeFilterData {Node = node, Name = name.ToLowerInvariant(), TypeName = type.ToLowerInvariant()};
+			NodeDataCache.Entry cacheEntry = _nodeDataCache.GetEntryForId(node.Key);
+			string nodeName;
+			string typeName;
+
+			if (cacheEntry != null)
+			{
+				nodeName = cacheEntry.Name;
+				typeName = cacheEntry.Type;
+			}
+			else
+			{
+				INodeHandler nodeHandler = _nodeHandlerLookup[node.Type];
+				nodeHandler.GetNameAndType(node.Id, out nodeName, out typeName);
+			}
+			
+			NodeFilterData filterData = new NodeFilterData {Node = node, Name = nodeName.ToLowerInvariant(), TypeName = typeName.ToLowerInvariant()};
 			nodeFilterDataLookup.Add(node.Key, filterData);
 
 			return filterData;
 		}
 
-		private void BuildNodeSearchLookup()
+		private void BuildNodeSearchLookup(bool isRefresh)
 		{
 			bool update = nodeFilterDataLookup.Count == 0;
 			nodeSearchList.Clear();
 			List<Node> nodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
 			
+			_nodeDataCache.Update(nodes, !isRefresh || update);
+			_nodeDataCache.SaveCache(NodeDependencyLookupUtility.DEFAULT_CACHE_SAVE_PATH);
+
 			for (var i = 0; i < nodes.Count; i++)
 			{
 				Node node = nodes[i];
@@ -689,6 +710,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				Node filteredNode = filteredNodes[i];
 				INodeHandler nodeHandler = _nodeHandlerLookup[filteredNode.Type];
 				nodeHandler.GetNameAndType(filteredNode.Id, out string nodeName, out string typeName);
+				nodeHandler.GetChangedTimeStamp(filteredNode.Id);
 				filteredNodeNames[i] = $"[{typeName}] {nodeName}";
 			}
 		}
@@ -712,7 +734,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (searchInformationExistent && nodeSearchDirty && GUILayout.Button("Update", GUILayout.MaxWidth(60)))
 			{
-				PrepareNodeSearch();
+				PrepareNodeSearch(true);
 			}
 			
 			EditorGUILayout.EndHorizontal();
@@ -724,7 +746,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				if (GUILayout.Button("Enable"))
 				{
-					PrepareNodeSearch();
+					PrepareNodeSearch(false);
 				}
 				
 				return;
@@ -765,7 +787,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayNodeFilterOptions()
 		{
-			EditorGUILayout.LabelField("Filter:");
+			EditorGUILayout.LabelField("Node hierarchy filter:");
 			float origWidth = EditorGUIUtility.labelWidth;
 			EditorGUIUtility.labelWidth = 50;
 			bool changed = false;
@@ -796,11 +818,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayCaches()
 		{
-			EditorGUILayout.BeginVertical("Box", GUILayout.Width(240), GUILayout.Height(170));
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(260), GUILayout.Height(170));
 			
 			EditorGUILayout.LabelField("Connection types:");
 			
-			m_cachesScrollPosition = EditorGUILayout.BeginScrollView(m_cachesScrollPosition);
+			_cachesScrollPosition = EditorGUILayout.BeginScrollView(_cachesScrollPosition);
 			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(180));
 			Color origColor = GUI.contentColor;
 			
@@ -947,7 +969,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void DisplayMiscOptions()
 		{
 			TogglePref(DisplayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure());
-			TogglePref(Showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
+			TogglePref(_showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
 
 			EditorGUILayout.Space();
 		}
@@ -1157,8 +1179,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
-			nodeSizeThread.Kill();
-			nodeSizeThread.Start();
+			_nodeSizeThread.Kill();
+			_nodeSizeThread.Start();
 			
 			_cachedPackedInfo.Clear();
 
@@ -1377,7 +1399,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				string nodeKey = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
 
-				if (!MergeRelations.GetValue())
+				if (!_mergeRelations.GetValue())
 				{
 					nodeKey = (i++).ToString(); // leads to nodes not being merged by target
 				}

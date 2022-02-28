@@ -54,22 +54,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			public static Dictionary<string, Node> CreateRelationMapping(List<CreatedDependencyCache> dependencyCaches)
 			{
-				Dictionary<string, List<IDependencyCache>> typeToCaches = new Dictionary<string, List<IDependencyCache>>();
 				Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
 				int index = 0;
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
 					IDependencyCache cache = dependencyCache.Cache;
-					string handledNodeType = cache.GetHandledNodeType();
-
-					if (!typeToCaches.ContainsKey(handledNodeType))
-					{
-						typeToCaches.Add(handledNodeType, new List<IDependencyCache>());
-					}
-					
-					typeToCaches[handledNodeType].Add(cache);
-					
 					List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
 
 					cache.AddExistingNodes(resolvedNodes);
