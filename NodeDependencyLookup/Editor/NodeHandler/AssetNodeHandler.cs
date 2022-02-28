@@ -67,7 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return false;
 		}
 
-		public string GetName(string id)
+		public void GetNameAndType(string id, out string name, out string type)
 		{
 			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
 			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
@@ -75,21 +75,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (asset != null)
 			{
-				return $"{asset.name}";
+				name = $"{asset.name}";
+				type = asset.GetType().Name;
+				return;
 			}
 
 			if (!string.IsNullOrEmpty(path))
 			{
-				return path;
+				name = path;
+				type = "Unknown";
 			}
 
-			return id; 
-		}
-
-		public string GetTypeName(string id)
-		{
-			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-			return asset != null ? asset.GetType().Name : "Not found";
+			name = id;
+			type = "Unknown";
 		}
 
 		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

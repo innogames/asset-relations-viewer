@@ -10,7 +10,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		string GetHandledType();
 		string GetSortingKey(string name);
 		void ApplyFilterString(string filterString);
-		bool IsFiltered(string id, string nameFilter, string typeFilter);
 		VisualizationNodeData CreateNodeCachedData(string id);
 		void SelectInEditor(string id);
 		void OnGui();

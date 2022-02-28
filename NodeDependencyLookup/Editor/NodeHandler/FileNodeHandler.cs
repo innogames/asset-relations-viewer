@@ -54,14 +54,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return true;
         }
 
-        public string GetName(string id)
+        public void GetNameAndType(string id, out string name, out string type)
         {
-            return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
-        }
-
-        public string GetTypeName(string id)
-        {
-            return "File";
+            name = Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
+            type = "File";
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

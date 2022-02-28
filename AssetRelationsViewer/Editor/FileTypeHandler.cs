@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+﻿using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -25,14 +24,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public void ApplyFilterString(string filterString)
 		{
 			
-		}
-
-		public bool IsFiltered(string id, string nameFilter, string typeFilter)
-		{
-			string assetPath = AssetDatabase.GUIDToAssetPath(id);
-			string fileName = Path.GetFileName(assetPath);
-			string typeName = _nodeHandler.GetTypeName(id);
-			return fileName.Contains(nameFilter) && typeName.Contains(typeFilter);
 		}
 
 		public VisualizationNodeData CreateNodeCachedData(string id)

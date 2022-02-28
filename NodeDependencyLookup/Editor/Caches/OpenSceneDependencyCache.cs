@@ -351,19 +351,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public string GetName(string id)
+        public void GetNameAndType(string id, out string name, out string type)
         {
+            type = "GameObject";
+            
             if (!_hashToGameObject.ContainsKey(id))
             {
-                return id;
+                name = id;
+                return;
             }
 
-            return _hashToGameObject[id].name;
-        }
-
-        public string GetTypeName(string id)
-        {
-            return "GameObject";
+            name = _hashToGameObject[id].name;
         }
 
         public GameObject GetGameObjectById(string id)

@@ -21,8 +21,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		bool IsNodeEditorOnly(string id, string type);
 		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
 		bool ContributesToTreeSize();
-
-		string GetName(string id);
-		string GetTypeName(string id);
+		void GetNameAndType(string id, out string name, out string type);
 	}
 }

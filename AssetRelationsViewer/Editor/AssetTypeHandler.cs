@@ -32,11 +32,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _filteredNodes = CreateFilter(filterString);
         }
 
-        public bool IsFiltered(string id, string nameFilter, string typeFilter)
-        {
-            return _nodeHandler.GetName(id).Contains(nameFilter) && _nodeHandler.GetTypeName(id).Contains(typeFilter);
-        }
-
         public VisualizationNodeData CreateNodeCachedData(string id)
         {
             return new AssetVisualizationNodeData(id, GetHandledType());
