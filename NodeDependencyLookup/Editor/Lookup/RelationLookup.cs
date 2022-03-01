@@ -60,7 +60,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
 					IDependencyCache cache = dependencyCache.Cache;
-					List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
+					List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>();
 
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();

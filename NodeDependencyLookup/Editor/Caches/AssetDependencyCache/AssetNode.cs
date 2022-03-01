@@ -53,7 +53,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/**
 	 * Stores a relation and contains a list of dependency nodes and a list of referencer nodes
 	 */
-	public class AssetNode : IResolvedNode
+	public class AssetNode : IDependencyMappingNode
 	{
 		public class ResolverData
 		{

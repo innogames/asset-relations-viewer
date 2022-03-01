@@ -84,7 +84,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void AddExistingNodes(List<IResolvedNode> nodes)
+		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
 			foreach (FileToAssetNode fileToAssetNode in _fileToAssetNodes)
 			{

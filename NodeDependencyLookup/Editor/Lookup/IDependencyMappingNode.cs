@@ -9,7 +9,7 @@
 	 * A node that got resolved by one of the caches
 	 * This could be for example an Asset, LocaKey, AssetBundle, etc. 
 	 */
-	public interface IResolvedNode : IIdentifyable
+	public interface IDependencyMappingNode : IIdentifyable
 	{
 		string Type { get; }
 		

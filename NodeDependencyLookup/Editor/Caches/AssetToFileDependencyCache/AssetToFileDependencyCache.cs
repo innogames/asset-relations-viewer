@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     // Cache to find get mapping of assets to the file the asset is included in
     public class AssetToFileDependencyCache : IDependencyCache
     {
-        private const string Version = "1.10";
+        private const string Version = "1.40";
         private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
         private const string ConnectionType = "File";
 
@@ -177,7 +177,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public void AddExistingNodes(List<IResolvedNode> nodes)
+        public void AddExistingNodes(List<IDependencyMappingNode> nodes)
         {
             foreach (FileToAssetsMapping fileToAssetsMapping in _fileToAssetsMappings)
             {
@@ -271,7 +271,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
             }
 
-            GenericDependencyMappingNode newGenericDependencyMappingNode = new GenericDependencyMappingNode {NodeId = id};
+            GenericDependencyMappingNode newGenericDependencyMappingNode = new GenericDependencyMappingNode {NodeId = id, NodeType = AssetNodeType.Name};
             FileNodes.Add(newGenericDependencyMappingNode);
 
             return newGenericDependencyMappingNode;

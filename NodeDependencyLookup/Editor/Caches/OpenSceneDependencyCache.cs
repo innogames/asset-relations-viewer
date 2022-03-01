@@ -15,10 +15,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private const string ConnectionType = "InScene";
         private CreatedDependencyCache _createdDependencyCache;
 
-        private Dictionary<string, InSceneDependencyMappingNode> Lookup =
-            new Dictionary<string, InSceneDependencyMappingNode>();
+        private Dictionary<string, GenericDependencyMappingNode> Lookup =
+            new Dictionary<string, GenericDependencyMappingNode>();
 
-        private IResolvedNode[] Nodes = new IResolvedNode[0];
+        private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
 
         public void ClearFile(string directory)
         {
@@ -81,10 +81,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 TraverseGameObject(gameObject, stack, traverseValues);
             }
 
-            Nodes = new IResolvedNode[Lookup.Count];
+            Nodes = new IDependencyMappingNode[Lookup.Count];
             int count = 0;
 
-            foreach (KeyValuePair<string, InSceneDependencyMappingNode> pair in Lookup)
+            foreach (KeyValuePair<string, GenericDependencyMappingNode> pair in Lookup)
             {
                 Nodes[count++] = pair.Value;
             }
@@ -95,9 +95,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             public HashSet<UnityEngine.Object> SceneObjects;
         }
 
-        public void AddExistingNodes(List<IResolvedNode> nodes)
+        public void AddExistingNodes(List<IDependencyMappingNode> nodes)
         {
-            foreach (IResolvedNode node in Nodes)
+            foreach (IDependencyMappingNode node in Nodes)
             {
                 if (node.Existing)
                 {
@@ -152,9 +152,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private void TraverseGameObject(GameObject go, Stack<PathSegment> stack, TraverseValues traverseValues)
         {
             Component[] components = go.GetComponents<Component>();
-
-            string goHash = go.GetHashCode().ToString();
-            InSceneDependencyMappingNode node = GetNode(goHash);
 
             foreach (Component component in components)
             {
@@ -212,7 +209,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                         string goHash = go.GetHashCode().ToString();
                         string valueHash = value.GetHashCode().ToString();
 
-                        InSceneDependencyMappingNode node = GetNode(goHash);
+                        GenericDependencyMappingNode node = GetNode(goHash);
 
                         stack.Push(new PathSegment(serializedProperty.propertyPath, PathSegmentType.Property));
 
@@ -237,12 +234,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             stack.Pop();
         }
 
-        private InSceneDependencyMappingNode GetNode(string id)
+        private GenericDependencyMappingNode GetNode(string id)
         {
             if (!Lookup.ContainsKey(id))
             {
-                InSceneDependencyMappingNode node = new InSceneDependencyMappingNode();
+                GenericDependencyMappingNode node = new GenericDependencyMappingNode();
                 node.NodeId = id;
+                node.NodeType = InSceneNodeType.Name;
                 Lookup.Add(id, node);
             }
 
@@ -252,16 +250,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
     public interface IInSceneDependencyResolver : IDependencyResolver
     {
-    }
-
-    public class InSceneDependencyMappingNode : IResolvedNode
-    {
-        public string NodeId;
-        public string Id => NodeId;
-        public string Type => InSceneNodeType.Name;
-        public bool Existing => true;
-
-        public List<Dependency> Dependencies = new List<Dependency>();
     }
 
     public class InSceneDependencyResolver : IInSceneDependencyResolver
