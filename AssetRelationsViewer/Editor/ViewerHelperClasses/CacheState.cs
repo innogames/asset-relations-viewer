@@ -11,11 +11,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public bool IsActive;
         public List<ResolverState> ResolverStates = new List<ResolverState>();
 
-        private static string GetPrefKey(Type type)
-        {
-            return "Cache_" + type.Name;
-        }
-
         public CacheState(IDependencyCache cache)
         {
             Cache = cache;

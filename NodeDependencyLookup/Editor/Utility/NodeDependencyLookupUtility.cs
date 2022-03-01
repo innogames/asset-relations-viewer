@@ -85,8 +85,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
-            ResolverUsageDefinitionList resolverUsageDefinitionList, ProgressBase progress, bool loadCache = true,
-            bool updateCache = true, bool saveCache = true, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
+            ResolverUsageDefinitionList resolverUsageDefinitionList, ProgressBase progress, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
         {
             stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
@@ -100,20 +99,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
                 
                 IDependencyCache cache = cacheUsage.Cache;
+                
+                resolverUsageDefinitionList.GetUpdateStateForCache(cache.GetType(), out bool load, out bool update, out bool save);
 
-                if (loadCache && !cacheUsage.IsLoaded)
+                if (load && !cacheUsage.IsLoaded)
                 {
                     cache.Load(fileDirectory);
                     cacheUsage.IsLoaded = true;
                 }
 
-                if (updateCache && cache.NeedsUpdate(progress))
+                if (update && cache.NeedsUpdate(progress))
                 {
                     if (cache.CanUpdate())
                     {
                         cache.Update(progress);
 
-                        if (saveCache)
+                        if (save)
                         {
                             cache.Save(fileDirectory);
                         }
@@ -507,9 +508,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             ProgressBase progress)
         {
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
-            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>();
+            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(loadFromCache, true, false);
 
-            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress, loadFromCache, true, false,
+            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress,
                 savePath);
         }
     }

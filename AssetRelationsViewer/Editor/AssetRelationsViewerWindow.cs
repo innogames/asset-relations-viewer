@@ -198,12 +198,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			_nodeDependencyLookupContext.Reset();
 
-			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList();
+			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList(update);
 
 			ProgressBase progress = new ProgressBase(null);
 			progress.SetProgressFunction((title, info, value) => EditorUtility.DisplayProgressBar(title, info, value));
 			
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress, true, update);
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress);
 			
 			SetHandlerContext();
 			
@@ -261,7 +261,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return result;
 		}
 
-		private ResolverUsageDefinitionList CreateCacheUsageList()
+		private ResolverUsageDefinitionList CreateCacheUsageList(bool update)
 		{
 			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 			
@@ -274,9 +274,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 						if (resolverState.IsActive)
 						{
 							List<string> activeConnectionTypes = new List<string>();
-							string[] connectionTypes = resolverState.Resolver.GetConnectionTypes();
-							
-							foreach (string connectionType in connectionTypes)
+
+							foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
 							{
 								if (resolverState.ActiveConnectionTypes.Contains(connectionType))
 								{
@@ -284,7 +283,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 								}
 							}
 							
-							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
+							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), true, update, update, activeConnectionTypes);
 						}
 					}
 				}
@@ -561,7 +560,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (Type type in types)
 			{
 				IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
-				var cacheState = new CacheState(cache);
+				CacheState cacheState = new CacheState(cache);
 
 				List<Type> resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
 				
