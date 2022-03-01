@@ -151,8 +151,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private void TraverseGameObject(GameObject go, Stack<PathSegment> stack, TraverseValues traverseValues)
         {
+            GetNode(go.GetHashCode().ToString());
+            
             Component[] components = go.GetComponents<Component>();
-
+            
             foreach (Component component in components)
             {
                 TraverseComponent(go, component, stack, traverseValues);
