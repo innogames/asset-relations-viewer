@@ -10,7 +10,8 @@ namespace Assets.Package.Editor.DependencyResolvers
 	/// </summary>
 	public class ConnectionTypeLookup
 	{
-		private static ConnectionType _defaultType = new ConnectionType(new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false);
+		private const string ConnectionTypeDescription = "Default";
+		private static ConnectionType _defaultType = new ConnectionType(new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false, ConnectionTypeDescription);
 		private Dictionary<string, ConnectionType> _lookup = new Dictionary<string, ConnectionType>();
 
 		internal ConnectionTypeLookup(List<CreatedDependencyCache> usages)

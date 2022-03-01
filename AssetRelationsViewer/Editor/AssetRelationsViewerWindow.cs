@@ -417,7 +417,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			DisplayMiscOptions();
 			EditorGUILayout.EndVertical();
 			DisplayNodeDisplayOptions();
-			DisplayCaches();
+			DisplayCachesAndConnectionTypes();
 			DisplayNodeList();
 			
 			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
@@ -816,27 +816,47 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			GUILayout.EndHorizontal();
 		}
 
-		private void DisplayCaches()
+		private bool _canUnloadCaches = false;
+
+
+		private string GetActivationStateString(bool value)
 		{
-			EditorGUILayout.BeginVertical("Box", GUILayout.Width(260), GUILayout.Height(170));
-			
+			return value ? "Active" : "Inactive";
+		}
+
+		private void DisplayCachesAndConnectionTypes()
+		{
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(280), GUILayout.Height(170));
+
+			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField("Connection types:");
+
+			if (_canUnloadCaches && GUILayout.Button(new GUIContent("U", "Unload currently unused cached and dependency resolvers")))
+			{
+				UpdateCacheAndResolverActivation();
+			}
+			
+			EditorGUILayout.EndHorizontal();
 			
 			_cachesScrollPosition = EditorGUILayout.BeginScrollView(_cachesScrollPosition);
-			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(180));
+			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(190));
 			Color origColor = GUI.contentColor;
+			
+			_canUnloadCaches = false;
 			
 			bool stateChanged = false;
 			bool connectionTypeChanged = false;
-			bool needsUpdate = false;
+			bool needsCacheLoad = false;
 			bool loadedConnectionTypesChanged = false;
 
 			foreach (CacheState cacheState in _cacheStates)
 			{
 				GUI.contentColor = origColor;
 				
-				string s = cacheState.Cache.GetType().Name;
+				string cacheName = cacheState.Cache.GetType().Name;
 				bool cacheStateActive = false;
+
+				EditorGUILayout.BeginVertical("Box");
 
 				foreach (ResolverState resolverState in cacheState.ResolverStates)
 				{
@@ -844,28 +864,37 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 					bool resolverStateActive = false;
 
-					foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
+					IDependencyResolver resolver = resolverState.Resolver;
+					string resolverName = resolver.GetId();
+
+					foreach (string connectionTypeName in resolver.GetConnectionTypes())
 					{
 						bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
-						
-						GUI.contentColor = resolverState.Resolver.GetDependencyTypeForId(connectionType).Colour;
-						bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionType);
+						ConnectionType connectionType = resolver.GetDependencyTypeForId(connectionTypeName);
+
+						GUI.contentColor = connectionType.Colour;
+						bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionTypeName);
 						bool newIsActive = isActive;
 
 						EditorGUILayout.BeginHorizontal();
-						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(connectionType, isActive), ref connectionTypeChanged);
+
+						string description = $"{connectionType.Description} \n\n" +
+						                     $"{cacheName}:{GetActivationStateString(cacheState.IsActive)}->\n" +
+						                     $"{resolverName}:{GetActivationStateString(resolverState.IsActive)}->\n{connectionTypeName}";
+						
+						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(new GUIContent(connectionTypeName, description), isActive), ref connectionTypeChanged);
 
 						resolverStateActive |= newIsActive;
 	
 						if (newIsActive && !isActive)
 						{
-							resolverState.ActiveConnectionTypes.Add(connectionType);
+							resolverState.ActiveConnectionTypes.Add(connectionTypeName);
 							loadedConnectionTypesChanged |= isActiveAndLoaded;
 							resolverState.SaveState(); 
 						}
 						else if (isActive && !newIsActive)
 						{
-							resolverState.ActiveConnectionTypes.Remove(connectionType);
+							resolverState.ActiveConnectionTypes.Remove(connectionTypeName);
 							loadedConnectionTypesChanged |= isActiveAndLoaded;
 							resolverState.SaveState();
 						}
@@ -875,18 +904,26 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 							GUI.contentColor = origColor;
 							EditorGUILayout.LabelField("L", GUILayout.MaxWidth(10));
 						}
-						else if (newIsActive)
+						
+						if (!isActiveAndLoaded && newIsActive)
 						{
 							GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
+							EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
+							needsCacheLoad = true;
+						}
+						
+						if (isActiveAndLoaded && !newIsActive)
+						{
+							GUI.contentColor = new Color(0.4f, 0.4f, 0.4f);
 							EditorGUILayout.LabelField("U", GUILayout.MaxWidth(10));
-							needsUpdate = true;
+							_canUnloadCaches = true;
 						}
 						
 						EditorGUILayout.EndHorizontal();
 					}
 				}
 
-				EditorGUI.indentLevel = 0;
+				EditorGUILayout.EndVertical();
 			}
 			
 			GUI.contentColor = origColor;
@@ -902,18 +939,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				InvalidateNodeStructure();
 			}
 			
-			if (needsUpdate)
+			if (needsCacheLoad)
 			{
 				if (GUILayout.Button("Load caches"))
 				{
-					ApplyResolverList();
+					UpdateCacheAndResolverActivation();
 				}
 			}
 			
 			EditorGUILayout.EndVertical();
 		}
 
-		private void ApplyResolverList()
+		private void UpdateCacheAndResolverActivation()
 		{
 			foreach (CacheState cacheState in _cacheStates)
 			{

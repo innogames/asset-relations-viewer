@@ -294,7 +294,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
     public class AssetToFileDependencyResolver : IAssetToFileDependencyResolver
     {
-        private static ConnectionType FileConnectionType = new ConnectionType(new Color(0.7f, 0.9f, 0.7f), false, true);
+        private const string ConnectionTypeDescription = "Dependencies between assets to the file they are contained in";
+        private static ConnectionType FileConnectionType = new ConnectionType(new Color(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
 
         public const string ResolvedType = "File";
         public const string Id = "AssetToFileDependencyResolver";

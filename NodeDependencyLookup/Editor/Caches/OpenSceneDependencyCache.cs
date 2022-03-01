@@ -256,7 +256,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
     public class InSceneDependencyResolver : IInSceneDependencyResolver
     {
-        private static ConnectionType InSceneType = new ConnectionType(new Color(0.8f, 0.9f, 0.6f), false, true);
+        private const string ConnectionTypeDescription = "Dependencies between GameObjects in the currently opened scene/prefab";
+        private static ConnectionType InSceneType = new ConnectionType(new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
         public const string Id = "InSceneDependencyResolver";
 
         public string[] GetConnectionTypes()

@@ -31,11 +31,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class ConnectionType
 	{
-		public ConnectionType(Color color, bool isIndirect, bool isHard)
+		public ConnectionType(Color color, bool isIndirect, bool isHard, string description)
 		{
 			Colour = color;
 			IsIndirect = isIndirect;
 			IsHard = isHard;
+			Description = description;
 		}
 
 		// The color it is using (for the Asset Relation Viewer)
@@ -46,5 +47,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		// A hard reference marks that the bundle should be loaded together 
 		public readonly bool IsHard;
+		
+		// Discription of the connection type that will be displayed in the AssetRelationsViewer
+		public readonly string Description;
 	}
 }

@@ -11,7 +11,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
-		private static ConnectionType ObjectType = new ConnectionType(new Color(0.8f, 0.8f, 0.8f), false, true);
+		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
+		private static ConnectionType ObjectType = new ConnectionType(new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		
