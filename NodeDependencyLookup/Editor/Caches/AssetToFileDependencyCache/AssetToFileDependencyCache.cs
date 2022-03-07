@@ -295,7 +295,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class AssetToFileDependencyResolver : IAssetToFileDependencyResolver
     {
         private const string ConnectionTypeDescription = "Dependencies between assets to the file they are contained in";
-        private static ConnectionType FileConnectionType = new ConnectionType(new Color(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
+        private static DependencyType fileDependencyType = new DependencyType("Asset->File", new Color(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
 
         public const string ResolvedType = "File";
         public const string Id = "AssetToFileDependencyResolver";
@@ -312,9 +312,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return Id;
         }
 
-        public ConnectionType GetDependencyTypeForId(string typeId)
+        public DependencyType GetDependencyTypeForId(string typeId)
         {
-            return FileConnectionType;
+            return fileDependencyType;
         }
 
         public void Initialize(AssetToFileDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress)

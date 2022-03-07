@@ -284,7 +284,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Node refNode = connection.Node;
 
-                if (!stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsIndirect &&
+                if (!stateContext.DependencyTypeLookup.GetDependencyType(connection.Type).IsIndirect &&
                     IsNodePackedToApp(refNode.Id, refNode.Type, stateContext, checkedPackedStates))
                 {
                     checkedPackedStates[id] = true;
@@ -365,7 +365,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (Connection connection in node.Dependencies)
             {
-                if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
+                if (stateContext.DependencyTypeLookup.GetDependencyType(connection.Type).IsHard)
                 {
                     TraverseHardDependencyNodesRecNoFlattened(connection.Node, stateContext, traversedNodes);
                 }

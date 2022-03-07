@@ -12,7 +12,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
 		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
-		private static ConnectionType ObjectType = new ConnectionType(new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
+		private static DependencyType ObjectType = new DependencyType("Asset->Asset by Object", new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		
@@ -62,7 +62,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return Id;
 		}
 
-		public ConnectionType GetDependencyTypeForId(string typeId)
+		public DependencyType GetDependencyTypeForId(string typeId)
 		{
 			return ObjectType;
 		}

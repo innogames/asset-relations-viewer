@@ -19,7 +19,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private HashSet<string> _nodes = new HashSet<string>();
 
-        private GameObject m_currentNode = null;
+        private GameObject _currentNode = null;
 
         public string GetHandledType()
         {
@@ -68,14 +68,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             EditorPrefs.SetBool(SyncPrefKey, 
                 EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
 
-            GameObject newSelection = EditorGUILayout.ObjectField(m_currentNode, typeof(GameObject), true) as GameObject;
+            GameObject newSelection = EditorGUILayout.ObjectField(_currentNode, typeof(GameObject), true) as GameObject;
 
-            bool selectionChanged = newSelection != null && newSelection != m_currentNode;
-            m_currentNode = newSelection;
+            bool selectionChanged = newSelection != null && newSelection != _currentNode;
+            _currentNode = newSelection;
             
-            if (selectionChanged || (m_currentNode != null && GUILayout.Button("Select")))
+            if (selectionChanged || (_currentNode != null && GUILayout.Button("Select")))
             {
-                _viewerWindow.ChangeSelection(m_currentNode.GetHashCode().ToString(), InSceneNodeType.Name);
+                _viewerWindow.ChangeSelection(_currentNode.GetHashCode().ToString(), InSceneNodeType.Name);
             }
         }
 
@@ -85,8 +85,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (type == InSceneNodeType.Name && node != null)
             {
-                m_currentNode = node; 
-                Selection.activeObject = m_currentNode;
+                _currentNode = node; 
+                Selection.activeObject = _currentNode;
             }
         }
 
@@ -117,7 +117,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void SelectionChanged()
         {
-            m_currentNode = null;
+            _currentNode = null;
             Object activeObject = Selection.activeObject;
 
             if (activeObject == null)
@@ -129,7 +129,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodes.Contains(hashCode))
             {
-                m_currentNode = _nodeHandler.GetGameObjectById(hashCode);
+                _currentNode = _nodeHandler.GetGameObjectById(hashCode);
 
                 if (EditorPrefs.GetBool(SyncPrefKey))
                 {
@@ -142,7 +142,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public bool HandlesCurrentNode()
         {
-            return m_currentNode != null;
+            return _currentNode != null;
         }
     }
 }

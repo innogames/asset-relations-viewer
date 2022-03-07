@@ -14,7 +14,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
 		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
-		public ConnectionTypeLookup ConnectionTypeLookup;
+		public DependencyTypeLookup DependencyTypeLookup;
 		public Dictionary<string, CreatedDependencyCache> CreatedCaches = new Dictionary<string, CreatedDependencyCache>();
 		
 		public static NodeDependencyLookupContext GetStateContextForName(string name)
@@ -34,7 +34,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			RelationsLookup = new RelationLookup.RelationsLookup();
 			NodeHandlerLookup.Clear();
-			ConnectionTypeLookup = null;
+			DependencyTypeLookup = null;
 		}
 		
 		public void UpdateFromDefinition(ResolverUsageDefinitionList definitionList)
@@ -56,7 +56,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				CreatedCaches[cacheTypeFullName].AddResolver(entry.ResolverType, entry.ConnectionTypes);
 			}
 			
-			ConnectionTypeLookup = new ConnectionTypeLookup(GetCaches());
+			DependencyTypeLookup = new DependencyTypeLookup(GetCaches());
 			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 		}
 

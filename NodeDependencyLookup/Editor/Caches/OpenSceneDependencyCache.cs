@@ -257,7 +257,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class InSceneDependencyResolver : IInSceneDependencyResolver
     {
         private const string ConnectionTypeDescription = "Dependencies between GameObjects in the currently opened scene/prefab";
-        private static ConnectionType InSceneType = new ConnectionType(new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
+        private static DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject", new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
         public const string Id = "InSceneDependencyResolver";
 
         public string[] GetConnectionTypes()
@@ -270,7 +270,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return Id;
         }
 
-        public ConnectionType GetDependencyTypeForId(string typeId)
+        public DependencyType GetDependencyTypeForId(string typeId)
         {
             return InSceneType;
         }

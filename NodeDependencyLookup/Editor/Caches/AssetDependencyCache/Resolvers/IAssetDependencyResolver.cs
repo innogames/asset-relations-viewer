@@ -7,7 +7,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		string[] GetConnectionTypes();
 		string GetId();
-		ConnectionType GetDependencyTypeForId(string typeId);
+		DependencyType GetDependencyTypeForId(string typeId);
 	}
 
 	/// <summary>
@@ -29,14 +29,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// For example if a material has a direct connection to a texture.
 	/// Other possible ConnectionTypes could be for example Addressable, AssetBundleUsage, etc.
 	/// </summary>
-	public class ConnectionType
+	public class DependencyType
 	{
-		public ConnectionType(Color color, bool isIndirect, bool isHard, string description)
+		public DependencyType(string name, Color color, bool isIndirect, bool isHard, string description)
 		{
 			Colour = color;
 			IsIndirect = isIndirect;
 			IsHard = isHard;
 			Description = description;
+			Name = name;
 		}
 
 		// The color it is using (for the Asset Relation Viewer)
@@ -50,5 +51,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		// Discription of the connection type that will be displayed in the AssetRelationsViewer
 		public readonly string Description;
+
+		public readonly string Name;
 	}
 }

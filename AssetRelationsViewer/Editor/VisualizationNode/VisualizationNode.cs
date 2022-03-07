@@ -78,9 +78,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			style.normal.textColor = textColor;
 			style.clipping = TextClipping.Clip;
+			string typeText = $"[{NodeData.TypeName}]";
 			string name = isMissing ? "Missing!!!" : NodeData.Name;
-			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), name, style);
-			
+			string tooltip = typeText + " " + name;
+			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), new GUIContent(name, tooltip), style);
+
 			if (displayData.ShowAdditionalInformation)
 			{
 				if (NodeData.HierarchySize == -1)
@@ -88,7 +90,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
 				}
 				
-				string typeText = $"[{NodeData.TypeName}]";
+				
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), typeText);
 
 				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
