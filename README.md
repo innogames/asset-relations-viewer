@@ -107,6 +107,7 @@ Unused dependency types can be unloaded by clicking on the <b>U</b> button.
 **L** Dependency type is active and currently loaded <br/>
 **R** Dependency type got activated but needs to be loaded <br/>
 **U** Dependency type got deactivated and can be unloaded <br/>
+**R Button** Refreshes the dependencies just for this dependency type
 
 ## Dependency types
 
@@ -206,7 +207,7 @@ There can be cases where no tree is shown in the AssetRelationsViewer
 # Standalone dependency cache
 The dependency cache can be used without the AssetRelationsViewer. <br/>
 This makes it possible to use the cache for other tools where dependency information between assets, files, etc. is required. <br/>
-In the following example we log all assets that are contained in the ActionOption prefab.
+In the following example we find out which asset have a dependency on the BaseProductions prefab.
 
 ```c#
 NodeDependencyLookupContext context = new NodeDependencyLookupContext();
@@ -217,7 +218,7 @@ resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true
 
 NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
 
-// Get guid for ActionOption prefab
+// Get guid for BaseProductions prefab
 string[] assetGuids = AssetDatabase.FindAssets("t:prefab BaseProductions");
 
 // Nodehandlers to get further information about nodes like the name, type, size, etc.

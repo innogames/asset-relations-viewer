@@ -18,7 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public Dictionary<string, CreatedResolver> ResolverUsagesLookup = new Dictionary<string, CreatedResolver>();
 		public Dictionary<string, CreatedResolver> CreatedResolvers = new Dictionary<string, CreatedResolver>();
 
-		public void AddResolver(Type resolverType, List<string> connectionTypes)
+		public void AddResolver(Type resolverType, List<string> dependencyTypes)
 		{
 			string resolverTypeFullName = resolverType.FullName;
 			
@@ -30,13 +30,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			CreatedResolver createdResolver = CreatedResolvers[resolverTypeFullName];
+			string resolverId = createdResolver.Resolver.GetId();
 
-			string[] collection = connectionTypes != null ? connectionTypes.ToArray() : createdResolver.Resolver.GetDependencyTypes();
-			createdResolver.ConnectionTypes = new HashSet<string>(collection);
-			
-			ResolverUsages.Add(createdResolver);
-			ResolverUsagesLookup.Add(createdResolver.Resolver.GetId(), createdResolver);
+			if (!ResolverUsagesLookup.ContainsKey(resolverId))
+			{
+				ResolverUsages.Add(createdResolver);
+				ResolverUsagesLookup.Add(resolverId, createdResolver);
+			}
 
+			string[] collection = dependencyTypes != null ? dependencyTypes.ToArray() : createdResolver.Resolver.GetDependencyTypes();
+			createdResolver.DependencyTypes = new HashSet<string>(collection);
 			createdResolver.IsActive = true;
 		}
 
@@ -60,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 		
 		public bool IsActive;
-		public HashSet<string> ConnectionTypes = new HashSet<string>();
+		public HashSet<string> DependencyTypes = new HashSet<string>();
 		public IDependencyResolver Resolver;
 	}
 }

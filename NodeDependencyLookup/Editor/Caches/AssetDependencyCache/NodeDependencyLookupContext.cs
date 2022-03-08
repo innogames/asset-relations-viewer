@@ -39,8 +39,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public void UpdateFromDefinition(ResolverUsageDefinitionList definitionList)
 		{
-			ResetCacheUsages();
-			
 			foreach (ResolverUsageDefinitionList.Entry entry in definitionList.CacheUsages)
 			{
 				string cacheTypeFullName = entry.CacheType.FullName;

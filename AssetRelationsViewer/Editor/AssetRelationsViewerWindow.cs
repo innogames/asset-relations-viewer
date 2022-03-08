@@ -911,6 +911,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 							EditorGUILayout.LabelField("U", GUILayout.MaxWidth(10));
 							_canUnloadCaches = true;
 						}
+
+						GUIContent refreshContent = new GUIContent("R", $"Refresh dependencies for {dependencyType.Name}");
+						
+						if (isActiveAndLoaded && newIsActive && GUILayout.Button(refreshContent, GUILayout.MaxWidth(20)))
+						{
+							UpdateCacheForCacheAndResolver(cacheState.Cache.GetType(), resolverState.Resolver.GetType());
+						}
 						
 						EditorGUILayout.EndHorizontal();
 					}
@@ -943,8 +950,25 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			EditorGUILayout.EndVertical();
 		}
 
+		public void UpdateCacheForCacheAndResolver(Type cacheType, Type resolverType)
+		{
+			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+			resolverUsageDefinitionList.Add(cacheType, resolverType, true, true, true);
+
+			UpdateCacheForCacheAndResolver(resolverUsageDefinitionList);
+		}
+
+		private void UpdateCacheForCacheAndResolver(ResolverUsageDefinitionList resolverUsageDefinitionList)
+		{
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, true);
+			InvalidateNodeStructure();
+			SetHandlerContext();
+		}
+
 		private void UpdateCacheAndResolverActivation()
 		{
+			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+			
 			foreach (CacheState cacheState in _cacheStates)
 			{
 				bool cacheNeedsActivation = false;
@@ -957,6 +981,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					{
 						resolverNeedsActivation |= resolverState.ActiveConnectionTypes.Contains(connectionType);
 					}
+					
+					if (!resolverState.IsActive && resolverNeedsActivation)
+					{
+						resolverUsageDefinitionList.Add(cacheState.Cache.GetType(), resolverState.Resolver.GetType(), true, true, true);
+					}
 
 					resolverState.IsActive = resolverNeedsActivation;
 					cacheNeedsActivation |= resolverState.IsActive;
@@ -965,9 +994,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				cacheState.IsActive = cacheNeedsActivation;
 				cacheState.SaveState();
 			}
-
-			ReloadContext(true);
-			InvalidateNodeStructure();
+			
+			UpdateCacheForCacheAndResolver(resolverUsageDefinitionList);
 		}
 
 		private HashSet<string> GetConnectionTypesToDisplay()

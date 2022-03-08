@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -13,13 +15,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     public class InSceneTypeHandler : ITypeHandler
     {
-        private const string SyncPrefKey = "InSceneSync";
+        private const string SyncPrefKey = "InSceneTypeHandler_Sync";
+        private const string AutoRefreshPrefKey = "InSceneTypeHandler_AutoRefresh";
         private AssetRelationsViewerWindow _viewerWindow;
         private InSceneDependencyNodeHandler _nodeHandler;
 
         private HashSet<string> _nodes = new HashSet<string>();
 
         private GameObject _currentNode = null;
+        private int _currentLoadedSceneKey;
 
         public string GetHandledType()
         {
@@ -65,8 +69,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnGui()
         {
-            EditorPrefs.SetBool(SyncPrefKey, 
-                EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
+            EditorPrefs.SetBool(SyncPrefKey, EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
+            EditorPrefs.SetBool(AutoRefreshPrefKey, EditorGUILayout.ToggleLeft("Auto refresh scene change:", EditorPrefs.GetBool(AutoRefreshPrefKey, false)));
 
             GameObject newSelection = EditorGUILayout.ObjectField(_currentNode, typeof(GameObject), true) as GameObject;
 
@@ -77,6 +81,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             {
                 _viewerWindow.ChangeSelection(_currentNode.GetHashCode().ToString(), InSceneNodeType.Name);
             }
+            
+            AutoRefreshSceneAfterChange();
         }
 
         public void OnSelectAsset(string id, string type)
@@ -114,6 +120,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             Selection.selectionChanged += SelectionChanged;
         }
+        
+        public bool HandlesCurrentNode()
+        {
+            return _currentNode != null;
+        }
 
         private void SelectionChanged()
         {
@@ -139,10 +150,35 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _viewerWindow.Repaint();
             }
         }
-
-        public bool HandlesCurrentNode()
+        
+        private void AutoRefreshSceneAfterChange()
         {
-            return _currentNode != null;
+            if (!EditorPrefs.GetBool(AutoRefreshPrefKey))
+            {
+                return;
+            }
+            
+            int loadedScenesKey = GetLoadedScenesKey();
+            
+            if (_currentLoadedSceneKey != 0 && loadedScenesKey != _currentLoadedSceneKey)
+            {
+                _viewerWindow.UpdateCacheForCacheAndResolver(typeof(OpenSceneDependencyCache), typeof(InSceneDependencyResolver));
+            }
+            
+            _currentLoadedSceneKey = loadedScenesKey;
+        }
+
+        private int GetLoadedScenesKey()
+        {
+            int result = 0;
+            
+            for (int i = 0; i < EditorSceneManager.loadedSceneCount; ++i)
+            {
+                Scene scene = EditorSceneManager.GetSceneAt(i);
+                result ^= scene.name.GetHashCode();
+            }
+
+            return result;
         }
     }
 }

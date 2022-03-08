@@ -46,7 +46,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
         {
             Dictionary<string, CreatedResolver> resolverUsagesLookup = createdCache.ResolverUsagesLookup;
-            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].ConnectionTypes.Contains(connectionType);
+            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].DependencyTypes.Contains(connectionType);
         }
 
         public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -84,8 +84,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
-            ResolverUsageDefinitionList resolverUsageDefinitionList, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
+            ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate = false, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
         {
+            if (!isPartialUpdate)
+            {
+                stateContext.ResetCacheUsages();
+            }
+            
             stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
             List<CreatedDependencyCache> caches = stateContext.GetCaches();
@@ -507,7 +512,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
             usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(loadFromCache, true, false);
 
-            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, savePath);
+            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, false, savePath);
         }
     }
 }
