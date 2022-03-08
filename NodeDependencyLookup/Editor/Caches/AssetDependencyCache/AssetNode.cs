@@ -107,7 +107,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				foreach (Dependency dependency in data.Dependencies)
 				{
-					if (dependencyCache.ConnectionTypes.Contains(dependency.ConnectionType))
+					if (dependencyCache.ConnectionTypes.Contains(dependency.DependencyType))
 					{
 						result.Add(dependency);
 					}

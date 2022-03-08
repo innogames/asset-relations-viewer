@@ -76,7 +76,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						{
 							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary, ref index);
 							referencerNode.Dependencies.Add(
-								new Connection(dependencyNode, dependency.ConnectionType, dependency.PathSegments));
+								new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments));
 						}
 					}
 				}

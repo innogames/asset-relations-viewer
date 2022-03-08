@@ -12,7 +12,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /// </summary>
     public class OpenSceneDependencyCache : IDependencyCache
     {
-        private const string ConnectionType = "InScene";
         private CreatedDependencyCache _createdDependencyCache;
 
         private Dictionary<string, GenericDependencyMappingNode> Lookup =
@@ -109,7 +108,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public List<Dependency> GetDependenciesForId(string id)
         {
             if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, InSceneDependencyResolver.Id,
-                ConnectionType))
+                InSceneConnectionType.Name))
             {
                 return Lookup[id].Dependencies;
             }
@@ -218,13 +217,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                         if (componentValue)
                         {
                             stack.Push(new PathSegment(componentValue.GetType().Name, PathSegmentType.Unknown));
-                            node.Dependencies.Add(new Dependency(valueHash, ConnectionType, InSceneNodeType.Name,
+                            node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name, InSceneNodeType.Name,
                                 stack.ToArray()));
                             stack.Pop();
                         }
                         else
                         {
-                            node.Dependencies.Add(new Dependency(valueHash, ConnectionType, InSceneNodeType.Name,
+                            node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name, InSceneNodeType.Name,
                                 stack.ToArray()));
                         }
 
@@ -260,9 +259,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private static DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject", new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
         public const string Id = "InSceneDependencyResolver";
 
-        public string[] GetConnectionTypes()
+        public string[] GetDependencyTypes()
         {
-            return new[] {"InScene"};
+            return new[] {InSceneConnectionType.Name};
         }
 
         public string GetId()
@@ -279,6 +278,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class InSceneNodeType
     {
         public const string Name = "InSceneGameObject";
+    }
+    
+    public class InSceneConnectionType
+    {
+        public const string Name = "GTOG_InScene";
     }
 
     public class InSceneDependencyNodeHandler : INodeHandler

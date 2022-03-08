@@ -31,7 +31,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			CreatedResolver createdResolver = CreatedResolvers[resolverTypeFullName];
 
-			string[] collection = connectionTypes != null ? connectionTypes.ToArray() : createdResolver.Resolver.GetConnectionTypes();
+			string[] collection = connectionTypes != null ? connectionTypes.ToArray() : createdResolver.Resolver.GetDependencyTypes();
 			createdResolver.ConnectionTypes = new HashSet<string>(collection);
 			
 			ResolverUsages.Add(createdResolver);

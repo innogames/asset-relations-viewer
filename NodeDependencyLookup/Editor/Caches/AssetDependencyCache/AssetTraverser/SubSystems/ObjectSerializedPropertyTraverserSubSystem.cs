@@ -9,8 +9,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
     public class ObjectSerializedPropertyTraverserSubSystem : SerializedPropertyTraverserSubSystem
     {
-        private string ConnectionType = "Object";
-
         // Don't include m_CorrespondingSourceObject because otherwise every property would have a dependency to it
         private HashSet<string> ExcludedProperties = new HashSet<string>(new []{"m_CorrespondingSourceObject"});
         
@@ -40,7 +38,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(id))
             {
-                AddDependency(id, new Dependency(assetId, ConnectionType, AssetNodeType.Name, stack.ToArray()));
+                AddDependency(id, new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
             }
         }
 
@@ -87,7 +85,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 return null;
             }
                 
-            return new Result {Id = assetId, ConnectionType = ConnectionType, NodeType = AssetNodeType.Name};
+            return new Result {Id = assetId, DependencyType = AssetToAssetObjectDependency.Name, NodeType = AssetNodeType.Name};
         }
     }
 }

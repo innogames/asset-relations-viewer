@@ -211,7 +211,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			
 				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-				subSystem.AddDependency(assetId, new Dependency(result.Id, result.ConnectionType, result.NodeType, stack.ToArray()));
+				subSystem.AddDependency(assetId, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
 			}
 		}

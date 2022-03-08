@@ -5,7 +5,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public interface IDependencyResolver
 	{
-		string[] GetConnectionTypes();
+		string[] GetDependencyTypes();
 		string GetId();
 		DependencyType GetDependencyTypeForId(string typeId);
 	}

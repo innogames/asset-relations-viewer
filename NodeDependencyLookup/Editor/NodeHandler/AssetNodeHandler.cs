@@ -95,11 +95,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)
-		{
-			// nothing to do
-		}
-		
 		private bool IsSceneAndPacked(string path)
 		{
 			if (Path.GetExtension(path).Equals(".unity"))

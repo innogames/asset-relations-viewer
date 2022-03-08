@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public class Result
         {
             public string Id;
-            public string ConnectionType;
+            public string DependencyType;
             public string NodeType;
         }
 

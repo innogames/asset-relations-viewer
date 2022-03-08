@@ -19,7 +19,7 @@ namespace Assets.Package.Editor.DependencyResolvers
 			{
 				foreach (CreatedResolver resolverUsage in usage.ResolverUsages)
 				{
-					foreach (string type in resolverUsage.Resolver.GetConnectionTypes())
+					foreach (string type in resolverUsage.Resolver.GetDependencyTypes())
 					{
 						if(!_lookup.ContainsKey(type))
 						{

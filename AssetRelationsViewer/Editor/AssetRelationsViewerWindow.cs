@@ -64,7 +64,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private bool _nodeStructureDirty = true;
 		private bool _visualizationDirty = true;
 		private bool _selectionDirty = true;
-		private bool _showThumbnails = false;
 
 		private NodeDisplayOptions _nodeDisplayOptions = new NodeDisplayOptions();
 
@@ -272,7 +271,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 						{
 							List<string> activeConnectionTypes = new List<string>();
 
-							foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
+							foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
 							{
 								if (resolverState.ActiveConnectionTypes.Contains(connectionType))
 								{
@@ -323,7 +322,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			cacheState.IsActive = true;
 			resolverState.IsActive = true;
-			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetConnectionTypes());
+			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetDependencyTypes());
 
 			cacheState.SaveState();
 		}
@@ -538,9 +537,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			EditorGUILayout.EndVertical();
 		}
 
-		public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null)
+		public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null, int width = 180)
 		{
-			pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(180)), onChange);
+			pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(width)), onChange);
 		}
 
 		public static void IntSliderPref(PrefValue<int> pref, string label, Action<int> onChange = null)
@@ -840,7 +839,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			_canUnloadCaches = false;
 			
-			bool stateChanged = false;
 			bool connectionTypeChanged = false;
 			bool needsCacheLoad = false;
 			bool loadedConnectionTypesChanged = false;
@@ -850,7 +848,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				GUI.contentColor = origColor;
 				
 				string cacheName = cacheState.Cache.GetType().Name;
-				bool cacheStateActive = false;
 
 				EditorGUILayout.BeginVertical("Box");
 
@@ -858,12 +855,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					GUI.contentColor = origColor;
 
-					bool resolverStateActive = false;
-
 					IDependencyResolver resolver = resolverState.Resolver;
 					string resolverName = resolver.GetId();
 
-					foreach (string connectionTypeName in resolver.GetConnectionTypes())
+					foreach (string connectionTypeName in resolver.GetDependencyTypes())
 					{
 						bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
 						DependencyType dependencyType = resolver.GetDependencyTypeForId(connectionTypeName);
@@ -884,8 +879,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(label, isActive), ref connectionTypeChanged);
 
-						resolverStateActive |= newIsActive;
-	
 						if (newIsActive && !isActive)
 						{
 							resolverState.ActiveConnectionTypes.Add(connectionTypeName);
@@ -960,7 +953,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					bool resolverNeedsActivation = false;
 
-					foreach (string connectionType in resolverState.Resolver.GetConnectionTypes())
+					foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
 					{
 						resolverNeedsActivation |= resolverState.ActiveConnectionTypes.Contains(connectionType);
 					}
@@ -987,7 +980,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					foreach (ResolverState state in cacheState.ResolverStates)
 					{
-						string[] connectionTypes = state.Resolver.GetConnectionTypes();
+						string[] connectionTypes = state.Resolver.GetDependencyTypes();
 
 						foreach (string connectionType in connectionTypes)
 						{
@@ -1005,8 +998,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayMiscOptions()
 		{
-			TogglePref(_displayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure());
-			TogglePref(_showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
+			TogglePref(_displayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure(), 240);
+			TogglePref(_showthumbnails, "Show thumbnails", b => RefreshNodeStructure(), 240);
 
 			EditorGUILayout.Space();
 		}

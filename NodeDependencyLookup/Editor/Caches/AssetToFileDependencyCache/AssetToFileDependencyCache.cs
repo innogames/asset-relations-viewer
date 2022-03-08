@@ -7,12 +7,16 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    public class AssetToFileDependency
+    {
+        public const string Name = "AssetToFile";
+    }
+    
     // Cache to find get mapping of assets to the file the asset is included in
     public class AssetToFileDependencyCache : IDependencyCache
     {
         private const string Version = "1.40";
         private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
-        private const string ConnectionType = "File";
 
         private Dictionary<string, GenericDependencyMappingNode> _fileNodesDict = new Dictionary<string, GenericDependencyMappingNode>();
         private FileToAssetsMapping[] _fileToAssetsMappings = new FileToAssetsMapping[0];
@@ -197,7 +201,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public List<Dependency> GetDependenciesForId(string id)
         {
-            if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AssetToFileDependencyResolver.Id, ConnectionType))
+            if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AssetToFileDependencyResolver.Id, AssetToFileDependency.Name))
             {
                 return _fileNodesDict[id].Dependencies;
             }
@@ -300,13 +304,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     {
         private const string ConnectionTypeDescription = "Dependencies between assets to the file they are contained in";
         private static DependencyType fileDependencyType = new DependencyType("Asset->File", new Color(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
-
-        public const string ResolvedType = "File";
         public const string Id = "AssetToFileDependencyResolver";
 
-        public string[] GetConnectionTypes()
+        public string[] GetDependencyTypes()
         {
-            return new[] {"File"};
+            return new[] {AssetToFileDependency.Name};
         }
 
         public string GetId()
@@ -326,7 +328,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
         {
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-            dependencies.Add(new Dependency(fileId, ResolvedType, FileNodeType.Name, new []{new PathSegment(FileNodeType.Name, PathSegmentType.Property)}));
+            dependencies.Add(new Dependency(fileId, AssetToFileDependency.Name, FileNodeType.Name, new []{new PathSegment(FileNodeType.Name, PathSegmentType.Property)}));
         }
     }
 }

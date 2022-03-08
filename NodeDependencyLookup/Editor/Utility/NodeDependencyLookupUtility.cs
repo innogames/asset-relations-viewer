@@ -496,7 +496,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static string GetNodeKey(string id, string type)
         {
-            return id + "___" + type;
+            return $"{id}@{type}";
         }
 
         /**
