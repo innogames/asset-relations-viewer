@@ -14,9 +14,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
-		bool NeedsUpdate(ProgressBase progress);
+		bool NeedsUpdate();
 		bool CanUpdate();
-		void Update(ProgressBase progress);
+		void Update();
 		void AddExistingNodes(List<IDependencyMappingNode> nodes);
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);

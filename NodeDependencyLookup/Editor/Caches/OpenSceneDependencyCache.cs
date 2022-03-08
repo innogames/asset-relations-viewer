@@ -30,7 +30,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        public bool NeedsUpdate(ProgressBase progress)
+        public bool NeedsUpdate()
         {
             return true;
         }
@@ -61,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return rootGameObjects.ToArray();
         }
 
-        public void Update(ProgressBase progress)
+        public void Update()
         {
             Lookup.Clear();
 

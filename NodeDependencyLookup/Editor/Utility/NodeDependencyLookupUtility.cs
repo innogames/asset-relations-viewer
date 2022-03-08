@@ -24,9 +24,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             public HashSet<Node> FlattenedSubTree;
         }
         
-        public const string DEFAULT_CACHE_SAVE_PATH = "AssetRelationsViewer/Cache/";
+        public const string DEFAULT_CACHE_SAVE_PATH = "NodeDependencyCache";
 
-        [MenuItem("Window/Node Dependency Lookup/Clear Cache Files")]
+        [MenuItem("Window/Node Dependency Cache/Clear Cache Files")]
         public static void ClearCacheFiles()
         {
             List<Type> types = GetTypesForBaseType(typeof(IDependencyCache));
@@ -37,8 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 cache.ClearFile(DEFAULT_CACHE_SAVE_PATH);
             }
         }
-
-        [MenuItem("Window/Node Dependency Lookup/Clear Cached Contexts")]
+        
         public static void ClearCachedContexts()
         {
             NodeDependencyLookupContext.ResetContexts();
@@ -85,7 +84,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
-            ResolverUsageDefinitionList resolverUsageDefinitionList, ProgressBase progress, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
+            ResolverUsageDefinitionList resolverUsageDefinitionList, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
         {
             stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
@@ -108,11 +107,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     cacheUsage.IsLoaded = true;
                 }
 
-                if (update && cache.NeedsUpdate(progress))
+                if (update && cache.NeedsUpdate())
                 {
                     if (cache.CanUpdate())
                     {
-                        cache.Update(progress);
+                        cache.Update();
 
                         if (save)
                         {
@@ -430,7 +429,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return AssetDatabase.LoadAllAssetsAtPath(path);
         }
 
-        public static string[] GetAllAssetPathes(ProgressBase progress, bool unityBuiltin)
+        public static string[] GetAllAssetPathes(bool unityBuiltin)
         {
             string[] pathes = AssetDatabase.GetAllAssetPaths();
 
@@ -503,15 +502,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         /**
          * Return the dependency lookup for Objects using the ObjectDependencyResolver
          */
-        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache,
-            string savePath,
-            ProgressBase progress)
+        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache, string savePath)
         {
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
             usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(loadFromCache, true, false);
 
-            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress,
-                savePath);
+            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, savePath);
         }
     }
 }

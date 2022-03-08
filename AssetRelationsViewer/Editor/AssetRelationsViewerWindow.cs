@@ -200,11 +200,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			_nodeDependencyLookupContext.Reset();
 
 			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList(update);
-
-			ProgressBase progress = new ProgressBase(null);
-			progress.SetProgressFunction((title, info, value) => EditorUtility.DisplayProgressBar(title, info, value));
-			
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress);
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList);
 			
 			SetHandlerContext();
 			

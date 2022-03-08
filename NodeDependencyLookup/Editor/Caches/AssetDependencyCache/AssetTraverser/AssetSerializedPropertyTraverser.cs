@@ -21,7 +21,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		private const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
 		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
-		private ResolverProgress progress;
 		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
 
 		public void Search()
@@ -31,7 +30,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				ReflectionStack[i] = new ReflectionStackItem();
 			}
 
-			foreach (var pair in assetIdToResolver)
+			int j = 0;
+			foreach (KeyValuePair<string, List<SerializedPropertyTraverserSubSystem>> pair in assetIdToResolver)
 			{
 				Object asset = NodeDependencyLookupUtility.GetAssetById(pair.Key);
 
@@ -40,8 +40,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 				
-				progress.IncreaseProgress();
-				progress.UpdateProgress("Finding dependencies", asset.name);
+				EditorUtility.DisplayProgressBar("Finding dependencies", asset.name, j++ / (float)assetIdToResolver.Count);
 				Traverse(pair.Key, asset, new Stack<PathSegment>());
 			}
 		}
@@ -51,9 +50,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			assetIdToResolver.Clear();
 		}
 
-		public void Initialize(ProgressBase progress)
+		public void Initialize()
 		{
-			this.progress = new ResolverProgress(progress, assetIdToResolver.Count, 10);
 		}
 
 		public void AddAssetId(string key, SerializedPropertyTraverserSubSystem resolver)

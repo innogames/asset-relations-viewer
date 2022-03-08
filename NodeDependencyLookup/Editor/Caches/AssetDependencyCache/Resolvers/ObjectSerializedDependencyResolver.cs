@@ -90,7 +90,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress)
+		public void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets)
 		{
 			TraverserSubSystem.Clear();
 			

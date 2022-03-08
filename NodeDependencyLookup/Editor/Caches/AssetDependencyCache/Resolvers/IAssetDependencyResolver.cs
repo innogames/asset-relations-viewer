@@ -18,7 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public interface IAssetDependencyResolver : IDependencyResolver
 	{
 		void SetValidGUIDs();
-		void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress);
+		void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets);
 		void GetDependenciesForId(string fileId, List<Dependency> dependencies);
 		bool IsGuidValid(string path);
 	}
