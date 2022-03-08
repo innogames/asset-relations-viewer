@@ -40,7 +40,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 				
-				EditorUtility.DisplayProgressBar("Finding dependencies", asset.name, j++ / (float)assetIdToResolver.Count);
+				if (EditorUtility.DisplayCancelableProgressBar("Finding dependencies", asset.name, j++ / (float)assetIdToResolver.Count))
+				{
+					throw new DependencyUpdateAbortedException();
+				}
+				
 				Traverse(pair.Key, asset, new Stack<PathSegment>());
 			}
 		}

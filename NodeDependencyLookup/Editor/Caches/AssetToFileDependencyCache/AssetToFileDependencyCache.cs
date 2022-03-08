@@ -85,7 +85,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                 if (progressPercentage - lastDisplayedPercentage > 0.01f)
                 {
-                    EditorUtility.DisplayProgressBar("AssetToFileDependencyCache",$"Finding changed assets {result.Count}", (float)i / pathes.Length);
+                    if (EditorUtility.DisplayCancelableProgressBar("AssetToFileDependencyCache", $"Finding changed assets {result.Count}", (float)i / pathes.Length))
+                    {
+                        throw new DependencyUpdateAbortedException();
+                    }
+                    
                     lastDisplayedPercentage = progressPercentage;
                 }
                 
