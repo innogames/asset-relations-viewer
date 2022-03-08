@@ -69,8 +69,9 @@ Menu items sorted from left to right
 **Back button ("<<")**: Button to go back to previous selected asset to view <br/>
 **Thumbnail Size**: Size of the shown thumbnail in pixels <br/>
 **Node Depth**: Depth of the shown tree structure <br/>
-**Refresh**: Refreshed view after asset has changed <br/>
-**Save and Refresh**: Saves the project before refreshing the view to make sure all changes are applied to assets before <br/>
+**Refresh**: Updates dependencies and refreshes view after asset has changed <br/>
+**Save and Refresh**: Saves the project before refresh <br/>
+**Clear and Refresh**: Clears cache before refresh so force a complete rebuild of all caches <br/>
 **Show additional node information **: Displays size and also type of the nodes if selected <br/>
 **Show Thumbnails**: Shown correct thumbnails on nodes if available <br/>
 **Show nodes Once**: To only show each node (Asset) once within the displayed tree <br/>
@@ -128,19 +129,33 @@ Note: If the opened scene/prefab changed after opening the AssetRelationViewer t
 
 ![](Docs~/Images/arv_inscene_dependencies.png)
 
+## Caching
+Most dependency types are cached to only update the dependencies again if the file itself got changed. <br/> 
+This greatly reduces the startup time of the AssetRelationsViewer since for large projects finding all Asset->Asset dependencies can take several minutes.
+If a file needs to be updated is currently determinined by the timestamp of the file but could be changed to in addition also take a file hash into account.
+
+### Location
+The caches are stored in PROJECT_ROOT/NodeDependencyCache. <br/> 
+Dependending on the projectsize these files can be several several megabytes in size. <br/> 
+The NodeDependencyCache folder should be added to .gitignore and not be checked in into the git repository.
+
+### Clearing the cache
+The cache files can either be deleted manually or inside Unity under the Window/Node Dependency Cache/Clear Cache Files menu item.
+
+
 <br><br><br><br>
-## Node search and filter
+# Node search and filter
 ![](Docs~/Images/arv_node_search_and_filter.png)
 
-### Node search
+## Node search
 Since every type of node can be viewed in the AssetRelationViewer like Assets, Files, AddressableAssetGroups, AsmDefs, etc. is sometime helpful to have a generic node search.<br/>
 Because finding all nodes in the projects might take a while this feature needs to be activated first by clicking on the "Enable" botton.<br/>
-Only known nodes based on the activated dependency types are shown 
+Only known nodes based on the activated dependency types are shown, meaning that if for example no asset related dependency type is active no assets can be found in the node search. <br/>
 Nodes can be searched for by name and by type. <br/>
 Based on the filtered name and type the dropdown will show all available nodes to select. <br/>
 Once selected in the dropdown the current node can be shown in the AssetRelationsViewer by clicking <b>Select</b>. <br/>
 
-### Node hierarchy filter
+## Node hierarchy filter
 To specifically filter for either a node name or node type the "Node hierarchy filter:" can be used. <br/>
 Only the matching nodes will be highlighted and all others are grayed out. <br/>
 In the example the dependency tree is filtered for "vertexLit". <br/>
@@ -148,53 +163,54 @@ In the example the dependency tree is filtered for "vertexLit". <br/>
 ![](Docs~/Images/arv_node_filter.png)
 
 <br><br><br><br>
-## Showing dependency pathes
+# Showing dependency pathes
 In the AssetRelationsViewer it is possible to not only view dependencies between Asset->Asset for example but also exactly through with path the dependency exist. <br/>
 In order to view the pathes "Show Property Pathes" needs to be activated. <br/>
 Once active the whole path of the dependency (GameObject->Components->ClassMemberVariable) is shown in the hierarchy tree view. <br/>
 
 ![](Docs~/Images/arv_pathes.png)
 
-## Node handlers
+# Node handlers
 GUI options specific to a node type. <br/>
 
 ![](Docs~/Images/arv_typehandler.png)
 
-### Asset
+## Asset
 Options specific to Assets. <br/>
 
 Contains dropdown to select an asset in the project. <br/>
 **Sync to explorer**: If selected the currently selected asset in the project explorer will be the one shown in the AssetRelationsViewer. <br/>
 
-### File
+## File
 Options specific to Files. <br/>
 Currently there are no specific options for them. <br/>
 
-### InSceneGameObject
+## InSceneGameObject
 Options for in scene GameObjects. <br/>
 
 Contains dropdown to select a GameObject from the currently opened scene/prefab. <br/>
 **Sync to hierarchy**: If selected the currently selected GameObject in the currently opened scene/prefab will be shown in the AssetRelationsViewer. <br/>
 
 <br><br><br><br>
-## Troubleshooting
+# Troubleshooting
 There can be cases where no tree is shown in the AssetRelationsViewer
 
 * Make sure a node (Asset) is selected to be shown
 * Make sure a dependency cache (AssetDependencyCache) and dependency resolver (ObjectDependencyResolver) is selected, otherwise no dependency can be found
 * After a code recompile the dependency cache needs to be updated by clicking on "Refresh"
 * Some dependency types might not update/work correctly when being in PlayMode
+* There might be some rare cases where the cache didnt get updated correctly. If there are dependencies missing which you are sure should be displayed sometimes also complete cache rebuild with a <b>Clean and Refresh</b> can help.
 
 <br><br><br><br>
-## Addons
+# Addons
 Support to display different connection and node types can be added by addons.
 
-#### Addressable system
+## Addressable system
 An addon is available to add support for showing addressables and also addressable groups from Unitys Addressables system. <br/>
 The Package is called asset-relations-viewer-addressables. <br/>
 It can be found at https://github.com/innogames/asset-relations-viewer-addressables <br/>
 
-#### Writing own addons to support custom connection- and nodetypes
+## Writing own addons to support custom connection- and nodetypes
 Own addons can be also added so custom dependencies with any nodetype and dependency type can be added to be viewed inside the Asset Relations Viewer. <br/>
 For seing how to add own addons, please have a look at the Addressable sytem addon source code. <br/>
 
