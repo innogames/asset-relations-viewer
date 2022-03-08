@@ -21,11 +21,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return $"File {name}";
 		}
 
-		public void ApplyFilterString(string filterString)
-		{
-			
-		}
-
 		public VisualizationNodeData CreateNodeCachedData(string id)
 		{
 			return new FileVisualizationNodeData(id, GetHandledType());

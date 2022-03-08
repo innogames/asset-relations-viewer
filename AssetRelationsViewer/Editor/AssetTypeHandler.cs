@@ -9,9 +9,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
     public class AssetTypeHandler : ITypeHandler
     {
-        private HashSet<string> _filteredNodes;
-        private INodeHandler _nodeHandler;
-
         private Object _selectedAsset;
         private AssetRelationsViewerWindow _viewerWindow;
 
@@ -25,11 +22,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public string GetSortingKey(string name)
         {
             return $"Asset {name}";
-        }
-
-        public void ApplyFilterString(string filterString)
-        {
-            _filteredNodes = CreateFilter(filterString);
         }
 
         public VisualizationNodeData CreateNodeCachedData(string id)
@@ -77,7 +69,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             AssetRelationsViewerWindow window, INodeHandler nodeHandler)
         {
             _viewerWindow = window;
-            _nodeHandler = nodeHandler;
             Selection.selectionChanged += HandleSyncToExplorer;
         }
 

@@ -85,11 +85,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		// node search and filtering
 		private string _nodeSearchString = String.Empty;
 		private string _typeSearchString = String.Empty;
+		private string[] _nodeSearchTokens = new string[0];
+		private string[] _typeSearchTokens = new string[0];
 		
-		private string _nodeTmpFilterString = String.Empty;
-		private string _typeTmpFilterString = String.Empty;
 		private string _nodeFilterString = String.Empty;
 		private string _typeFilterString = String.Empty;
+		private string[] _nodeFilterTokens = new string[0];
+		private string[] _typeFilterTokens = new string[0];
 		
 		private readonly List<Node> filteredNodes = new List<Node>();
 		private string[] _filteredNodeNames = new string[0];
@@ -671,23 +673,36 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			EditorUtility.ClearProgressBar();
 		}
 
-		private bool IsNodeMatchingFilter(NodeFilterData filterData, string nameString, string typeString)
+		private bool IsNodeMatchingFilter(NodeFilterData filterData, string[] nameTokens, string[] typeTokens)
 		{
-			return filterData.Name.Contains(nameString) && filterData.TypeName.Contains(typeString);
+			foreach (string nameToken in nameTokens)
+			{
+				if (!filterData.Name.Contains(nameToken))
+				{
+					return false;
+				}
+			}
+			
+			foreach (string typeToken in typeTokens)
+			{
+				if (!filterData.TypeName.Contains(typeToken))
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 		
 		private void FilterNodeList()
 		{
 			filteredNodes.Clear();
 
-			string nodeSearchName = _nodeSearchString.ToLower();
-			string typeSearchName = _typeSearchString.ToLower();
-
 			foreach (NodeFilterData filterData in _nodeSearchList)
 			{
 				Node node = filterData.Node;
 
-				if (IsNodeMatchingFilter(filterData, nodeSearchName, typeSearchName))
+				if (IsNodeMatchingFilter(filterData, _nodeSearchTokens, _typeSearchTokens))
 				{
 					filteredNodes.Add(node);
 
@@ -754,10 +769,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (changed)
 			{
-				foreach (ITypeHandler typeHandler in _typeHandlers)
-				{
-					typeHandler.ApplyFilterString(_nodeSearchString);
-				}
+				_nodeSearchTokens = _nodeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+				_typeSearchTokens = _typeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
 
 				FilterNodeList();
 			}
@@ -786,24 +799,25 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			float origWidth = EditorGUIUtility.labelWidth;
 			EditorGUIUtility.labelWidth = 50;
 			bool changed = false;
-			ChangeValue(ref _nodeTmpFilterString, EditorGUILayout.TextField("Name:", _nodeTmpFilterString), ref changed);
-			ChangeValue(ref _typeTmpFilterString, EditorGUILayout.TextField("Type:", _typeTmpFilterString), ref changed);
+			ChangeValue(ref _nodeFilterString, EditorGUILayout.TextField("Name:", _nodeFilterString), ref changed);
+			ChangeValue(ref _typeFilterString, EditorGUILayout.TextField("Type:", _typeFilterString), ref changed);
 			EditorGUIUtility.labelWidth = origWidth;
 
 			EditorGUILayout.BeginHorizontal();
 			if (GUILayout.Button("Set as Filter", GUILayout.MaxWidth(100)))
 			{
-				_nodeFilterString = _nodeTmpFilterString;
-				_typeFilterString = _typeTmpFilterString;
+				_nodeFilterTokens = _nodeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+				_typeFilterTokens = _typeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+
 				InvalidateNodeStructure();
 			}
 
-			if (!string.IsNullOrEmpty(_nodeFilterString) || !string.IsNullOrEmpty(_typeFilterString))
+			if (_nodeFilterTokens.Length > 0 || _typeFilterTokens.Length > 0)
 			{
 				if (GUILayout.Button("Reset filter"))
 				{
-					_nodeFilterString = String.Empty;
-					_typeFilterString = String.Empty;
+					_nodeFilterTokens = new string[0];
+					_typeFilterTokens = new string[0];
 					InvalidateNodeStructure();
 				}
 			}
@@ -1577,12 +1591,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private bool IsNodeFiltered(Node node)
 		{
-			if (string.IsNullOrEmpty(_nodeFilterString) && string.IsNullOrEmpty(_typeFilterString))
+			if (_nodeFilterTokens.Length == 0 && _typeFilterTokens.Length == 0)
 			{
 				return false;
 			}
-
-			return !IsNodeMatchingFilter(GetOrCreateSearchDataForNode(node), _nodeFilterString, _typeFilterString);
+			
+			return !IsNodeMatchingFilter(GetOrCreateSearchDataForNode(node), _nodeFilterTokens, _typeFilterTokens);
 		}
 
 		private void SortChildNodes(VisualizationNode visualizationNode, RelationType relationType)
