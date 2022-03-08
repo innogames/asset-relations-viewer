@@ -164,6 +164,7 @@ In the example the dependency tree is filtered for "vertexLit". <br/>
 
 <br><br><br><br>
 # Showing dependency pathes
+
 In the AssetRelationsViewer it is possible to not only view dependencies between Asset->Asset for example but also exactly through with path the dependency exist. <br/>
 In order to view the pathes "Show Property Pathes" needs to be activated. <br/>
 Once active the whole path of the dependency (GameObject->Components->ClassMemberVariable) is shown in the hierarchy tree view. <br/>
@@ -200,6 +201,53 @@ There can be cases where no tree is shown in the AssetRelationsViewer
 * After a code recompile the dependency cache needs to be updated by clicking on "Refresh"
 * Some dependency types might not update/work correctly when being in PlayMode
 * There might be some rare cases where the cache didnt get updated correctly. If there are dependencies missing which you are sure should be displayed sometimes also complete cache rebuild with a <b>Clean and Refresh</b> can help.
+
+<br><br><br><br>
+# Standalone dependency cache
+The dependency cache can be used without the AssetRelationsViewer. <br/>
+This makes it possible to use the cache for other tools where dependency information between assets, files, etc. is required. <br/>
+In the following example we log all assets that are contained in the ActionOption prefab.
+
+```c#
+NodeDependencyLookupContext context = new NodeDependencyLookupContext();
+ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
+
+resolverList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(true, true, true);
+resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, true, true);
+
+NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
+
+// Get guid for ActionOption prefab
+string[] assetGuids = AssetDatabase.FindAssets("t:prefab BaseProductions");
+
+// Nodehandlers to get further information about nodes like the name, type, size, etc.
+AssetNodeHandler assetNodeHandler = new AssetNodeHandler();
+
+// Get the node for the file
+Node node = context.RelationsLookup.GetNode(assetGuids[0], FileNodeType.Name);
+
+// Iterate over all referencers of the file (assets)
+foreach (Connection referencer in node.Referencers)
+{
+	if (referencer.Node.Type == AssetNodeType.Name)
+	{
+		// Get name and type of asset
+		assetNodeHandler.GetNameAndType(referencer.Node.Id, out string nodeName, out string nodeType);
+		
+		foreach (Connection assetreferencer in referencer.Node.Referencers)
+		{
+			assetNodeHandler.GetNameAndType(assetreferencer.Node.Id, out string refNodeName, out string refNodeType);
+			
+			Debug.LogWarning($"[{nodeType}]{nodeName} is directly referenced by [{refNodeType}]{refNodeName}");
+		}
+	}
+}
+```
+
+Executing this would result in the following output <br/>
+<b>[GameObject]BaseProductions is directly referenced by [GameObject]ProductionTabContent</b>
+
+For this script to work in your own project the name and type of the asset in AssetDatabase.FindAssets() needs to be adapted accordingly to an asset that exists in your project.
 
 <br><br><br><br>
 # Addons
