@@ -1,8 +1,22 @@
-# asset-relations-viewer
+# Asset Relations Viewer
 
 Plugin to display dependencies between assets, files, assetgroups, etc. in a tree based view within the Unity editor.
 
 ![](Docs~/Images/arv.png)
+
+- [Features](#features)
+- [Installation](#installation)
+- [First Usage](#first-usage)
+- [Controls](#controls)
+- [Dependency type list](#dependency-type-list)
+  * [Dependency types](#dependency-types)
+  * [Caching](#caching)
+- [Node search and filter](#node-search-and-filter)
+- [Showing dependency pathes](#showing-dependency-pathes)
+- [Node handlers](#node-handlers)
+- [Troubleshooting](#troubleshooting)
+- [Standalone dependency cache](#standalone-dependency-cache)
+- [Addons](#addons)
 
 <br><br><br><br>
 ## Features
@@ -25,6 +39,7 @@ Plugin to display dependencies between assets, files, assetgroups, etc. in a tre
 	* Etc.
 
 <br><br><br><br>
+
 ## Installation
 
 #### For Unity 2018.3 or later (Using Unity Package Manager)
@@ -67,18 +82,18 @@ Menu items sorted from left to right
 <br>
 
 **Back button ("<<")**: Button to go back to previous selected asset to view <br/>
-**Thumbnail Size**: Size of the shown thumbnail in pixels <br/>
+**Thumbnail Size**: Size of the thumbnails in pixels <br/>
 **Node Depth**: Depth of the shown tree structure <br/>
 **Refresh**: Updates dependencies and refreshes view after asset has changed <br/>
 **Save and Refresh**: Saves the project before refresh <br/>
-**Clear and Refresh**: Clears cache before refresh so force a complete rebuild of all caches <br/>
-**Show additional node information **: Displays size and also type of the nodes if selected <br/>
-**Show Thumbnails**: Shown correct thumbnails on nodes if available <br/>
+**Clear and Refresh**: Clears cache before refresh to force a complete rebuild of all caches <br/>
+**Show additional node information **: Displays size and also type of the nodes <br/>
+**Show Thumbnails**: Shows correct thumbnails on nodes if available <br/>
 **Show nodes Once**: To only show each node (Asset) once within the displayed tree <br/>
 **Show hierarchy Once**: To only show the same dependency hierarchy for a node once within the displayed tree <br/>
 **Show referencers**: If referencers (Assets that have the selected asset as a dependency) should be shown or not <br/>
-**Show Property Pathes**: If path of where the dependency is within the scene, prefab, scriptable object is shown <br/>
-**Align Nodes**: If all nodes if the same depth should be align horizontally in the displayed tree  <br/>
+**Show Property Pathes**: Shows path of dependency (GameObject->Components->ClassMemberVariable) <br/>
+**Align Nodes**: If all nodes of the same depth should be aligned horizontally in the displayed tree  <br/>
 **Hide Filtered Nodes**: Hide all nodes that are filtered out instead of just graying them out <br/>
 **Highlight packaged assets**: Adds green highlight to nodes which are going to be packed into the app (Are actually used by the game) <br/>
 **Merge Relations**: If a node has the same asset as a dependency multiple times, the same dependency is just shown once <br/>
@@ -88,9 +103,8 @@ Menu items sorted from left to right
 
 ![](Docs~/Images/arv_node.png)
 
-**s**: If the selected node in an asset, it will be selected in the unity project explorer
-
-**>**: Makes the clicked on node the current viewed node in the AssetRelationsViewer
+**s**: If the selected node is an asset, it will be selected in the unity project explorer <br/>
+**>**: Sets node as currently selected node <br/>
 
 <br><br><br><br>
 
