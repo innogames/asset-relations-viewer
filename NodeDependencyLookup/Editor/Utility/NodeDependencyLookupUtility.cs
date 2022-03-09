@@ -503,6 +503,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             return $"{id}@{type}";
         }
+        
+        public static RelationType InvertRelationType(RelationType relationType)
+        {
+            switch (relationType)
+            {
+                case RelationType.DEPENDENCY:
+                    return RelationType.REFERENCER;
+                case RelationType.REFERENCER:
+                    return RelationType.DEPENDENCY;
+            }
+
+            return RelationType.DEPENDENCY;
+        }
 
         /**
          * Return the dependency lookup for Objects using the ObjectDependencyResolver

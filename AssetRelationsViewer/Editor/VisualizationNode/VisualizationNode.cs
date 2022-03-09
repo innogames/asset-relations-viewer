@@ -70,7 +70,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (depth > 0)
 			{
-				string typeId = GetRelations(AssetRelationsViewerWindow.InvertRelationType(relationType))[0].Datas[0].Type; // TODO move
+				string typeId = GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType))[0].Datas[0].Type;
 				textColor = displayDataProvider.GetConnectionColorForType(typeId);
 			}
 				
