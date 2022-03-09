@@ -188,12 +188,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				_cachedNodeSizes);
 		}
 		
-		public void UpdateCacheForCacheAndResolver(Type cacheType, Type resolverType)
+		public void RefreshContext(Type cacheType, Type resolverType)
 		{
 			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 			resolverUsageDefinitionList.Add(cacheType, resolverType, true, true, true);
-
-			UpdateCacheForCacheAndResolver(resolverUsageDefinitionList);
+			
+			ReloadContext(resolverUsageDefinitionList, true, true);
 		}
 		
 		public Color GetConnectionColorForType(string typeId)
@@ -233,17 +233,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 			
-			LoadDependencyCache();
+			LoadDependencyCache(CreateCacheUsageList(true));
 
 			_isInitialized = true;
 		}
 
-		private void LoadDependencyCache(bool update = true)
+		private void LoadDependencyCache(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update = true, bool partialUpdate = true)
 		{
 			_nodeDependencyLookupContext.Reset();
-
-			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList(update);
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList);
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, partialUpdate);
 			
 			SetHandlerContext();
 			
@@ -872,8 +870,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (CacheState cacheState in _cacheStates)
 			{
 				GUI.contentColor = origColor;
-				
-				string cacheName = cacheState.Cache.GetType().Name;
+				Type cacheType = cacheState.Cache.GetType();
+
+				string cacheName = cacheType.Name;
+				bool cacheIsLoaded = _nodeDependencyLookupContext.CreatedCaches.ContainsKey(cacheType.FullName);
 
 				EditorGUILayout.BeginVertical("Box");
 
@@ -889,7 +889,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 						bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
 						DependencyType dependencyType = resolver.GetDependencyTypeForId(connectionTypeName);
 
-						GUI.contentColor = dependencyType.Colour;
+						GUI.contentColor = dependencyType.Colour; 
 						bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionTypeName);
 						bool newIsActive = isActive;
 
@@ -908,41 +908,47 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 						if (newIsActive && !isActive)
 						{
 							resolverState.ActiveConnectionTypes.Add(connectionTypeName);
-							loadedConnectionTypesChanged |= isActiveAndLoaded;
+							loadedConnectionTypesChanged |= cacheIsLoaded && isActiveAndLoaded;
 							resolverState.SaveState();
 						}
 						else if (isActive && !newIsActive)
 						{
 							resolverState.ActiveConnectionTypes.Remove(connectionTypeName);
-							loadedConnectionTypesChanged |= isActiveAndLoaded;
+							loadedConnectionTypesChanged |= cacheIsLoaded && isActiveAndLoaded;
 							resolverState.SaveState();
 						}
-						
-						if (isActiveAndLoaded)
+
+						if (cacheIsLoaded && isActiveAndLoaded)
 						{
 							GUI.contentColor = origColor;
 							EditorGUILayout.LabelField("L", GUILayout.MaxWidth(10));
 						}
-						
+
 						if (!isActiveAndLoaded && newIsActive)
 						{
-							GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
-							EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
+							if (cacheIsLoaded)
+							{
+								GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
+								EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
+							}
+
 							needsCacheLoad = true;
 						}
 						
-						if (isActiveAndLoaded && !newIsActive)
+						if (cacheIsLoaded && isActiveAndLoaded && !newIsActive)
 						{
 							GUI.contentColor = new Color(0.4f, 0.4f, 0.4f);
 							EditorGUILayout.LabelField("U", GUILayout.MaxWidth(10));
 							_canUnloadCaches = true;
 						}
+						
+						GUI.contentColor = origColor;
 
 						GUIContent refreshContent = new GUIContent("R", $"Refresh dependencies for {dependencyType.Name}");
 						
-						if (isActiveAndLoaded && newIsActive && GUILayout.Button(refreshContent, GUILayout.MaxWidth(20)))
+						if (cacheIsLoaded && isActiveAndLoaded && newIsActive && GUILayout.Button(refreshContent, GUILayout.MaxWidth(20)))
 						{
-							UpdateCacheForCacheAndResolver(cacheState.Cache.GetType(), resolverState.Resolver.GetType());
+							RefreshContext(cacheType, resolverState.Resolver.GetType());
 						}
 						
 						EditorGUILayout.EndHorizontal();
@@ -960,7 +966,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (loadedConnectionTypesChanged)
 			{
-				_skipNodeSizeUpdate = true;
 				ReloadContext(false);
 				InvalidateNodeStructure();
 			}
@@ -974,13 +979,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 			
 			EditorGUILayout.EndVertical();
-		}
-
-		private void UpdateCacheForCacheAndResolver(ResolverUsageDefinitionList resolverUsageDefinitionList)
-		{
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, true);
-			InvalidateNodeStructure();
-			SetHandlerContext();
 		}
 
 		private void UpdateCacheAndResolverActivation()
@@ -1013,7 +1011,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				cacheState.SaveState();
 			}
 			
-			UpdateCacheForCacheAndResolver(resolverUsageDefinitionList);
+			ReloadContext(resolverUsageDefinitionList, true, true);
 		}
 
 		private HashSet<string> GetConnectionTypesToDisplay()
@@ -1088,11 +1086,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				ReloadContext();
 			}
 		}
-
+		
 		private void ReloadContext(bool _updateCache = true)
 		{
+			ReloadContext(CreateCacheUsageList(_updateCache));
+		}
+
+		private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool _updateCache = true, bool partialUpdate = true)
+		{
 			Refresh();
-			LoadDependencyCache(_updateCache);
+			LoadDependencyCache(resolverUsageDefinitionList, _updateCache, partialUpdate);
 			ChangeSelection(_selectedNodeId, _selectedNodeType);
 		}
 

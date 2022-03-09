@@ -157,7 +157,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             
             if (_currentLoadedSceneKey != 0 && loadedScenesKey != _currentLoadedSceneKey)
             {
-                _viewerWindow.UpdateCacheForCacheAndResolver(typeof(OpenSceneDependencyCache), typeof(InSceneDependencyResolver));
+                _viewerWindow.RefreshContext(typeof(OpenSceneDependencyCache), typeof(InSceneDependencyResolver));
             }
             
             _currentLoadedSceneKey = loadedScenesKey;
