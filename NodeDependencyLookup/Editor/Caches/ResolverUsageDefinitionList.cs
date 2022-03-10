@@ -49,24 +49,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 		}
-		
-		public void GetUpdateStateForResolver(Type resolverType, out bool load, out bool update, out bool save, out bool unload)
-		{
-			load = false;
-			update = false;
-			save = false;
-			unload = false;
-			
-			foreach (Entry cacheUsage in CacheUsages)
-			{
-				if (cacheUsage.ResolverType == resolverType)
-				{
-					load |= cacheUsage.Load;
-					update |= cacheUsage.Update;
-					save |= cacheUsage.Save;
-				}
-			}
-		}
 
 		public void Add<C, R>(bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
 		{

@@ -968,11 +968,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 						if (!isActiveAndLoaded && newIsActive)
 						{
-							if (resolverIsLoaded)
-							{
-								GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
-								EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
-							}
+							GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
+							EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
 
 							needsCacheLoad = true;
 						}
