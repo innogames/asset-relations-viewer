@@ -1031,7 +1031,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				foreach (ResolverState resolverState in cacheState.ResolverStates)
 				{
-					bool cacheCanUnload = true;
 					bool resolverNeedsActivation = false;
 
 					foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
@@ -1148,15 +1147,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 			
-			EditorUtility.DisplayProgressBar("Calculating all node sizes", "", 0);
 			List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
-
-			foreach (Node node in allNodes)
+			
+			for (var i = 0; i < allNodes.Count; i++)
 			{
+				Node node = allNodes[i];
+				
 				if (!_cachedNodeSizes.ContainsKey(node.Key))
 				{
 					NodeDependencyLookupUtility.GetOwnNodeSize(node.Id, node.Type, node.Key,
 						_nodeDependencyLookupContext, _cachedNodeSizes);
+				}
+
+				if (i % 100 == 0)
+				{
+					EditorUtility.DisplayProgressBar("Calculating all node sizes", "", i / (float)allNodes.Count);
 				}
 			}
 			
