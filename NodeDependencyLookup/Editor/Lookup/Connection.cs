@@ -16,13 +16,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class Connection
 	{
 		public readonly Node Node;
-		public readonly string Type;
+		public readonly string DependencyType;
 		public readonly PathSegment[] PathSegments;
 
-		public Connection(Node node, string connectionType, PathSegment[] pathSegments)
+		public Connection(Node node, string dependencyType, PathSegment[] pathSegments)
 		{
 			Node = node;
-			Type = connectionType;
+			DependencyType = dependencyType;
 			PathSegments = pathSegments;
 		}
 	}

@@ -88,7 +88,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					foreach (Connection connection in referencerNode.Dependencies)
 					{
-						connection.Node.Referencers.Add(new Connection(referencerNode, connection.Type, connection.PathSegments));
+						connection.Node.Referencers.Add(new Connection(referencerNode, connection.DependencyType, connection.PathSegments));
 					}
 				}
 

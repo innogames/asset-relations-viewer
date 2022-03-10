@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -24,6 +26,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private GameObject _currentNode = null;
         private int _currentLoadedSceneKey;
+        
+        private Type cacheType = typeof(OpenSceneDependencyCache);
+        private Type resolverType = typeof(InSceneDependencyResolver);
 
         public string GetHandledType()
         {
@@ -64,8 +69,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnGui()
         {
+            if (!IsCacheActive())
+            {
+                EditorGUILayout.LabelField("Scene GameObject->GameObject");
+                EditorGUILayout.LabelField("dependency type not loaded!");
+            }
+            
             EditorPrefs.SetBool(SyncPrefKey, EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
-            EditorPrefs.SetBool(AutoRefreshPrefKey, EditorGUILayout.ToggleLeft("Auto refresh scene change:", EditorPrefs.GetBool(AutoRefreshPrefKey, false)));
+            EditorPrefs.SetBool(AutoRefreshPrefKey, EditorGUILayout.ToggleLeft("Auto refresh scene switch:", EditorPrefs.GetBool(AutoRefreshPrefKey, false)));
 
             GameObject newSelection = EditorGUILayout.ObjectField(_currentNode, typeof(GameObject), true) as GameObject;
 
@@ -145,10 +156,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _viewerWindow.Repaint();
             }
         }
-        
+
+        private bool IsCacheActive()
+        {
+            return _viewerWindow.IsCacheAndResolverTypeActive(cacheType, resolverType) &&
+                   _viewerWindow.IsCacheAndResolverTypeLoaded(cacheType, resolverType);
+        }
+
         private void AutoRefreshSceneAfterChange()
         {
             if (!EditorPrefs.GetBool(AutoRefreshPrefKey))
+            {
+                return;
+            }
+
+            if (!IsCacheActive())
             {
                 return;
             }
@@ -157,7 +179,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             
             if (_currentLoadedSceneKey != 0 && loadedScenesKey != _currentLoadedSceneKey)
             {
-                _viewerWindow.RefreshContext(typeof(OpenSceneDependencyCache), typeof(InSceneDependencyResolver));
+                _viewerWindow.RefreshContext(cacheType, resolverType, null);
             }
             
             _currentLoadedSceneKey = loadedScenesKey;

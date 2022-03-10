@@ -38,7 +38,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			load = false;
 			update = false;
 			save = false;
-			
+
 			foreach (Entry cacheUsage in CacheUsages)
 			{
 				if (cacheUsage.CacheType == cacheType)
@@ -50,11 +50,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 		
-		public void GetUpdateStateForResolver(Type resolverType, out bool load, out bool update, out bool save)
+		public void GetUpdateStateForResolver(Type resolverType, out bool load, out bool update, out bool save, out bool unload)
 		{
 			load = false;
 			update = false;
 			save = false;
+			unload = false;
 			
 			foreach (Entry cacheUsage in CacheUsages)
 			{
@@ -67,12 +68,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void Add<C, R>(bool load, bool update, bool save, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
+		public void Add<C, R>(bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
 		{
 			Add(typeof(C), typeof(R), load, update, save, connectionTypes);
 		}
 
-		public void Add(Type cacheType, Type resolverType, bool load, bool update, bool save, List<string> connectionTypes = null)
+		public void Add(Type cacheType, Type resolverType, bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null)
 		{
 			Entry entry = new Entry(cacheType, resolverType, connectionTypes, load, update, save);
 			ResolverUsagesLookup[resolverType.FullName] = entry;

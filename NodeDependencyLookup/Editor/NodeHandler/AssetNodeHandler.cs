@@ -34,7 +34,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			foreach (Connection dependency in node.Dependencies)
 			{
-				if (dependency.Type == AssetToFileDependency.Name)
+				if (dependency.DependencyType == AssetToFileDependency.Name)
 				{
 					Node dependencyNode = dependency.Node;
 					return NodeDependencyLookupUtility.GetOwnNodeSize(dependencyNode.Id, dependencyNode.Type,
