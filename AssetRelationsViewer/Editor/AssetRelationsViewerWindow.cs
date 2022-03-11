@@ -469,44 +469,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			EditorGUILayout.EndVertical();
 			DisplayNodeDisplayOptions();
 			DisplayCachesAndConnectionTypes();
-			DisplayNodeList();
-			
-			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
-			
-			_handlersScrollPosition = EditorGUILayout.BeginScrollView(_handlersScrollPosition, GUILayout.Width(300));
+			DisplaySearchAndFilterNodeList();
+			DisplayTypeHandlers();
 
-			foreach (ITypeHandler typeHandler in _typeHandlers)
-			{
-				EditorGUILayout.BeginVertical("Box");
-				
-				string handledType = typeHandler.GetHandledType();
-				string key = "Option_" + handledType;
-				bool isActive = EditorPrefs.GetBool(key, true);
-
-				bool newIsActive = EditorGUILayout.ToggleLeft("Options: " + handledType, isActive);
-
-				if (typeHandler.HandlesCurrentNode())
-				{
-					Rect lastRect = GUILayoutUtility.GetLastRect();
-					lastRect.height = 2;
-					EditorGUI.DrawRect(lastRect, new Color(0.3f, 0.4f, 0.9f, 0.5f));
-				}
-
-				if (newIsActive != isActive)
-				{
-					EditorPrefs.SetBool(key, newIsActive);
-				}
-
-				if (newIsActive)
-				{
-					typeHandler.OnGui();
-				}
-
-				EditorGUILayout.EndVertical();
-			}
-			
-			EditorGUILayout.EndScrollView();
-			
 			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndHorizontal();
 
@@ -779,7 +744,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		private void DisplayNodeList()
+		private void DisplaySearchAndFilterNodeList()
 		{
 			EditorGUILayout.BeginVertical("Box", GUILayout.Width(280), GUILayout.Height(170));
 
@@ -787,6 +752,45 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			DisplayNodeFilterOptions();
 
 			EditorGUILayout.EndVertical();
+		}
+		
+		private void DisplayTypeHandlers()
+		{
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
+			
+			_handlersScrollPosition = EditorGUILayout.BeginScrollView(_handlersScrollPosition, GUILayout.Width(300));
+
+			foreach (ITypeHandler typeHandler in _typeHandlers)
+			{
+				EditorGUILayout.BeginVertical("Box");
+				
+				string handledType = typeHandler.GetHandledType();
+				string key = "Option_" + handledType;
+				bool isActive = EditorPrefs.GetBool(key, true);
+
+				bool newIsActive = EditorGUILayout.ToggleLeft("Options: " + handledType, isActive);
+
+				if (typeHandler.HandlesCurrentNode())
+				{
+					Rect lastRect = GUILayoutUtility.GetLastRect();
+					lastRect.height = 2;
+					EditorGUI.DrawRect(lastRect, new Color(0.3f, 0.4f, 0.9f, 0.5f));
+				}
+
+				if (newIsActive != isActive)
+				{
+					EditorPrefs.SetBool(key, newIsActive);
+				}
+
+				if (newIsActive)
+				{
+					typeHandler.OnGui();
+				}
+
+				EditorGUILayout.EndVertical();
+			}
+			
+			EditorGUILayout.EndScrollView();
 		}
 
 		private void DisplayNodeSearchOptions()
