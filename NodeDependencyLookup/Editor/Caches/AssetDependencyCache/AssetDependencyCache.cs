@@ -84,12 +84,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public string GetHandledNodeType()
-		{
-			return "Asset";
-		}
-
-		public void AddExistingNodes(List<IResolvedNode> nodes)
+		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
 			foreach (FileToAssetNode fileToAssetNode in _fileToAssetNodes)
 			{
@@ -126,9 +121,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new List<Dependency>();
 		}
 
-		public bool NeedsUpdate(ProgressBase progress)
+		public bool NeedsUpdate()
 		{
-			string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(progress, true);
+			string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 			long[] timeStampsForFiles = NodeDependencyLookupUtility.GetTimeStampsForFiles(assetIds);
 
 			foreach (CreatedResolver resolverUsage in _createdDependencyCache.ResolverUsages)
@@ -210,7 +205,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (progressPercentage - lastDisplayedPercentage > 0.01f)
 				{
-					EditorUtility.DisplayProgressBar(progressBarTitle,$"Finding changed assets {result.Count}", (float)i / pathes.Length);
+					if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, $"Finding and loading changed assets {result.Count}", (float)i / pathes.Length))
+					{
+						throw new DependencyUpdateAbortedException();
+					}
+					
 					lastDisplayedPercentage = progressPercentage;
 				}
 
@@ -244,15 +243,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return result;
 		}
 
-		public void Update(ProgressBase progress)
+		public void Update()
 		{
-			_fileToAssetNodes = GetDependenciesForAssets(_fileToAssetNodes, _createdDependencyCache, progress);
+			_fileToAssetNodes = GetDependenciesForAssets(_fileToAssetNodes, _createdDependencyCache);
 		}
 
 		private FileToAssetNode[] GetDependenciesForAssets(FileToAssetNode[] fileToAssetNodes,
-			CreatedDependencyCache createdDependencyCache, ProgressBase progress)
+			CreatedDependencyCache createdDependencyCache)
 		{
-			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(progress, true);
+			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
 			List<AssetResolverData> data = new List<AssetResolverData>();
@@ -269,24 +268,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				HashSet<string> changedAssets = GetChangedAssetIdsForResolver(resolver, pathes, timestamps, _fileToAssetNodes);
 				data.Add(new AssetResolverData{ChangedAssets = changedAssets, Resolver = resolver});
 
-				resolver.Initialize(this, changedAssets, progress);
+				resolver.Initialize(this, changedAssets);
 			}
 			
 			// Execute the searcher for all registered subsystems here to find hierarchy and property pathes
-			_hierarchyTraverser.Initialize(progress);
+			_hierarchyTraverser.Initialize();
 			_hierarchyTraverser.Search();
 			
 			Dictionary<string, FileToAssetNode> nodeDict = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
 
 			foreach (AssetResolverData resolverData in data)
 			{
-				GetDependenciesForAssetsInResolver(resolverData.ChangedAssets, resolverData.Resolver as IAssetDependencyResolver, nodeDict, progress);
+				GetDependenciesForAssetsInResolver(resolverData.ChangedAssets, resolverData.Resolver as IAssetDependencyResolver, nodeDict);
 			}
 
 			return nodeDict.Values.ToArray();
 		}
 
-		private void GetDependenciesForAssetsInResolver(HashSet<string> changedAssets, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList, ProgressBase progress)
+		private void GetDependenciesForAssetsInResolver(HashSet<string> changedAssets, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
 		{
 			string resolverId = resolver.GetId();
 			

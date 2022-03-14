@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -13,7 +12,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		private class ReflectionStackItem
 		{
-			public string elementName = String.Empty;
 			public string fieldName = String.Empty;
 			public int arrayIndex;
 			public FieldInfo fieldInfo;
@@ -21,19 +19,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public Type type;
 		}
 		
-		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> m_assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
-		private ResolverProgress Progress;
-		private BindingFlags FLAGS = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
-		private ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
-		
+		private const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
+		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
+		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
+
 		public void Search()
 		{
 			for (int i = 0; i < 128; ++i)
 			{
 				ReflectionStack[i] = new ReflectionStackItem();
 			}
-			
-			foreach (var pair in m_assetIdToResolver)
+
+			int j = 0;
+			foreach (KeyValuePair<string, List<SerializedPropertyTraverserSubSystem>> pair in assetIdToResolver)
 			{
 				Object asset = NodeDependencyLookupUtility.GetAssetById(pair.Key);
 
@@ -42,45 +40,44 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 				
-				Progress.IncreaseProgress();
-				Progress.UpdateProgress("SerializedPropertySearcher", asset.name);
-				Traverse(pair.Key, NodeDependencyLookupUtility.GetAssetById(pair.Key), new Stack<PathSegment>());
+				if (EditorUtility.DisplayCancelableProgressBar("Finding dependencies", asset.name, j++ / (float)assetIdToResolver.Count))
+				{
+					throw new DependencyUpdateAbortedException();
+				}
+				
+				Traverse(pair.Key, asset, new Stack<PathSegment>());
 			}
 		}
 
 		public void Clear()
 		{
-			m_assetIdToResolver.Clear();
+			assetIdToResolver.Clear();
 		}
 
-		public void Initialize(ProgressBase progress)
+		public void Initialize()
 		{
-			Progress = new ResolverProgress(progress, m_assetIdToResolver.Count, 10);
 		}
 
 		public void AddAssetId(string key, SerializedPropertyTraverserSubSystem resolver)
 		{
-			if (!m_assetIdToResolver.ContainsKey(key))
+			if (!assetIdToResolver.ContainsKey(key))
 			{
-				m_assetIdToResolver.Add(key, new List<SerializedPropertyTraverserSubSystem>());
+				assetIdToResolver.Add(key, new List<SerializedPropertyTraverserSubSystem>());
 			}
 
-			m_assetIdToResolver[key].Add(resolver);
+			assetIdToResolver[key].Add(resolver);
 		}
 
-		public override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
+		protected override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
 		{
 			// this can happen if the linked asset doesnt exist anymore
 			if (obj == null)
 			{
 				return;
 			}
-
-			Profiler.BeginSample("Getting serialized object");
-			SerializedObject serializedObject = new SerializedObject(obj);
 			
+			SerializedObject serializedObject = new SerializedObject(obj);
 			SerializedProperty property = serializedObject.GetIterator();
-			Profiler.EndSample();
 
 			Type objType = obj.GetType();
 			
@@ -90,10 +87,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Type type = typeof(SerializedProperty);
 			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+
+			SerializedPropertyType propertyType;
 			
 			do
 			{
-				SerializedPropertyType propertyType = property.propertyType;
+				propertyType = property.propertyType;
 
 				if (propertyType != SerializedPropertyType.ObjectReference && propertyType != SerializedPropertyType.Generic)
 				{
@@ -102,32 +101,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (!onlyOverriden || property.prefabOverride)
 				{
-					string propertyPath = property.propertyPath;
-
-					string modifiedPath = propertyPath.Replace(".Array.data[", "[");
-
+					Object objectValue = propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null;
+					string modifiedPath = property.propertyPath.Replace(".Array.data[", "[");
 					int stackIndex = UpdateStack(modifiedPath, ReflectionStack);
 
-					if (stackIndex != -1)
-					{
-						ReflectionStackItem stackItem = ReflectionStack[stackIndex];
-						TraverseProperty(id, objType, stackItem.value, property, propertyPath, stack);
-					}
-					else
-					{
-						TraverseProperty(id, objType, null, property, propertyPath, stack);
-					}
+					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : objectValue;
+					TraverseProperty(id, generic, propertyType, property.propertyPath, stack);
 				}
-
-			} while (property.Next(true));
+			} while (property.Next(propertyType == SerializedPropertyType.Generic));
 		}
 
 		private int UpdateStack(string path, ReflectionStackItem[] stack)
 		{
 			if (string.IsNullOrEmpty(path))
 				return -1;
-
-			bool changed = false;
 
 			string[] tokens = path.Split( '.' );
 
@@ -138,13 +125,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				
 				ReflectionStackItem parent = stack[stackPos - 1];
 				ReflectionStackItem item = stack[stackPos];
-
-				if (item != null && item.elementName == elementName && !changed)
-					continue;
-
-				changed = true;
 				
-				item.elementName = elementName;
+				if (parent.type == null)
+					return -1;
+				
 				item.fieldName = elementName;
 				item.arrayIndex = -1;
 
@@ -154,10 +138,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					item.fieldName = elementName.Substring(0, elementName.IndexOf("["));
 				}
 
-				if (parent.type == null)
-					return -1;
-
-				item.fieldInfo = parent.type.GetField( item.fieldName , FLAGS);
+				item.fieldInfo = parent.type.GetField( item.fieldName , Flags);
 
 				if (item.fieldInfo == null || parent.value == null)
 					return -1;
@@ -194,46 +175,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return tokens.Length;
 		}
 
-		public override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
 		{
-			if (!m_assetIdToResolver.ContainsKey(id))
-			{
-				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
-			}
-			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[id])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[id])
 			{
 				subSystem.TraversePrefab(id, obj, stack);
 			}
 		}
 
-		public override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
 		{
-			if (!m_assetIdToResolver.ContainsKey(id))
+			if (!assetIdToResolver.ContainsKey(id))
 			{
 				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
 			}
 			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[id])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[id])
 			{
 				subSystem.TraversePrefabVariant(id, obj, stack);
 			}
 		}
 
-		public void TraverseProperty(string assetId, Type objType, object obj, SerializedProperty property, string propertyPath, Stack<PathSegment> stack)
+		private void TraverseProperty(string assetId, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			SerializedPropertyType type = property.propertyType;
-
-			stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-			
-			if (!m_assetIdToResolver.ContainsKey(assetId))
+			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[assetId])
 			{
-				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", assetId);
-			}
-			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in m_assetIdToResolver[assetId])
-			{
-				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(objType, obj, property, propertyPath, type, stack);
+				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(obj, propertyPath, type, stack);
 				
 				if (result == null)
 					continue;
@@ -243,10 +210,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 			
-				subSystem.AddDependency(assetId, new Dependency(result.Id, result.ConnectionType, result.NodeType, stack.ToArray()));
+				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
+				subSystem.AddDependency(assetId, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
+				stack.Pop();
 			}
-
-			stack.Pop();
 		}
 	}
 }

@@ -1,27 +1,33 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    public class FileNodeType
+    {
+        public const string Name = "File";
+    }
+
     /**
 	 * NodeHandler for files
 	 */
     public class FileNodeHandler : INodeHandler
     {
-        private string[] HandledTypes = {"File"};
-		
         public string GetId()
         {
             return "FileNodeHandler";
         }
 
-        public string[] GetHandledNodeTypes()
+        public string GetHandledNodeType()
         {
-            return HandledTypes;
+            return FileNodeType.Name;
         }
 		
-        public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
+        public int GetOwnFileSize(string type, string id, string key,
+            NodeDependencyLookupContext stateContext,
+            Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache)
         {
             return NodeDependencyLookupUtility.GetPackedAssetSize(id);
         }
@@ -46,6 +52,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public bool ContributesToTreeSize()
         {
             return true;
+        }
+
+        public void GetNameAndType(string id, out string name, out string type)
+        {
+            name = Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
+            type = "File";
+        }
+
+        public long GetChangedTimeStamp(string id)
+        {
+            return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

@@ -14,27 +14,50 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public readonly Type CacheType;
 			public readonly Type ResolverType;
 			public List<string> ConnectionTypes;
+			public bool Load;
+			public bool Update;
+			public bool Save;
 
 			// Will add all resolved types to be active
-			internal Entry(Type cacheType, Type resolverType, List<string> connectionTypes)
+			internal Entry(Type cacheType, Type resolverType, List<string> connectionTypes, bool load, bool update, bool save)
 			{
 				CacheType = cacheType;
 				ResolverType = resolverType;
 				ConnectionTypes = connectionTypes;
+				Load = load;
+				Update = update;
+				Save = save;
 			}
 		}
 		
 		internal List<Entry> CacheUsages = new List<Entry>();
 		internal Dictionary<string, Entry> ResolverUsagesLookup = new Dictionary<string, Entry>();
 
-		public void Add<C, R>(List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
+		public void GetUpdateStateForCache(Type cacheType, out bool load, out bool update, out bool save)
 		{
-			Add(typeof(C), typeof(R), connectionTypes);
+			load = false;
+			update = false;
+			save = false;
+
+			foreach (Entry cacheUsage in CacheUsages)
+			{
+				if (cacheUsage.CacheType == cacheType)
+				{
+					load |= cacheUsage.Load;
+					update |= cacheUsage.Update;
+					save |= cacheUsage.Save;
+				}
+			}
 		}
 
-		public void Add(Type cacheType, Type resolverType, List<string> connectionTypes = null)
+		public void Add<C, R>(bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
 		{
-			Entry entry = new Entry(cacheType, resolverType, connectionTypes);
+			Add(typeof(C), typeof(R), load, update, save, connectionTypes);
+		}
+
+		public void Add(Type cacheType, Type resolverType, bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null)
+		{
+			Entry entry = new Entry(cacheType, resolverType, connectionTypes, load, update, save);
 			ResolverUsagesLookup[resolverType.FullName] = entry;
 			CacheUsages.Add(entry);
 		}

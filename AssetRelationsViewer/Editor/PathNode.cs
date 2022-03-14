@@ -66,7 +66,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 
 		public static void DrawPathNodes(float px, float py, PathNode node,
-			ITypeColorProvider colorProvider)
+			INodeDisplayDataProvider colorProvider)
 		{
 			DrawPathNodeRec(px, py, node, colorProvider);
 		}
@@ -104,7 +104,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Width = width + maxChildWidth;
 		}
 
-		public static void DrawPathNodeRec(float px, float py, PathNode node, ITypeColorProvider colorProvider)
+		public static void DrawPathNodeRec(float px, float py, PathNode node, INodeDisplayDataProvider colorProvider)
 		{
 			DrawPathSegment(node.PosX + px, node.PosY + py, node);
 

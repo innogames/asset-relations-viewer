@@ -24,12 +24,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return new EnclosedBounds(0, count * -8 + 6, width, count * 8 + 10);
 		}
 
-		public override void Draw(int depth, RelationType relationType, ITypeColorProvider colorProvider, ISelectionChanger selectionChanger,
+		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, ISelectionChanger selectionChanger,
 			NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
 			float offset = GetPositionOffset(viewAreaData);
-			PathNode.DrawPathNodes(PosX, PosY + offset, PathNode, colorProvider);
-			DrawPathNodeConnections(PathNode, TargetNodes, colorProvider, offset);
+			PathNode.DrawPathNodes(PosX, PosY + offset, PathNode, displayDataProvider);
+			DrawPathNodeConnections(PathNode, TargetNodes, displayDataProvider, offset);
 		}
 
 		public override void CalculateCachedDataInternal()
@@ -39,7 +39,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			PathNode.CalculatePositionData(0, 0, TargetNodes);
 		}
 
-		private void DrawPathNodeConnections(PathNode rootNode, HashSet<PathNode> targetNodes, ITypeColorProvider colorProvider, float yOffset)
+		private void DrawPathNodeConnections(PathNode rootNode, HashSet<PathNode> targetNodes, INodeDisplayDataProvider colorProvider, float yOffset)
 		{
 			foreach (PathNode tn in targetNodes)
 			{

@@ -1,3 +1,4 @@
+using System;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
@@ -13,14 +14,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		protected Texture2D _thumbNail = null;
 
 		public string Name;
+		public string TypeName;
 		
 		public string Id;
 		public string Type;
+		public string Key;
 
 		public ITypeHandler TypeHandler;
 		public INodeHandler NodeHandler;
-			
-		public int HierarchySize = 0;
+		
+		public int HierarchySize = -1;
 		public int OwnSize = 0;
 		public bool IsEditorAsset = false;
 		public bool IsPackedToApp = false;

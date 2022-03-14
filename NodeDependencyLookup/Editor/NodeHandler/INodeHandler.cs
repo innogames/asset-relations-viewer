@@ -1,4 +1,6 @@
-﻿namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
+﻿using System.Collections.Generic;
+
+namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	/// <summary>
 	/// Provides additional functions for a given Nodetype, for example "Asset"
@@ -8,14 +10,18 @@
 		// Get the id of the nodehandler like "AssetNodeHandler"
 		string GetId();
 		// Returns which node types the handler handlers. For example "Asset"
-		string[] GetHandledNodeTypes();
+		string GetHandledNodeType();
 		// Returns the filesize if the node. In case of an asset it would be the serialized filesize
-		int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext);
+		int GetOwnFileSize(string type, string id, string key,
+			NodeDependencyLookupContext stateContext,
+			Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache);
 		// Returns if a node is packed to the app or not. Helpful to find out if an asset is actually used in the final game or not
 		bool IsNodePackedToApp(string id, string type, bool alwaysExcluded = false);
 		// Returns if a node it just used within the editor. For assets this would be case if its in an editor folder
 		bool IsNodeEditorOnly(string id, string type);
 		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
 		bool ContributesToTreeSize();
+		void GetNameAndType(string id, out string name, out string type);
+		long GetChangedTimeStamp(string id);
 	}
 }

@@ -8,18 +8,18 @@ namespace Assets.Package.Editor.DependencyResolvers
 	/// Lookup to get the ConnectionType by its typeId
 	/// A connectionType could be Object or Addressable for example
 	/// </summary>
-	public class ConnectionTypeLookup
+	public class DependencyTypeLookup
 	{
-		private static ConnectionType _defaultType = new ConnectionType(new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false);
-		private Dictionary<string, ConnectionType> _lookup = new Dictionary<string, ConnectionType>();
+		private static DependencyType _defaultType = new DependencyType("Default", new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false, "Default");
+		private Dictionary<string, DependencyType> _lookup = new Dictionary<string, DependencyType>();
 
-		internal ConnectionTypeLookup(List<CreatedDependencyCache> usages)
+		internal DependencyTypeLookup(List<CreatedDependencyCache> usages)
 		{
 			foreach (CreatedDependencyCache usage in usages)
 			{
 				foreach (CreatedResolver resolverUsage in usage.ResolverUsages)
 				{
-					foreach (string type in resolverUsage.Resolver.GetConnectionTypes())
+					foreach (string type in resolverUsage.Resolver.GetDependencyTypes())
 					{
 						if(!_lookup.ContainsKey(type))
 						{
@@ -30,7 +30,7 @@ namespace Assets.Package.Editor.DependencyResolvers
 			}
 		}
 
-		public ConnectionType GetDependencyType(string typeId)
+		public DependencyType GetDependencyType(string typeId)
 		{
 			if (_lookup.ContainsKey(typeId))
 			{

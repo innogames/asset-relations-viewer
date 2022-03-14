@@ -8,13 +8,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public string NodeType;
 		public string Id;
-		public string ConnectionType;
+		public string DependencyType;
 		public PathSegment[] PathSegments;
 
-		public Dependency(string id, string connectionType, string nodeType, PathSegment[] pathSegments)
+		public Dependency(string id, string dependencyType, string nodeType, PathSegment[] pathSegments)
 		{
 			Id = id;
-			ConnectionType = connectionType;
+			DependencyType = dependencyType;
 			PathSegments = pathSegments;
 			NodeType = nodeType;
 		}

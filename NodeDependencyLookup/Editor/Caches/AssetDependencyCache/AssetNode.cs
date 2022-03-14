@@ -53,7 +53,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/**
 	 * Stores a relation and contains a list of dependency nodes and a list of referencer nodes
 	 */
-	public class AssetNode : IResolvedNode
+	public class AssetNode : IDependencyMappingNode
 	{
 		public class ResolverData
 		{
@@ -64,7 +64,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public string AssetId;
 		
 		public string Id{get { return AssetId; }}
-		public string Type{get { return "Asset"; }}
+		public string Type{get { return AssetNodeType.Name; }}
 		public bool Existing { get; set; }
 		
 		public List<ResolverData> ResolverDatas = new List<ResolverData>();
@@ -107,7 +107,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				foreach (Dependency dependency in data.Dependencies)
 				{
-					if (dependencyCache.ConnectionTypes.Contains(dependency.ConnectionType))
+					if (dependencyCache.DependencyTypes.Contains(dependency.DependencyType))
 					{
 						result.Add(dependency);
 					}

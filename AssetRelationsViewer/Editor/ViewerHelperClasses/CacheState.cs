@@ -11,26 +11,23 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public bool IsActive;
         public List<ResolverState> ResolverStates = new List<ResolverState>();
 
-        private static string GetPrefKey(Type type)
-        {
-            return "Cache_" + type.Name;
-        }
-			
-        private string GetPrefKey()
-        {
-            return GetPrefKey(Cache.GetType());
-        }
-
         public CacheState(IDependencyCache cache)
         {
             Cache = cache;
-            IsActive = EditorPrefs.GetBool(GetPrefKey());
+        }
+
+        public void UpdateActivation()
+        {
+            IsActive = false;
+            
+            foreach (ResolverState state in ResolverStates)
+            {
+                IsActive |= state.IsActive;
+            }
         }
 
         public void SaveState()
         {
-            EditorPrefs.SetBool(GetPrefKey(), IsActive);
-				
             foreach (ResolverState state in ResolverStates)
             {
                 state.SaveState();

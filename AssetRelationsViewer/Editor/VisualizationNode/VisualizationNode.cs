@@ -9,6 +9,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		public VisualizationNodeData NodeData;
 		public string Key;
+		public int Hash;
+
+		public void SetKey(string value)
+		{
+			Key = value;
+			Hash = value.GetHashCode();
+		}
 
 		public override string GetSortingKey(RelationType relationType)
 		{
@@ -21,7 +28,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				
 			if (displayData.ShowAdditionalInformation)
 			{
-				height = Math.Max(32, height);
+				height = Math.Max(48, height);
 			}
 			
 			float width = displayData.AssetPreviewSize + displayData.NodeWidth;
@@ -29,7 +36,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return new EnclosedBounds(0, 0, (int)width, (int)height);
 		}
 
-		public override void Draw(int depth, RelationType relationType, ITypeColorProvider colorProvider, 
+		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, 
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
 			Vector2 position = GetPosition(viewAreaData);
@@ -63,21 +70,33 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			if (depth > 0)
 			{
-				string typeId = GetRelations(AssetRelationsViewerWindow.InvertRelationType(relationType))[0].Datas[0].Type; // TODO move
-				textColor = colorProvider.GetConnectionColorForType(typeId);
+				string typeId = GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType))[0].Datas[0].Type;
+				textColor = displayDataProvider.GetConnectionColorForType(typeId);
 			}
 				
 			textColor *= ARVStyles.TextColorMod;
 
 			style.normal.textColor = textColor;
 			style.clipping = TextClipping.Clip;
+			string typeText = $"[{NodeData.TypeName}]";
 			string name = isMissing ? "Missing!!!" : NodeData.Name;
-			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), name, style);
-			
+			string tooltip = typeText + " " + name;
+			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), new GUIContent(name, tooltip), style);
+
 			if (displayData.ShowAdditionalInformation)
 			{
-				string text = string.Format("Size: {0}kb | TreeSize: {1}kb ", NodeData.OwnSize, NodeData.HierarchySize);
-				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), text);
+				if (NodeData.HierarchySize == -1)
+				{
+					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
+				}
+				
+				
+				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), typeText);
+
+				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
+				
+				string text = $"{NodeData.OwnSize}kb | deps: {threeSizeText}";
+				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 32, 200, 16), text);
 			}
 			
 			DrawIsFilteredOverlay(position, displayData);

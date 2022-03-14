@@ -12,13 +12,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /// </summary>
     public class OpenSceneDependencyCache : IDependencyCache
     {
-        private const string ConnectionType = "InScene";
         private CreatedDependencyCache _createdDependencyCache;
 
-        private Dictionary<string, InSceneDependencyMappingNode> Lookup =
-            new Dictionary<string, InSceneDependencyMappingNode>();
+        private Dictionary<string, GenericDependencyMappingNode> Lookup =
+            new Dictionary<string, GenericDependencyMappingNode>();
 
-        private IResolvedNode[] Nodes = new IResolvedNode[0];
+        private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
 
         public void ClearFile(string directory)
         {
@@ -30,7 +29,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        public bool NeedsUpdate(ProgressBase progress)
+        public bool NeedsUpdate()
         {
             return true;
         }
@@ -61,7 +60,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return rootGameObjects.ToArray();
         }
 
-        public void Update(ProgressBase progress)
+        public void Update()
         {
             Lookup.Clear();
 
@@ -81,10 +80,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 TraverseGameObject(gameObject, stack, traverseValues);
             }
 
-            Nodes = new IResolvedNode[Lookup.Count];
+            Nodes = new IDependencyMappingNode[Lookup.Count];
             int count = 0;
 
-            foreach (KeyValuePair<string, InSceneDependencyMappingNode> pair in Lookup)
+            foreach (KeyValuePair<string, GenericDependencyMappingNode> pair in Lookup)
             {
                 Nodes[count++] = pair.Value;
             }
@@ -95,9 +94,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             public HashSet<UnityEngine.Object> SceneObjects;
         }
 
-        public void AddExistingNodes(List<IResolvedNode> nodes)
+        public void AddExistingNodes(List<IDependencyMappingNode> nodes)
         {
-            foreach (IResolvedNode node in Nodes)
+            foreach (IDependencyMappingNode node in Nodes)
             {
                 if (node.Existing)
                 {
@@ -106,15 +105,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public string GetHandledNodeType()
-        {
-            return "InScene";
-        }
-
         public List<Dependency> GetDependenciesForId(string id)
         {
             if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, InSceneDependencyResolver.Id,
-                ConnectionType))
+                InSceneConnectionType.Name))
             {
                 return Lookup[id].Dependencies;
             }
@@ -156,11 +150,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private void TraverseGameObject(GameObject go, Stack<PathSegment> stack, TraverseValues traverseValues)
         {
+            GetNode(go.GetHashCode().ToString());
+            
             Component[] components = go.GetComponents<Component>();
-
-            string goHash = go.GetHashCode().ToString();
-            InSceneDependencyMappingNode node = GetNode(goHash);
-
+            
             foreach (Component component in components)
             {
                 TraverseComponent(go, component, stack, traverseValues);
@@ -212,26 +205,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                         continue;
                     }
 
-
                     if (traverseValues.SceneObjects.Contains(value))
                     {
                         string goHash = go.GetHashCode().ToString();
                         string valueHash = value.GetHashCode().ToString();
 
-                        InSceneDependencyMappingNode node = GetNode(goHash);
+                        GenericDependencyMappingNode node = GetNode(goHash);
 
                         stack.Push(new PathSegment(serializedProperty.propertyPath, PathSegmentType.Property));
 
                         if (componentValue)
                         {
                             stack.Push(new PathSegment(componentValue.GetType().Name, PathSegmentType.Unknown));
-                            node.Dependencies.Add(new Dependency(valueHash, "InScene", GetHandledNodeType(),
+                            node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name, InSceneNodeType.Name,
                                 stack.ToArray()));
                             stack.Pop();
                         }
                         else
                         {
-                            node.Dependencies.Add(new Dependency(valueHash, "InScene", GetHandledNodeType(),
+                            node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name, InSceneNodeType.Name,
                                 stack.ToArray()));
                         }
 
@@ -243,12 +235,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             stack.Pop();
         }
 
-        private InSceneDependencyMappingNode GetNode(string id)
+        private GenericDependencyMappingNode GetNode(string id)
         {
             if (!Lookup.ContainsKey(id))
             {
-                InSceneDependencyMappingNode node = new InSceneDependencyMappingNode();
+                GenericDependencyMappingNode node = new GenericDependencyMappingNode();
                 node.NodeId = id;
+                node.NodeType = InSceneNodeType.Name;
                 Lookup.Add(id, node);
             }
 
@@ -260,26 +253,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     {
     }
 
-    public class InSceneDependencyMappingNode : IResolvedNode
-    {
-        public string NodeId;
-        public string Id => NodeId;
-        public string Type => "InScene";
-        public bool Existing => true;
-
-        public List<Dependency> Dependencies = new List<Dependency>();
-    }
-
     public class InSceneDependencyResolver : IInSceneDependencyResolver
     {
-        private static ConnectionType InSceneType = new ConnectionType(new Color(0.8f, 0.9f, 0.6f), false, true);
-
-        public const string ResolvedType = "InScene";
+        private const string ConnectionTypeDescription = "Dependencies between GameObjects in the currently opened scene/prefab";
+        private static DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject", new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
         public const string Id = "InSceneDependencyResolver";
 
-        public string[] GetConnectionTypes()
+        public string[] GetDependencyTypes()
         {
-            return new[] {"InScene"};
+            return new[] {InSceneConnectionType.Name};
         }
 
         public string GetId()
@@ -287,27 +269,39 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return Id;
         }
 
-        public ConnectionType GetDependencyTypeForId(string typeId)
+        public DependencyType GetDependencyTypeForId(string typeId)
         {
             return InSceneType;
         }
     }
 
+    public class InSceneNodeType
+    {
+        public const string Name = "InSceneGameObject";
+    }
+    
+    public class InSceneConnectionType
+    {
+        public const string Name = "GTOG_InScene";
+    }
+
     public class InSceneDependencyNodeHandler : INodeHandler
     {
-        private string[] HandledTypes = {"InScene"};
-
+        private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
+        
         public string GetId()
         {
             return "InSceneDependencyNodeHandler";
         }
 
-        public string[] GetHandledNodeTypes()
+        public string GetHandledNodeType()
         {
-            return HandledTypes;
+            return InSceneNodeType.Name;
         }
 
-        public int GetOwnFileSize(string id, string type, NodeDependencyLookupContext stateContext)
+        public int GetOwnFileSize(string type, string id, string key,
+            NodeDependencyLookupContext stateContext,
+            Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache)
         {
             return 0;
         }
@@ -325,6 +319,59 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public bool ContributesToTreeSize()
         {
             return false;
+        }
+        
+        public void BuildHashToGameObjectMapping()
+        {
+            _hashToGameObject.Clear();
+
+            foreach (GameObject rootGameObject in OpenSceneDependencyCache.GetRootGameObjects())
+            {
+                BuildHashToGameObjectMapping(rootGameObject);
+            }
+        }
+
+        private void BuildHashToGameObjectMapping(GameObject go)
+        {
+            _hashToGameObject.Add(go.GetHashCode().ToString(), go);
+
+            for (int i = 0; i < go.transform.childCount; ++i)
+            {
+                BuildHashToGameObjectMapping(go.transform.GetChild(i).gameObject);
+            }
+        }
+
+        public void GetNameAndType(string id, out string name, out string type)
+        {
+            type = "GameObject";
+            
+            if (!_hashToGameObject.ContainsKey(id))
+            {
+                name = id;
+                return;
+            }
+
+            name = _hashToGameObject[id].name;
+        }
+
+        public long GetChangedTimeStamp(string id)
+        {
+            return -1;
+        }
+
+        public GameObject GetGameObjectById(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return null;
+            }
+            
+            if (_hashToGameObject.TryGetValue(id, out GameObject go))
+            {
+                return go;
+            }
+
+            return null;
         }
     }
 }

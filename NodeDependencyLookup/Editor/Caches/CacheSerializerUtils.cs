@@ -113,7 +113,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Dependency dependency = dependencies[k];
                 EncodeString(dependency.Id, ref bytes, ref offset);
-                EncodeString(dependency.ConnectionType, ref bytes, ref offset);
+                EncodeString(dependency.DependencyType, ref bytes, ref offset);
                 EncodeString(dependency.NodeType, ref bytes, ref offset);
 
                 EncodePathSegments(dependency.PathSegments, ref bytes, ref offset);

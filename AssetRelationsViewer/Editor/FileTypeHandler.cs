@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+﻿using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -10,30 +9,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		private Object _selectedAsset;
 		private AssetRelationsViewerWindow _viewerWindow;
+		private FileNodeHandler _nodeHandler;
 
 		public string GetHandledType()
 		{
-			return "File";
+			return FileNodeType.Name;
 		}
 
 		public string GetSortingKey(string name)
 		{
 			return $"File {name}";
-		}
-
-		public bool HasFilter()
-		{
-			return false;
-		}
-
-		public bool IsFiltered(string id)
-		{
-			return true;
-		}
-
-		public string GetName(string id)
-		{
-			return Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
 		}
 
 		public VisualizationNodeData CreateNodeCachedData(string id)
@@ -70,9 +55,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window, INodeHandler nodeHandler)
 		{
 			_viewerWindow = window;
+			_nodeHandler = nodeHandler as FileNodeHandler;
 		}
 
 		public bool HandlesCurrentNode()

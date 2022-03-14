@@ -9,14 +9,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
     public class ObjectSerializedPropertyTraverserSubSystem : SerializedPropertyTraverserSubSystem
     {
-        private string ConnectionType = "Object";
-        private string NodeType = "Asset";
-        
         // Don't include m_CorrespondingSourceObject because otherwise every property would have a dependency to it
-        public HashSet<string> ExcludedProperties = new HashSet<string>(new []{"m_CorrespondingSourceObject"});
+        private HashSet<string> ExcludedProperties = new HashSet<string>(new []{"m_CorrespondingSourceObject"});
         
         // Don't include any dependencies to UnityEngine internal scripts
-        public HashSet<string> ExcludedDependencies = new HashSet<string>(new []{"UnityEngine.UI.dll", "UnityEngine.dll"});
+        private HashSet<string> ExcludedDependencies = new HashSet<string>(new []{"UnityEngine.UI.dll", "UnityEngine.dll"});
+        
+        private Dictionary<object, string> cachedAssetAsDependencyData = new Dictionary<object, string>();
 		
         public override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
         {
@@ -39,16 +38,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(id))
             {
-                AddDependency(id, new Dependency(assetId, ConnectionType, NodeType, stack.ToArray()));
+                AddDependency(id, new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
             }
         }
 
-        public override Result GetDependency(Type objType, object obj, SerializedProperty property, string propertyPath, SerializedPropertyType type, Stack<PathSegment> stack)
+        private string GetAssetPathForAsset(object obj)
         {
-            if (type != SerializedPropertyType.ObjectReference)
-                return null;
-			
-            var value = property.objectReferenceValue;
+            Object value = obj as Object;
 
             if (value == null)
                 return null;
@@ -56,9 +52,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string assetPath = AssetDatabase.GetAssetPath(value);
 
             if (string.IsNullOrEmpty(assetPath))
-                return null;
-
-            if (ExcludedProperties.Contains(propertyPath))
                 return null;
 
             if (ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
@@ -72,7 +65,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 return null;
             }
 
-            return new Result {Id = assetId, ConnectionType = ConnectionType, NodeType = NodeType};
+            return assetId;
+        }
+
+        public override Result GetDependency(object obj, string propertyPath, SerializedPropertyType type,
+            Stack<PathSegment> stack)
+        {
+            if (type != SerializedPropertyType.ObjectReference || obj == null)
+                return null;
+            
+            if(!cachedAssetAsDependencyData.TryGetValue(obj, out string assetId))
+            {
+                assetId = GetAssetPathForAsset(obj);
+                cachedAssetAsDependencyData.Add(obj, assetId);
+            }
+
+            if (assetId == null || ExcludedProperties.Contains(propertyPath))
+            {
+                return null;
+            }
+                
+            return new Result {Id = assetId, DependencyType = AssetToAssetObjectDependency.Name, NodeType = AssetNodeType.Name};
         }
     }
 }

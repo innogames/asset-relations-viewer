@@ -14,11 +14,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             Resolver = resolver;
             IsActive = false;
-            string[] types = Resolver.GetConnectionTypes();
+            string[] types = Resolver.GetDependencyTypes();
             ActiveConnectionTypes = new HashSet<string>();
-
-            IsActive = EditorPrefs.GetBool(Resolver.GetId() + "|" + "IsActive");
-
+            
             for (int i = 0; i < types.Length; ++i)
             {
                 string key = Resolver.GetId() + "|" + types[i];
@@ -26,13 +24,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 if (EditorPrefs.GetBool(key, true))
                 {
                     ActiveConnectionTypes.Add(types[i]);
+                    IsActive = true;
                 }
             }
         }
 
         public void SaveState()
         {
-            string[] types = Resolver.GetConnectionTypes();
+            string[] types = Resolver.GetDependencyTypes();
 
             EditorPrefs.SetBool(Resolver.GetId() + "|" + "IsActive", IsActive);
 

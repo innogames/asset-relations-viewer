@@ -9,7 +9,6 @@ using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
-
 #endif
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -19,9 +18,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /// </summary>
     public static class NodeDependencyLookupUtility
     {
-        public const string DEFAULT_CACHE_SAVE_PATH = "AssetRelationsViewer/Cache/";
+        public class CachedNodeSize
+        {
+            public int Size;
+            public HashSet<Node> FlattenedSubTree;
+        }
+        
+        public const string DEFAULT_CACHE_SAVE_PATH = "NodeDependencyCache";
 
-        [MenuItem("Window/Node Dependency Lookup/Clear Cache Files")]
+        [MenuItem("Window/Node Dependency Cache/Clear Cache Files")]
         public static void ClearCacheFiles()
         {
             List<Type> types = GetTypesForBaseType(typeof(IDependencyCache));
@@ -32,8 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 cache.ClearFile(DEFAULT_CACHE_SAVE_PATH);
             }
         }
-
-        [MenuItem("Window/Node Dependency Lookup/Clear Cached Contexts")]
+        
         public static void ClearCachedContexts()
         {
             NodeDependencyLookupContext.ResetContexts();
@@ -42,7 +46,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
         {
             Dictionary<string, CreatedResolver> resolverUsagesLookup = createdCache.ResolverUsagesLookup;
-            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].ConnectionTypes.Contains(connectionType);
+            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].DependencyTypes.Contains(connectionType);
         }
 
         public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -80,9 +84,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         }
 
         public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
-            ResolverUsageDefinitionList resolverUsageDefinitionList, ProgressBase progress, bool loadCache = true,
-            bool updateCache = true, bool saveCache = true, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
+            ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate = false, string fileDirectory = DEFAULT_CACHE_SAVE_PATH)
         {
+            if (!isPartialUpdate)
+            {
+                stateContext.ResetCacheUsages();
+            }
+            
             stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
             List<CreatedDependencyCache> caches = stateContext.GetCaches();
@@ -95,20 +103,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
                 
                 IDependencyCache cache = cacheUsage.Cache;
+                
+                resolverUsageDefinitionList.GetUpdateStateForCache(cache.GetType(), out bool load, out bool update, out bool save);
 
-                if (loadCache && !cacheUsage.IsLoaded)
+                if (load && !cacheUsage.IsLoaded)
                 {
                     cache.Load(fileDirectory);
                     cacheUsage.IsLoaded = true;
                 }
 
-                if (updateCache && cache.NeedsUpdate(progress))
+                if (update && cache.NeedsUpdate())
                 {
                     if (cache.CanUpdate())
                     {
-                        cache.Update(progress);
+                        cache.Update();
 
-                        if (saveCache)
+                        if (save)
                         {
                             cache.Save(fileDirectory);
                         }
@@ -132,7 +142,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (INodeHandler nodeHandler in GetNodeHandlers())
             {
-                result.Add(nodeHandler.GetId(), nodeHandler);
+                result.Add(nodeHandler.GetHandledNodeType(), nodeHandler);
             }
 
             return result;
@@ -257,23 +267,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 return false;
             }
+            
+            INodeHandler nodeHandler = stateContext.NodeHandlerLookup[type];
 
-            foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+            if (nodeHandler.GetHandledNodeType().Contains(type))
             {
-                INodeHandler nodeHandler = pair.Value;
-
-                if (nodeHandler.GetHandledNodeTypes().Contains(type))
+                if (!nodeHandler.IsNodePackedToApp(id, type, true))
                 {
-                    if (!nodeHandler.IsNodePackedToApp(id, type, true))
-                    {
-                        return false;
-                    }
+                    return false;
+                }
 
-                    if (nodeHandler.IsNodePackedToApp(id, type, false))
-                    {
-                        checkedPackedStates[id] = true;
-                        return true;
-                    }
+                if (nodeHandler.IsNodePackedToApp(id, type, false))
+                {
+                    checkedPackedStates[id] = true;
+                    return true;
                 }
             }
 
@@ -281,7 +288,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Node refNode = connection.Node;
 
-                if (!stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsIndirect &&
+                if (!stateContext.DependencyTypeLookup.GetDependencyType(connection.DependencyType).IsIndirect &&
                     IsNodePackedToApp(refNode.Id, refNode.Type, stateContext, checkedPackedStates))
                 {
                     checkedPackedStates[id] = true;
@@ -292,55 +299,81 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static int GetNodeSize(bool own, bool tree, string id, string type, HashSet<string> traversedNodes,
-            NodeDependencyLookupContext stateContext, Dictionary<string, int> ownSizeCache = null)
+        public struct NodeSize
         {
-            if (ownSizeCache == null)
+            public int Size;
+            public bool ContributesToTreeSize;
+        }
+
+        public static int GetOwnNodeSize(string id, string type, string key,
+            NodeDependencyLookupContext stateContext, Dictionary<string, NodeSize> ownSizeCache)
+        {
+            if (ownSizeCache.TryGetValue(key, out NodeSize tsize))
             {
-                ownSizeCache = new Dictionary<string, int>();
+                return tsize.Size;
             }
             
-            string key = GetNodeKey(id, type);
-
-            if (traversedNodes.Contains(key) || !stateContext.NodeHandlerLookup.ContainsKey(type))
+            if (!stateContext.NodeHandlerLookup.ContainsKey(type))
             {
                 return 0;
             }
-
-            traversedNodes.Add(key);
 
             int size = 0;
 
             INodeHandler nodeHandler = stateContext.NodeHandlerLookup[type];
 
-            if (own && (!tree || nodeHandler.ContributesToTreeSize()))
+            int nodeSize = nodeHandler.GetOwnFileSize(type, id, key, stateContext, ownSizeCache);
+            ownSizeCache[key] = new NodeSize {Size = nodeSize, ContributesToTreeSize = nodeHandler.ContributesToTreeSize()};
+            size += nodeSize;
+
+            return size;
+        }
+
+        public static int GetTreeSize(string key,
+            NodeDependencyLookupContext stateContext, Dictionary<string, NodeSize> ownSizeCache)
+        {
+            int size = 0;
+            
+            Node node = stateContext.RelationsLookup.GetNode(key);
+
+            HashSet<Node> flattedHierarchy = new HashSet<Node>();
+            TraverseHardDependencyNodesRecNoFlattened(node, stateContext, flattedHierarchy);
+            
+            foreach (Node traversedNode in flattedHierarchy)
             {
-                if (!ownSizeCache.ContainsKey(key))
-                {
-                    ownSizeCache[key] = nodeHandler.GetOwnFileSize(id, type, stateContext);
-                }
+                string traversedNodeKey = traversedNode.Key;
                 
-                size += ownSizeCache[key];
-            }
-
-            if (tree)
-            {
-                Node node = stateContext.RelationsLookup.GetNode(id, type);
-
-                if (node != null)
+                if(ownSizeCache.TryGetValue(traversedNodeKey, out NodeSize nodeSize) && nodeSize.ContributesToTreeSize)
                 {
-                    foreach (Connection connection in node.GetRelations(RelationType.DEPENDENCY))
-                    {
-                        if (stateContext.ConnectionTypeLookup.GetDependencyType(connection.Type).IsHard)
-                        {
-                            Node childNode = connection.Node;
-                            size += GetNodeSize(true, true, childNode.Id, childNode.Type, traversedNodes, stateContext, ownSizeCache);
-                        }
-                    }
+                    size += nodeSize.Size;
                 }
             }
 
             return size;
+        }
+
+        public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext stateContext, 
+            HashSet<Node> traversedNodes)
+        {
+            if (node == null)
+            {
+                return;
+            }
+
+            if (traversedNodes.Contains(node))
+            {
+                return;
+            }
+
+            traversedNodes.Add(node);
+
+            foreach (Connection connection in node.Dependencies)
+            {
+                if (stateContext.DependencyTypeLookup.GetDependencyType(connection.DependencyType).IsHard)
+                {
+                    TraverseHardDependencyNodesRecNoFlattened(connection.Node, stateContext, traversedNodes);
+                }
+            }
         }
 
         public static string GetGuidFromAssetId(string id)
@@ -364,9 +397,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string fileId = GetFileIdFromAssetId(id);
             string guid = GetGuidFromAssetId(id);
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            Profiler.BeginSample("LoadAllAssets");
             Object[] assetsAtPath = LoadAllAssetsAtPath(path);
-            Profiler.EndSample();
 
             foreach (Object asset in assetsAtPath)
             {
@@ -403,7 +434,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return AssetDatabase.LoadAllAssetsAtPath(path);
         }
 
-        public static string[] GetAllAssetPathes(ProgressBase progress, bool unityBuiltin)
+        public static string[] GetAllAssetPathes(bool unityBuiltin)
         {
             string[] pathes = AssetDatabase.GetAllAssetPaths();
 
@@ -428,11 +459,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 {
                     continue;
                 }
-                
-                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
 
                 if (!(mainAsset is GameObject) || (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
                 {
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
                     assetList.Add($"{guid}_{fileID}");
                 }
             }
@@ -471,21 +501,31 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static string GetNodeKey(string id, string type)
         {
-            return id + "___" + type;
+            return $"{id}@{type}";
+        }
+        
+        public static RelationType InvertRelationType(RelationType relationType)
+        {
+            switch (relationType)
+            {
+                case RelationType.DEPENDENCY:
+                    return RelationType.REFERENCER;
+                case RelationType.REFERENCER:
+                    return RelationType.DEPENDENCY;
+            }
+
+            return RelationType.DEPENDENCY;
         }
 
         /**
          * Return the dependency lookup for Objects using the ObjectDependencyResolver
          */
-        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache,
-            string savePath,
-            ProgressBase progress)
+        public static void BuildDefaultAssetLookup(NodeDependencyLookupContext stateContext, bool loadFromCache, string savePath)
         {
             ResolverUsageDefinitionList usageDefinitionList = new ResolverUsageDefinitionList();
-            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>();
+            usageDefinitionList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(loadFromCache, true, false);
 
-            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, progress, loadFromCache, true, false,
-                savePath);
+            LoadDependencyLookupForCaches(stateContext, usageDefinitionList, false, savePath);
         }
     }
 }

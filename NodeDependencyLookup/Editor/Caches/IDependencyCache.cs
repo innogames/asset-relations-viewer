@@ -14,11 +14,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
-		bool NeedsUpdate(ProgressBase progress);
+		bool NeedsUpdate();
 		bool CanUpdate();
-		void Update(ProgressBase progress);
-		void AddExistingNodes(List<IResolvedNode> nodes);
-		string GetHandledNodeType();
+		void Update();
+		void AddExistingNodes(List<IDependencyMappingNode> nodes);
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);
 		void Save(string directory);

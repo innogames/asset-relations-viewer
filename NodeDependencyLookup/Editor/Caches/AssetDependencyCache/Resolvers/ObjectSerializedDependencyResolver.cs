@@ -1,25 +1,27 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	public class AssetToAssetObjectDependency
+	{
+		public const string Name = "ATOA_Object";
+	}
+
 	/**
 	 * Resolver for resolving Object references by using the SerializedPropertySearcher
 	 * This one provided hierarchy and property pathes but is most likely slower than the SimpleObjectResolver
 	 */
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
-		private static ConnectionType ObjectType = new ConnectionType(new Color(0.8f, 0.8f, 0.8f), false, true);
+		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
+		private static DependencyType ObjectType = new DependencyType("Asset->Asset by Object", new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
+		private const string Id = "ObjectSerializedDependencyResolver";
 
-		public const string NodeType = "Asset";
-		public const string ResolvedType = "Object";
-		public const string Id = "ObjectSerializedDependencyResolver";
-		
-		public readonly SerializedPropertyTraverserSubSystem TraverserSubSystem = new ObjectSerializedPropertyTraverserSubSystem();
+		private readonly SerializedPropertyTraverserSubSystem TraverserSubSystem = new ObjectSerializedPropertyTraverserSubSystem();
 		
 		public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
 		{
@@ -62,14 +64,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return Id;
 		}
 
-		public ConnectionType GetDependencyTypeForId(string typeId)
+		public DependencyType GetDependencyTypeForId(string typeId)
 		{
 			return ObjectType;
 		}
 
-		public string[] GetConnectionTypes()
+		public string[] GetDependencyTypes()
 		{
-			return new[] { ResolvedType };
+			return new[] { AssetToAssetObjectDependency.Name };
 		}
 
 		public void SetValidGUIDs()
@@ -90,7 +92,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets, ProgressBase progress)
+		public void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets)
 		{
 			TraverserSubSystem.Clear();
 			

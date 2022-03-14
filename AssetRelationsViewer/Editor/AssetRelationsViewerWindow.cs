@@ -7,11 +7,12 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-	public interface ITypeColorProvider
+	public interface INodeDisplayDataProvider
 	{
 		Color GetConnectionColorForType(string typeId);
+		void EnqueueTreeSizeCalculationForNode(VisualizationNodeData nodeData);
 	}
-	
+
 	public interface ISelectionChanger
 	{
 		void ChangeSelection(string id, string type, bool addUndoStep = true);
@@ -21,62 +22,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	/// Editor window for the dependency viewer.
 	/// 
 	/// </summary>
-	public class AssetRelationsViewerWindow : EditorWindow, ITypeColorProvider, ISelectionChanger
+	public class AssetRelationsViewerWindow : EditorWindow, INodeDisplayDataProvider, ISelectionChanger
 	{
-		private class UndoStep
-		{
-			public string Id;
-			public string Type;
-		}
-		
-		private class MergedNode
-		{
-			public Connection Target;
-			public List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
-		}
-		
-		private const string OwnName = "AssetRelationsViewer";
-
-		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1.2";
-		
-		private NodeDisplayData DisplayData = new NodeDisplayData();
-		
-		// Selected Node
-		private string _selectedId;
-		private string _selectedType;
-
-		private int _maxHierarchyDepth = 64;
-
-		private VisualizationNode _nodeStructure = null;
-		private NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
-		private Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
-		private Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
-		private Dictionary<string, int> _cachedSizes = new Dictionary<string, int>();
-		private Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
-
-		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
-		
-		private ViewAreaData _viewAreaData = new ViewAreaData();
-
-		private bool _nodeStructureDirty = true;
-		private bool _visualizationDirty = true;
-		private bool _selectionDirty = true;
-		private bool _showThumbnails = false;
-
-		private NodeDisplayOptions _nodeDisplayOptions = new NodeDisplayOptions();
-
-		private List<CacheState> _cacheStates = new List<CacheState>();
-
-		private List<NodeHandlerState> _nodeHandlerStates = new List<NodeHandlerState>();
-		private List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
-		
-		private PrefValueBool MergeRelations = new PrefValueBool("MergeRelations", true);
-		
-		private PrefValueBool Showthumbnails = new PrefValueBool("Showthumbnails", false);
-		
-		private Vector2 m_cachesScrollPosition;
-		private Vector2 m_handlersScrollPosition;
-
 		public class NodeDisplayOptions
 		{
 			public PrefValueInt MaxDepth = new PrefValueInt("MaxDepth", 64, 0, 64);
@@ -89,11 +36,103 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
 		}
+		
+		private class UndoStep
+		{
+			public string Id;
+			public string Type;
+		}
+		
+		private class MergedNode
+		{
+			public Connection Target;
+			public List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
+		}
 
-		public class AssetCacheData
+		private class NodeFilterData
+		{
+			public Node Node;
+			public string Name;
+			public string TypeName;
+			public int SortKey;
+		}
+
+		private class AssetCacheData
 		{
 			public int Size = -1;
 		}
+		
+		private const string OwnName = "AssetRelationsViewer";
+		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1.2";
+		
+		private readonly NodeDisplayData _displayData = new NodeDisplayData();
+		
+		// Selected Node
+		private string _selectedNodeId;
+		private string _selectedNodeType;
+
+		private int _maxHierarchyDepth = 256;
+
+		private VisualizationNode _nodeStructure = null;
+		private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
+		private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
+		private readonly HashSet<string> _visibleNodes = new HashSet<string>();
+		private readonly Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
+		private readonly Dictionary<string, NodeDependencyLookupUtility.NodeSize> _cachedNodeSizes = new Dictionary<string, NodeDependencyLookupUtility.NodeSize>();
+		private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
+
+		private bool _skipNodeSizeUpdate;
+
+		private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
+		
+		private ViewAreaData _viewAreaData = new ViewAreaData();
+
+		private bool _nodeStructureDirty = true;
+		private bool _visualizationDirty = true;
+		private bool _selectionDirty = true;
+
+		private NodeDisplayOptions _nodeDisplayOptions = new NodeDisplayOptions();
+
+		private List<CacheState> _cacheStates = new List<CacheState>();
+		private List<INodeHandler> _nodeHandlers = new List<INodeHandler>();
+		private List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
+
+		private Dictionary<string, INodeHandler> _nodeHandlerLookup = new Dictionary<string, INodeHandler>();
+		private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
+
+		private PrefValueBool _mergeRelations = new PrefValueBool("MergeRelations", true);
+		private PrefValueBool _showthumbnails = new PrefValueBool("Showthumbnails", false);
+		
+		private Vector2 _cachesScrollPosition;
+		private Vector2 _handlersScrollPosition;
+		
+		private NodeSizeThread _nodeSizeThread;
+		
+		// node search and filtering
+		private string _nodeSearchString = String.Empty;
+		private string _typeSearchString = String.Empty;
+		private string[] _nodeSearchTokens = new string[0];
+		private string[] _typeSearchTokens = new string[0];
+		
+		private string _nodeFilterString = String.Empty;
+		private string _typeFilterString = String.Empty;
+		private string[] _nodeFilterTokens = new string[0];
+		private string[] _typeFilterTokens = new string[0];
+		
+		private readonly List<Node> filteredNodes = new List<Node>();
+		private string[] _filteredNodeNames = new string[0];
+
+		private int _selectedSearchNodeIndex = 0;
+
+		private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup = new Dictionary<string, NodeFilterData>();
+		private List<NodeFilterData> _nodeSearchList = new List<NodeFilterData>();
+		private bool _nodeSearchDirty = true;
+		
+		private bool _canUnloadCaches = false;
+
+		private readonly NodeDataCache _nodeDataCache = new NodeDataCache();
+		
+		private bool _isInitialized = false;
 
 		[MenuItem("Assets/Show in Asset Relations Viewer", false, 0)]
 		public static void ShowWindowForAsset()
@@ -118,46 +157,187 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
 
-			window.LoadDependencyCache();
+			window.Initialize();
 			return window;
 		}
 
-		public void OnEnable()
+		public void EnqueueTreeSizeCalculationForNode(VisualizationNodeData node)
 		{
+			node.HierarchySize = -2;
+			_nodeSizeThread.EnqueueNodeData(node);
+		}
+
+		public void GetCachedOwnSizeForNode(VisualizationNodeData node)
+		{
+			if (_cachedNodeSizes.ContainsKey(node.Key))
+			{
+				node.OwnSize = _cachedNodeSizes[node.Key].Size;
+			}
+		}
+		
+		public void CalculateTreeSizeForNode(VisualizationNodeData node, HashSet<string> traversedNodes)
+		{
+			traversedNodes.Clear();
+
+			if (node == null)
+			{
+				return;
+			}
+			
+			node.HierarchySize =  NodeDependencyLookupUtility.GetTreeSize(node.Key, _nodeDependencyLookupContext,
+				_cachedNodeSizes);
+		}
+		
+		public void RefreshContext(Type cacheType, Type resolverType, List<string> activeConnectionTypes)
+		{
+			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+			resolverUsageDefinitionList.Add(cacheType, resolverType, true, true, true, activeConnectionTypes);
+			
+			ReloadContext(resolverUsageDefinitionList);
+		}
+		
+		public bool IsCacheAndResolverTypeActive(Type cacheType, Type resolverType)
+		{
+			foreach (CacheState cacheState in _cacheStates)
+			{
+				if (cacheState.Cache.GetType() != cacheType)
+				{
+					continue;
+				}
+				
+				if (!cacheState.IsActive)
+				{
+					return false;
+				}
+				
+				foreach (ResolverState resolverState in cacheState.ResolverStates)
+				{
+					if (resolverState.Resolver.GetType() == resolverType && resolverState.IsActive)
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		public bool IsCacheAndResolverTypeLoaded(Type cacheType, Type resolverType)
+		{
+			Dictionary<string, CreatedDependencyCache> caches = _nodeDependencyLookupContext.CreatedCaches;
+
+			if (caches.TryGetValue(cacheType.FullName, out CreatedDependencyCache cache))
+			{
+				return cache.CreatedResolvers.ContainsKey(resolverType.FullName);
+			}
+
+			return false;
+		}
+
+		public Color GetConnectionColorForType(string typeId)
+		{
+			return _nodeDependencyLookupContext.DependencyTypeLookup.GetDependencyType(typeId).Colour;
+		}
+		
+		private void OnEnable()
+		{
+			_isInitialized = false;
+			
 			HandleFirstStartup();
 			
 			CreateCacheStates();
 			CreateNodeHandlers();
 			CreateTypeHandlers();
 			
+			SetHandlerContext();
 			SetHandlerSelection();
+			
+			_nodeDataCache.Initialize(_nodeHandlerLookup);
+			_nodeDataCache.LoadCache(NodeDependencyLookupUtility.DEFAULT_CACHE_SAVE_PATH);
 
-			SetNodeHandlerContext();
+			_nodeSizeThread = new NodeSizeThread(this);
+			_nodeSizeThread.Start();
 		}
 
-		private void LoadDependencyCache(bool update = true)
+		private void OnDisable()
+		{
+			_nodeSizeThread.Kill();
+		}
+
+		private void Initialize()
+		{
+			if (_isInitialized)
+			{
+				return;
+			}
+			
+			LoadDependencyCache(CreateCacheUsageList(true));
+
+			_isInitialized = true;
+		}
+
+		private void LoadDependencyCache(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update = true, bool partialUpdate = true)
 		{
 			_nodeDependencyLookupContext.Reset();
-
-			ResolverUsageDefinitionList resolverUsageDefinitionList = CreateCacheUsageList();
-
-			ProgressBase progress = new ProgressBase(null);
-			progress.SetProgressFunction((title, info, value) => EditorUtility.DisplayProgressBar(title, info, value));
+			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, partialUpdate);
 			
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext, resolverUsageDefinitionList, progress, true, update);
+			SetHandlerContext();
 			
-			SetNodeHandlerContext();
-		}
-
-		private void SetNodeHandlerContext()
-		{
-			foreach (ITypeHandler handler in _typeHandlers)
+			if (update)
 			{
-				handler.InitContext(_nodeDependencyLookupContext, this);
+				_nodeFilterDataLookup.Clear();
+				_cachedNodeSizes.Clear();
 			}
+
+			_nodeSearchDirty = true;
 		}
 
-		private ResolverUsageDefinitionList CreateCacheUsageList()
+		private void PrepareNodeSearch(bool isRefresh)
+		{
+			BuildNodeSearchLookup(isRefresh);
+			FilterNodeList();
+			_nodeSearchDirty = false;
+		}
+		
+		private void SetHandlerContext()
+		{
+			_nodeHandlerLookup = BuildNodeHandlerLookup();
+			
+			foreach (ITypeHandler typeHandler in _typeHandlers)
+			{
+				string handledType = typeHandler.GetHandledType();
+				INodeHandler nodeHandler = _nodeHandlerLookup[handledType];
+				typeHandler.InitContext(_nodeDependencyLookupContext, this, nodeHandler);
+			}
+			
+			_typeHandlerLookup = BuildTypeHandlerLookup();
+		}
+
+		private Dictionary<string, INodeHandler> BuildNodeHandlerLookup()
+		{
+			Dictionary<string, INodeHandler> result = new Dictionary<string, INodeHandler>();
+
+			foreach (INodeHandler nodeHandler in _nodeHandlers)
+			{
+				result.Add(nodeHandler.GetHandledNodeType(), nodeHandler);
+			}
+
+			return result;
+		}
+
+		private Dictionary<string, ITypeHandler> BuildTypeHandlerLookup()
+		{
+			Dictionary<string, ITypeHandler> result = new Dictionary<string, ITypeHandler>();
+
+			foreach (ITypeHandler typeHandler in _typeHandlers)
+			{
+				result.Add(typeHandler.GetHandledType(), typeHandler);
+			}
+
+			return result;
+		}
+
+		private ResolverUsageDefinitionList CreateCacheUsageList(bool update)
 		{
 			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 			
@@ -169,24 +349,29 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					{
 						if (resolverState.IsActive)
 						{
-							List<string> activeConnectionTypes = new List<string>();
-							string[] connectionTypes = resolverState.Resolver.GetConnectionTypes();
-							
-							foreach (string connectionType in connectionTypes)
-							{
-								if (resolverState.ActiveConnectionTypes.Contains(connectionType))
-								{
-									activeConnectionTypes.Add(connectionType);
-								}
-							}
-							
-							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), activeConnectionTypes);
+							List<string> activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
+							resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(), true, update, update, activeConnectionTypes);
 						}
 					}
 				}
 			}
 
 			return resolverUsageDefinitionList;
+		}
+
+		private List<string> GetActiveConnectionTypesForResolverState(ResolverState resolverState)
+		{
+			List<string> activeConnectionTypes = new List<string>();
+
+			foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
+			{
+				if (resolverState.ActiveConnectionTypes.Contains(connectionType))
+				{
+					activeConnectionTypes.Add(connectionType);
+				}
+			}
+
+			return activeConnectionTypes;
 		}
 
 		private void HandleFirstStartup()
@@ -223,12 +408,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			cacheState.IsActive = true;
 			resolverState.IsActive = true;
-			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetConnectionTypes());
+			resolverState.ActiveConnectionTypes = new HashSet<string>(resolver.GetDependencyTypes());
 
 			cacheState.SaveState();
 		}
-		
-		public void InvalidateNodeStructure()
+
+		private void InvalidateNodeStructure()
 		{
 			_nodeStructureDirty = true;
 			InvalidateTreeVisualization();
@@ -243,12 +428,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				return;
 			}
-
-			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Selection.activeObject, out string guid, out long fileId);
-			string assetId = $"{guid}_{fileId}";
 			
-			
-			ChangeSelection(assetId, "Asset");
+			ChangeSelection(NodeDependencyLookupUtility.GetAssetIdForAsset(Selection.activeObject), AssetNodeType.Name);
 			Repaint();
 		}
 
@@ -281,16 +462,303 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			GUILayout.BeginArea(area);
 
 			EditorGUILayout.BeginHorizontal(GUILayout.MaxWidth(700));
-			EditorGUILayout.BeginVertical();
+			EditorGUILayout.Space(1);
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
 			DrawBasicOptions();
 			DisplayMiscOptions();
 			EditorGUILayout.EndVertical();
 			DisplayNodeDisplayOptions();
-			DisplayCaches();
+			DisplayCachesAndConnectionTypes();
+			DisplaySearchAndFilterNodeList();
+			DisplayTypeHandlers();
+
+			EditorGUILayout.EndVertical();
+			EditorGUILayout.EndHorizontal();
+
+			GUILayout.EndArea();
+		}
+
+		private void DrawBasicOptions()
+		{
+			GUILayout.BeginHorizontal();
+
+			GUI.enabled = _undoSteps.Count >= 2;
+			if (GUILayout.Button("<<"))
+			{
+				UndoSelection();
+			}
+
+			GUI.enabled = true;
+
+			GUILayout.EndHorizontal();
+
+			IntSliderPref(_displayData.AssetPreviewSize, "ThumbnailSize:", i => InvalidateTreeVisualization());
+			IntSliderPref(_nodeDisplayOptions.MaxDepth, "NodeDepth:", i => InvalidateNodeStructure());
+
+			if (GUILayout.Button("Refresh"))
+			{
+				ReloadContext();
+			}
+
+			EditorGUILayout.BeginHorizontal();
+			if (GUILayout.Button("Save and Refresh"))
+			{
+				AssetDatabase.SaveAssets();
+				ReloadContext();
+			}
 			
-			EditorGUILayout.BeginVertical("Box");
+			if (GUILayout.Button("Clear and refresh"))
+			{
+				if (EditorUtility.DisplayDialog("Clear cache", "This will clear the cache and might take a while to recompute. Continue?", "Yes", "No"))
+				{
+					AssetDatabase.SaveAssets();
+					NodeDependencyLookupUtility.ClearCachedContexts();
+					NodeDependencyLookupUtility.ClearCacheFiles();
+					_nodeDependencyLookupContext.CreatedCaches.Clear();
+					ReloadContext();
+				}
+			}
+
+			EditorGUILayout.EndHorizontal();
+		}
+
+		private void RefreshNodeStructure()
+		{
+			InvalidateNodeStructure();
+			Refresh();
+		}
+
+		private void RefreshNodeVisualizationData()
+		{
+			EditorUtility.DisplayProgressBar("Layouting dependency tree", "Updating tree", 0.0f);
 			
-			m_handlersScrollPosition = EditorGUILayout.BeginScrollView(m_handlersScrollPosition, GUILayout.Width(300));
+			InvalidateNodePositionData(_nodeStructure, RelationType.DEPENDENCY);
+			InvalidateNodePositionData(_nodeStructure, RelationType.REFERENCER);
+
+			PrepareSubTree(RelationType.DEPENDENCY);
+			PrepareSubTree(RelationType.REFERENCER);
+			
+			EditorUtility.ClearProgressBar();
+		}
+		
+		private void DisplayNodeDisplayOptions()
+		{
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(220), GUILayout.Height(170));
+			
+			TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
+			TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
+			TogglePref(_nodeDisplayOptions.DrawReferencerNodes, "Show Referencers", b => InvalidateNodeStructure());
+			TogglePref(_nodeDisplayOptions.ShowPropertyPathes, "Show Property Pathes", b => InvalidateNodeStructure());
+			TogglePref(_nodeDisplayOptions.AlignNodes, "Align Nodes", b => InvalidateTreeVisualization());
+			TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes", b => InvalidateNodeStructure());
+			
+			TogglePref(_displayData.HighlightPackagedAssets, "Highlight packaged assets", b => InvalidateNodeStructure());
+			TogglePref(_mergeRelations, "Merge Relations", b => InvalidateNodeStructure());
+
+			EditorGUILayout.EndVertical();
+		}
+
+		public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null, int width = 180)
+		{
+			pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(width)), onChange);
+		}
+
+		public static void IntSliderPref(PrefValue<int> pref, string label, Action<int> onChange = null)
+		{
+			pref.DirtyOnChange(EditorGUILayout.IntSlider(label, pref, pref.MinValue, pref.MaxValue), onChange);
+		}
+
+		private void CreateCacheStates()
+		{
+			_cacheStates.Clear();
+			
+			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
+
+			foreach (Type type in types)
+			{
+				IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
+				CacheState cacheState = new CacheState(cache);
+
+				List<Type> resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
+				
+				foreach (Type rtype in resolverTypes)
+				{
+					IDependencyResolver dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(rtype);
+					cacheState.ResolverStates.Add(new ResolverState(dependencyResolver));
+				}
+				
+				cacheState.UpdateActivation();
+				
+				_cacheStates.Add(cacheState);
+			}
+		}
+
+		private void CreateNodeHandlers()
+		{
+			_nodeHandlers.Clear();
+
+			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(INodeHandler));
+
+			foreach (Type type in types)
+			{
+				INodeHandler nodeHandler = NodeDependencyLookupUtility.InstantiateClass<INodeHandler>(type);
+				_nodeHandlers.Add(nodeHandler);
+			}
+		}
+
+		private void CreateTypeHandlers()
+		{
+			_typeHandlers.Clear();
+
+			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(ITypeHandler));
+
+			foreach (Type type in types)
+			{
+				ITypeHandler typeHandler = NodeDependencyLookupUtility.InstantiateClass<ITypeHandler>(type);
+				_typeHandlers.Add(typeHandler);
+			}
+		}
+
+		private void ChangeValue<T>(ref T value, T newValue, ref bool changed)
+		{
+			changed |= !value.Equals(newValue);
+
+			value = newValue;
+		}
+
+		private NodeFilterData GetOrCreateSearchDataForNode(Node node)
+		{
+			if (_nodeFilterDataLookup.TryGetValue(node.Key, out NodeFilterData cachedFilterData))
+			{
+				return cachedFilterData;
+			}
+			
+			return CreateSearchDataForNode(node);
+		}
+
+		private NodeFilterData CreateSearchDataForNode(Node node)
+		{
+			NodeDataCache.Entry cacheEntry = _nodeDataCache.GetEntryForId(node.Key);
+			string nodeName;
+			string typeName;
+
+			if (cacheEntry != null)
+			{
+				nodeName = cacheEntry.Name;
+				typeName = cacheEntry.Type;
+			}
+			else
+			{
+				INodeHandler nodeHandler = _nodeHandlerLookup[node.Type];
+				nodeHandler.GetNameAndType(node.Id, out nodeName, out typeName);
+			}
+			
+			NodeFilterData filterData = new NodeFilterData {Node = node, Name = nodeName.ToLowerInvariant(), TypeName = typeName.ToLowerInvariant()};
+			_nodeFilterDataLookup.Add(node.Key, filterData);
+
+			return filterData;
+		}
+
+		private void BuildNodeSearchLookup(bool isRefresh)
+		{
+			bool update = _nodeFilterDataLookup.Count == 0;
+			_nodeSearchList.Clear();
+			List<Node> nodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
+			
+			_nodeDataCache.Update(nodes, !isRefresh || update);
+			_nodeDataCache.SaveCache(NodeDependencyLookupUtility.DEFAULT_CACHE_SAVE_PATH);
+
+			for (var i = 0; i < nodes.Count; i++)
+			{
+				Node node = nodes[i];
+
+				if (!update && _nodeFilterDataLookup.TryGetValue(node.Key, out NodeFilterData cachedFilterData))
+				{
+					_nodeSearchList.Add(cachedFilterData);
+					continue;
+				}
+
+				NodeFilterData filterData = CreateSearchDataForNode(node);
+				_nodeSearchList.Add(filterData);
+
+				if (i % 100 == 0)
+				{
+					EditorUtility.DisplayProgressBar("Getting node search information", filterData.Name, (float)i / nodes.Count);
+				}
+			}
+
+			EditorUtility.DisplayProgressBar("Sorting node search information", "Sorting", 1);
+			_nodeSearchList = _nodeSearchList.OrderBy(data => data.Name).ToList();
+			EditorUtility.ClearProgressBar();
+		}
+
+		private bool IsNodeMatchingFilter(NodeFilterData filterData, string[] nameTokens, string[] typeTokens)
+		{
+			foreach (string nameToken in nameTokens)
+			{
+				if (!filterData.Name.Contains(nameToken))
+				{
+					return false;
+				}
+			}
+			
+			foreach (string typeToken in typeTokens)
+			{
+				if (!filterData.TypeName.Contains(typeToken))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+		
+		private void FilterNodeList()
+		{
+			filteredNodes.Clear();
+
+			foreach (NodeFilterData filterData in _nodeSearchList)
+			{
+				Node node = filterData.Node;
+
+				if (IsNodeMatchingFilter(filterData, _nodeSearchTokens, _typeSearchTokens))
+				{
+					filteredNodes.Add(node);
+
+					if (filteredNodes.Count > 200)
+					{
+						break;
+					}
+				}
+			}
+
+			_filteredNodeNames = new string[filteredNodes.Count];
+			
+			for (var i = 0; i < filteredNodes.Count; i++)
+			{
+				Node filteredNode = filteredNodes[i];
+				INodeHandler nodeHandler = _nodeHandlerLookup[filteredNode.Type];
+				nodeHandler.GetNameAndType(filteredNode.Id, out string nodeName, out string typeName);
+				nodeHandler.GetChangedTimeStamp(filteredNode.Id);
+				_filteredNodeNames[i] = $"[{typeName}] {nodeName}";
+			}
+		}
+
+		private void DisplaySearchAndFilterNodeList()
+		{
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(280), GUILayout.Height(170));
+
+			DisplayNodeSearchOptions();
+			DisplayNodeFilterOptions();
+
+			EditorGUILayout.EndVertical();
+		}
+		
+		private void DisplayTypeHandlers()
+		{
+			EditorGUILayout.BeginVertical("Box", GUILayout.Height(170), GUILayout.MinWidth(300));
+			
+			_handlersScrollPosition = EditorGUILayout.BeginScrollView(_handlersScrollPosition, GUILayout.Width(300));
 
 			foreach (ITypeHandler typeHandler in _typeHandlers)
 			{
@@ -323,265 +791,272 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 			
 			EditorGUILayout.EndScrollView();
+		}
+
+		private void DisplayNodeSearchOptions()
+		{
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Node search:");
+
+			bool searchInformationExistent = _nodeSearchList.Count > 0;
+
+			if (searchInformationExistent && _nodeSearchDirty && GUILayout.Button("Update", GUILayout.MaxWidth(60)))
+			{
+				PrepareNodeSearch(true);
+			}
 			
-			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndHorizontal();
+			bool changed = false;
 
-			GUILayout.EndArea();
-		}
+			float origWidth = EditorGUIUtility.labelWidth;
 
-		private void DrawBasicOptions()
-		{
-			GUILayout.BeginVertical("Box");
-			GUILayout.BeginHorizontal();
-
-			GUI.enabled = _undoSteps.Count >= 2;
-			if (GUILayout.Button("<<"))
+			if (!searchInformationExistent)
 			{
-				UndoSelection();
+				if (GUILayout.Button("Enable"))
+				{
+					PrepareNodeSearch(false);
+				}
+				
+				return;
+			}
+			
+			EditorGUIUtility.labelWidth = 50;
+			ChangeValue(ref _nodeSearchString, EditorGUILayout.TextField("Name:", _nodeSearchString), ref changed);
+			ChangeValue(ref _typeSearchString, EditorGUILayout.TextField("Type:", _typeSearchString), ref changed);
+			EditorGUIUtility.labelWidth = origWidth;
+			
+			if (changed)
+			{
+				_nodeSearchTokens = _nodeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+				_typeSearchTokens = _typeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+
+				FilterNodeList();
 			}
 
-			GUI.enabled = true;
+			EditorGUILayout.BeginHorizontal();
+			_selectedSearchNodeIndex = Math.Min(_selectedSearchNodeIndex, _filteredNodeNames.Length - 1);
+			_selectedSearchNodeIndex = EditorGUILayout.Popup(_selectedSearchNodeIndex, _filteredNodeNames);
 
+			if (_selectedSearchNodeIndex == -1)
+			{
+				_selectedSearchNodeIndex = 0;
+			}
+			
+			if (GUILayout.Button("Select", GUILayout.MaxWidth(50)))
+			{
+				Node filteredNode = filteredNodes[_selectedSearchNodeIndex];
+				ChangeSelection(filteredNode.Id, filteredNode.Type);
+			}
+			
+			EditorGUILayout.EndHorizontal();
+		}
+
+		private void DisplayNodeFilterOptions()
+		{
+			EditorGUILayout.LabelField("Node hierarchy filter:");
+			float origWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = 50;
+			bool changed = false;
+			ChangeValue(ref _nodeFilterString, EditorGUILayout.TextField("Name:", _nodeFilterString), ref changed);
+			ChangeValue(ref _typeFilterString, EditorGUILayout.TextField("Type:", _typeFilterString), ref changed);
+			EditorGUIUtility.labelWidth = origWidth;
+
+			EditorGUILayout.BeginHorizontal();
+			if (GUILayout.Button("Set as Filter", GUILayout.MaxWidth(100)))
+			{
+				_nodeFilterTokens = _nodeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+				_typeFilterTokens = _typeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+
+				InvalidateNodeStructure();
+			}
+
+			if (_nodeFilterTokens.Length > 0 || _typeFilterTokens.Length > 0)
+			{
+				if (GUILayout.Button("Reset filter"))
+				{
+					_nodeFilterTokens = new string[0];
+					_typeFilterTokens = new string[0];
+					InvalidateNodeStructure();
+				}
+			}
+			
 			GUILayout.EndHorizontal();
-
-			IntSliderPref(DisplayData.AssetPreviewSize, "ThumbnailSize:", i => InvalidateTreeVisualization());
-			IntSliderPref(_nodeDisplayOptions.MaxDepth, "NodeDepth:", i => InvalidateNodeStructure());
-
-			if (GUILayout.Button("Refresh"))
-			{
-				ReloadContext();
-			}
-			if (GUILayout.Button("Save and Refresh"))
-			{
-				AssetDatabase.SaveAssets();
-				ReloadContext();
-			}
-			
-			if (GUILayout.Button("Clear and refresh"))
-			{
-				AssetDatabase.SaveAssets();
-				NodeDependencyLookupUtility.ClearCachedContexts();
-				NodeDependencyLookupUtility.ClearCacheFiles();
-				_nodeDependencyLookupContext.CreatedCaches.Clear();
-				ReloadContext();
-			}
-
-			GUILayout.EndVertical();
 		}
 
-		private void RefreshNodeStructure()
+		private string GetActivationStateString(bool value)
 		{
-			InvalidateNodeStructure();
-			Refresh();
-		}
-
-		private void RefreshNodeVisualizationData()
-		{
-			InvalidateNodePositionData(_nodeStructure, RelationType.DEPENDENCY);
-			InvalidateNodePositionData(_nodeStructure, RelationType.REFERENCER);
-			
-			PrepareSubTree(RelationType.DEPENDENCY);
-			PrepareSubTree(RelationType.REFERENCER);
+			return value ? "Active" : "Inactive";
 		}
 		
-		private void DisplayNodeDisplayOptions()
+		private void DisplayCachesAndConnectionTypes()
 		{
-			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.BeginVertical("Box", GUILayout.Width(280), GUILayout.Height(170));
 
-			TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.DrawReferencerNodes, "Show Referencers", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.ShowPropertyPathes, "Show Property Pathes", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.AlignNodes, "Align Nodes", b => InvalidateTreeVisualization());
-			TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes", b => InvalidateNodeStructure());
-			
-			TogglePref(DisplayData.HighlightPackagedAssets, "Highlight packaged assets", b => InvalidateNodeStructure());
-			TogglePref(MergeRelations, "Merge Relations", b => InvalidateNodeStructure());
-			
-			EditorGUILayout.EndVertical();
-		}
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Dependency types:");
 
-		public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null)
-		{
-			pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(250)), onChange);
-		}
-
-		public static void IntSliderPref(PrefValue<int> pref, string label, Action<int> onChange = null)
-		{
-			pref.DirtyOnChange(EditorGUILayout.IntSlider(label, pref, pref.MinValue, pref.MaxValue), onChange);
-		}
-
-		private void CreateCacheStates()
-		{
-			_cacheStates.Clear();
-			
-			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
-
-			foreach (Type type in types)
+			if (_canUnloadCaches && GUILayout.Button(new GUIContent("U", "Unload currently unused cached and dependency resolvers")))
 			{
-				IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
-				var cacheState = new CacheState(cache);
-
-				List<Type> resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
-				
-				foreach (Type rtype in resolverTypes)
-				{
-					IDependencyResolver dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(rtype);
-					cacheState.ResolverStates.Add(new ResolverState(dependencyResolver));
-				}
-				
-				_cacheStates.Add(cacheState);
-			}
-		}
-
-		private void CreateNodeHandlers()
-		{
-			_nodeHandlerStates.Clear();
-
-			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(INodeHandler));
-
-			foreach (Type type in types)
-			{
-				INodeHandler nodeHandler = NodeDependencyLookupUtility.InstantiateClass<INodeHandler>(type);
-				_nodeHandlerStates.Add(new NodeHandlerState(nodeHandler));
-			}
-		}
-
-		private INodeHandler GetNodeHandlerForType(string type)
-		{
-			foreach (NodeHandlerState state in _nodeHandlerStates)
-			{
-				if (state.NodeHandler.GetHandledNodeTypes().Contains(type))
-				{
-					return state.NodeHandler;
-				}
-			}
-
-			return null;
-		}
-
-		private Dictionary<string, INodeHandler> GetNodeHandlerLookup()
-		{
-			Dictionary<string, INodeHandler> result = new Dictionary<string, INodeHandler>();
-
-			foreach (NodeHandlerState state in _nodeHandlerStates)
-			{
-				foreach (string handledType in state.NodeHandler.GetHandledNodeTypes())
-				{
-					result[handledType] = state.NodeHandler;
-				}
+				UpdateCacheAndResolverActivation();
 			}
 			
-			return result;
-		}
-		
-		private ITypeHandler GetTypeHandlerForType(string type)
-		{
-			foreach (ITypeHandler state in _typeHandlers)
-			{
-				if (state.GetHandledType() == type)
-				{
-					return state;
-				}
-			}
-
-			return null;
-		}
-
-		private void CreateTypeHandlers()
-		{
-			_typeHandlers.Clear();
-
-			List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(ITypeHandler));
-
-			foreach (Type type in types)
-			{
-				ITypeHandler typeHandler = NodeDependencyLookupUtility.InstantiateClass<ITypeHandler>(type);
-				_typeHandlers.Add(typeHandler);
-			}
-		}
-
-		private void ChangeValue<T>(ref T value, T newValue, ref bool changed)
-		{
-			changed |= !value.Equals(newValue);
-
-			value = newValue; 
-		}
-
-		private void DisplayCaches()
-		{
-			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.EndHorizontal();
 			
-			m_cachesScrollPosition = EditorGUILayout.BeginScrollView(m_cachesScrollPosition, GUILayout.Width(280));
+			_cachesScrollPosition = EditorGUILayout.BeginScrollView(_cachesScrollPosition);
+			EditorGUILayout.BeginVertical(GUILayout.MaxWidth(230));
 			Color origColor = GUI.contentColor;
 			
-			bool stateChanged = false;
+			_canUnloadCaches = false;
+			
 			bool connectionTypeChanged = false;
+			bool needsCacheLoad = false;
+			bool loadedConnectionTypesChanged = false;
 
 			foreach (CacheState cacheState in _cacheStates)
 			{
 				GUI.contentColor = origColor;
-				
-				string s = cacheState.Cache.GetType().Name;
-				
-				ChangeValue(ref cacheState.IsActive, EditorGUILayout.ToggleLeft(s, cacheState.IsActive), ref stateChanged);
+				Type cacheType = cacheState.Cache.GetType();
 
-				if (cacheState.IsActive)
+				string cacheName = cacheType.Name;
+
+				EditorGUILayout.BeginVertical("Box");
+
+				foreach (ResolverState resolverState in cacheState.ResolverStates)
 				{
-					foreach (ResolverState state in cacheState.ResolverStates)
+					GUI.contentColor = origColor;
+
+					IDependencyResolver resolver = resolverState.Resolver;
+					string resolverName = resolver.GetId();
+					
+					bool resolverIsLoaded = IsCacheAndResolverTypeLoaded(cacheType, resolver.GetType());
+
+					foreach (string connectionTypeName in resolver.GetDependencyTypes())
 					{
-						GUI.contentColor = origColor;
-					
-						EditorGUI.indentLevel = 1;
-					
-						string id = state.Resolver.GetId();
+						bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
+						DependencyType dependencyType = resolver.GetDependencyTypeForId(connectionTypeName);
 
-						ChangeValue(ref state.IsActive, EditorGUILayout.ToggleLeft(id, state.IsActive), ref stateChanged);
+						GUI.contentColor = dependencyType.Colour; 
+						bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionTypeName);
+						bool newIsActive = isActive;
 
-						if (!state.IsActive)
-							continue;
-					
-						EditorGUI.indentLevel = 2;
+						EditorGUILayout.BeginHorizontal();
 
-						string[] connectionTypes = state.Resolver.GetConnectionTypes();
-
-						foreach (string connectionType in connectionTypes)
+						GUIContent label = new GUIContent
 						{
-							GUI.contentColor = state.Resolver.GetDependencyTypeForId(connectionType).Colour;
-							bool isActive = state.ActiveConnectionTypes.Contains(connectionType);
-							bool newIsActive = isActive;
-							
-							ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(connectionType, isActive), ref connectionTypeChanged);
+							text = dependencyType.Name,
+							tooltip = $"{dependencyType.Description} \n\n" +
+							          $"{cacheName}:{GetActivationStateString(cacheState.IsActive)}->\n" +
+							          $"{resolverName}:{GetActivationStateString(resolverState.IsActive)}->\n{connectionTypeName}"
+						};
 
-							if (newIsActive && !isActive)
-							{
-								state.ActiveConnectionTypes.Add(connectionType);
-							}
-							else if (isActive && !newIsActive)
-							{
-								state.ActiveConnectionTypes.Remove(connectionType);
-							}
+						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(label, isActive), ref connectionTypeChanged);
+
+						if (newIsActive && !isActive)
+						{
+							resolverState.ActiveConnectionTypes.Add(connectionTypeName);
+							loadedConnectionTypesChanged |= resolverIsLoaded && isActiveAndLoaded;
+							resolverState.SaveState();
 						}
+						else if (isActive && !newIsActive)
+						{
+							resolverState.ActiveConnectionTypes.Remove(connectionTypeName);
+							loadedConnectionTypesChanged |= resolverIsLoaded && isActiveAndLoaded;
+							resolverState.SaveState();
+						}
+
+						if (resolverIsLoaded && isActiveAndLoaded)
+						{
+							GUI.contentColor = origColor;
+							EditorGUILayout.LabelField("L", GUILayout.MaxWidth(10));
+						}
+
+						if (!isActiveAndLoaded && newIsActive)
+						{
+							GUI.contentColor = new Color(0.8f, 0.6f, 0.4f);
+							EditorGUILayout.LabelField("R", GUILayout.MaxWidth(10));
+
+							needsCacheLoad = true;
+						}
+						
+						if (resolverIsLoaded && isActiveAndLoaded && !newIsActive)
+						{
+							GUI.contentColor = new Color(0.4f, 0.4f, 0.4f);
+							EditorGUILayout.LabelField("U", GUILayout.MaxWidth(10));
+							_canUnloadCaches = true;
+						}
+						
+						GUI.contentColor = origColor;
+
+						GUIContent refreshContent = new GUIContent("R", $"Refresh dependencies for {dependencyType.Name}");
+						
+						if (resolverIsLoaded && isActiveAndLoaded && newIsActive && GUILayout.Button(refreshContent, GUILayout.MaxWidth(20)))
+						{
+							List<string> activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
+							RefreshContext(cacheType, resolverState.Resolver.GetType(), activeConnectionTypes);
+						}
+						
+						EditorGUILayout.EndHorizontal();
 					}
 				}
-				
-				if (stateChanged || connectionTypeChanged)
-				{
-					cacheState.SaveState();
-					ReloadContext(stateChanged);
-					stateChanged = false;
-					InvalidateNodeStructure();
-				}
-				
-				EditorGUI.indentLevel = 0;
-			}
 
+				EditorGUILayout.EndVertical();
+			}
+			
 			GUI.contentColor = origColor;
 
-			EditorGUILayout.Space(10);
-			EditorGUILayout.EndScrollView();
 			EditorGUILayout.EndVertical();
+			EditorGUILayout.Space(2);
+			EditorGUILayout.EndScrollView();
+
+			if (loadedConnectionTypesChanged)
+			{
+				ReloadContext(false);
+				InvalidateNodeStructure();
+			}
+			
+			if (needsCacheLoad)
+			{
+				if (GUILayout.Button("Load caches"))
+				{
+					UpdateCacheAndResolverActivation();
+				}
+			}
+			
+			EditorGUILayout.EndVertical();
+		}
+
+		private void UpdateCacheAndResolverActivation()
+		{
+			ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+			
+			foreach (CacheState cacheState in _cacheStates)
+			{
+				bool cacheNeedsActivation = false;
+
+				foreach (ResolverState resolverState in cacheState.ResolverStates)
+				{
+					bool resolverNeedsActivation = false;
+
+					foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
+					{
+						resolverNeedsActivation |= resolverState.ActiveConnectionTypes.Contains(connectionType);
+					}
+
+					if (!resolverState.IsActive && resolverNeedsActivation)
+					{
+						List<string> activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
+						resolverUsageDefinitionList.Add(cacheState.Cache.GetType(), resolverState.Resolver.GetType(), true, true, true, activeConnectionTypes);
+					}
+
+					resolverState.IsActive = resolverNeedsActivation;
+					cacheNeedsActivation |= resolverState.IsActive;
+				}
+
+				cacheState.IsActive = cacheNeedsActivation;
+				cacheState.SaveState();
+			}
+			
+			ReloadContext(resolverUsageDefinitionList, true, true);
 		}
 
 		private HashSet<string> GetConnectionTypesToDisplay()
@@ -594,7 +1069,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					foreach (ResolverState state in cacheState.ResolverStates)
 					{
-						string[] connectionTypes = state.Resolver.GetConnectionTypes();
+						string[] connectionTypes = state.Resolver.GetDependencyTypes();
 
 						foreach (string connectionType in connectionTypes)
 						{
@@ -612,14 +1087,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayMiscOptions()
 		{
-			EditorGUILayout.BeginVertical("Box");
-			
-			TogglePref(DisplayData.ShowAdditionalInformation, "Show Size Information", b => RefreshNodeStructure());
-			TogglePref(Showthumbnails, "Show thumbnails", b => RefreshNodeStructure());
+			TogglePref(_displayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure(), 240);
+			TogglePref(_showthumbnails, "Show thumbnails", b => RefreshNodeStructure(), 240);
 
 			EditorGUILayout.Space();
-
-			EditorGUILayout.EndVertical();
 		}
 
 		private void DrawNotLoadedError()
@@ -660,19 +1131,54 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				ReloadContext();
 			}
 		}
-
+		
 		private void ReloadContext(bool _updateCache = true)
 		{
+			ReloadContext(CreateCacheUsageList(_updateCache));
+		}
+
+		private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool _updateCache = true, bool partialUpdate = true)
+		{
 			Refresh();
-			LoadDependencyCache(_updateCache);
-			ChangeSelection(_selectedId, _selectedType);
+			LoadDependencyCache(resolverUsageDefinitionList, _updateCache, partialUpdate);
+			ChangeSelection(_selectedNodeId, _selectedNodeType);
+		}
+
+		private void CalculateAllNodeSizes()
+		{
+			if (!_displayData.ShowAdditionalInformation || _skipNodeSizeUpdate)
+			{
+				return;
+			}
+			
+			List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
+			
+			for (var i = 0; i < allNodes.Count; i++)
+			{
+				Node node = allNodes[i];
+				
+				if (!_cachedNodeSizes.ContainsKey(node.Key))
+				{
+					NodeDependencyLookupUtility.GetOwnNodeSize(node.Id, node.Type, node.Key,
+						_nodeDependencyLookupContext, _cachedNodeSizes);
+				}
+
+				if (i % 100 == 0)
+				{
+					EditorUtility.DisplayProgressBar("Calculating all node sizes", "", i / (float)allNodes.Count);
+				}
+			}
+			
+			EditorUtility.ClearProgressBar();
 		}
 
 		private void PrepareDrawTree(Node rootNode)
 		{
+			_visibleNodes.Clear();
+			
 			if (_nodeStructureDirty || _nodeStructure == null)
 			{
-				EditorUtility.DisplayProgressBar("Updating tree", "Updating tree", 0.0f);
+				EditorUtility.DisplayProgressBar("Building dependency tree", "Updating tree", 0.0f);
 
 				_nodeDisplayOptions.ConnectionTypesToDisplay = GetConnectionTypesToDisplay();
 
@@ -689,6 +1195,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (_visualizationDirty)
 				{
 					RefreshNodeVisualizationData();
+					CalculateAllNodeSizes();
+					_skipNodeSizeUpdate = false;
 					_visualizationDirty = false;
 				}
 				
@@ -711,13 +1219,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				DrawRelations(_nodeStructure, 1, RelationType.DEPENDENCY);
 				DrawRelations(_nodeStructure, 1, RelationType.REFERENCER);
 				
-				_nodeStructure.Draw(0, RelationType.DEPENDENCY, this, this, DisplayData, _viewAreaData);
+				_nodeStructure.Draw(0, RelationType.DEPENDENCY, this, this, _displayData, _viewAreaData);
 			}
 		}
 
 		private void PrepareSubTree(RelationType relationType)
 		{
-			_nodeStructure.CalculateBounds(DisplayData, relationType);
+			_nodeStructure.CalculateBounds(_displayData, relationType);
 			
 			if (_nodeDisplayOptions.AlignNodes)
 			{
@@ -726,7 +1234,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				ApplyNodeWidths(_nodeStructure, maxPositions, relationType, 0);
 			}
 			
-			_nodeStructure.CalculateXData(0, relationType, DisplayData);
+			_nodeStructure.CalculateXData(0, relationType, _displayData);
 			_nodeStructure.CalculateYData(relationType);
 		}
 
@@ -738,13 +1246,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 
-			if (_selectedId == null)
+			if (_selectedNodeId == null)
 			{
 				DrawNoNodeSelectedError();
 				return;
 			}
 
-			Node entry = _nodeDependencyLookupContext.RelationsLookup.GetNode(_selectedId, _selectedType);
+			Node entry = _nodeDependencyLookupContext.RelationsLookup.GetNode(_selectedNodeId, _selectedNodeType);
 
 			if (entry == null)
 			{
@@ -763,31 +1271,28 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			GUI.EndScrollView();
 		}
 
-		private VisualizationNodeData AddNodeCacheForNode(string id, string type)
+		private VisualizationNodeData AddNodeCacheForNode(string id, string type, string key)
 		{
-			string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
+			_visibleNodes.Add(key);
 			
 			if (!_cachedVisualizationNodeDatas.ContainsKey(key))
 			{
-				INodeHandler nodeHandler = GetNodeHandlerForType(type);
-				ITypeHandler typeHandler = GetTypeHandlerForType(type);
+				INodeHandler nodeHandler = _nodeHandlerLookup[type];
+				ITypeHandler typeHandler = _typeHandlerLookup[type];
 				
 				VisualizationNodeData data = typeHandler.CreateNodeCachedData(id);
-				_nodeDependencyLookupContext.NodeHandlerLookup = GetNodeHandlerLookup();
-
-				if (_showThumbnails || DisplayData.ShowAdditionalInformation)
-				{
-					data.OwnSize = NodeDependencyLookupUtility.GetNodeSize(true, false, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
-					data.HierarchySize = NodeDependencyLookupUtility.GetNodeSize(true, true, id, type, new HashSet<string>(), _nodeDependencyLookupContext, _cachedSizes);
-				}
 
 				data.Id = id;
 				data.Type = type;
+				data.Key = key;
 
 				data.NodeHandler = nodeHandler;
 				data.TypeHandler = typeHandler;
 				
-				data.Name = typeHandler.GetName(id);
+				nodeHandler.GetNameAndType(id, out string nodeName, out string typeName);
+
+				data.Name = nodeName;
+				data.TypeName = typeName;
 				data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(id, type);
 				data.IsPackedToApp = NodeDependencyLookupUtility.IsNodePackedToApp(id, type, _nodeDependencyLookupContext, _cachedPackedInfo);
 
@@ -804,8 +1309,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void Refresh()
 		{
-			_cachedSizes.Clear();
+			_nodeSizeThread.Kill();
+			_nodeSizeThread.Start();
+			
 			_cachedPackedInfo.Clear();
+
 			_cachedVisualizationNodeDatas.Clear();
 			_cachedNodes.Clear();
 			InvalidateNodeStructure();
@@ -831,14 +1339,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 
-			if (id != _selectedId || _undoSteps.Count == 0)
+			if (id != _selectedNodeId || _undoSteps.Count == 0)
 			{
 				if (addUndoStep)
 				{
 					_undoSteps.Push(new UndoStep
 					{
 						Id =  id,
-						Type = type
+						Type = type,
 					});
 				}
 	
@@ -846,8 +1354,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				InvalidateNodeStructure();
 			}
 
-			_selectedId = id;
-			_selectedType = type;
+			_selectedNodeId = id;
+			_selectedNodeType = type;
 
 			SetHandlerSelection();
 		}
@@ -856,7 +1364,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			foreach (ITypeHandler typeHandler in _typeHandlers)
 			{
-				typeHandler.OnSelectAsset(_selectedId, _selectedType);
+				typeHandler.OnSelectAsset(_selectedNodeId, _selectedNodeType);
 			}
 		}
 
@@ -871,24 +1379,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			ChangeSelection(undoStep.Id, undoStep.Type, false);
 		}
 
-		public static RelationType InvertRelationType(RelationType relationType)
-		{
-			switch (relationType)
-			{
-				case RelationType.DEPENDENCY:
-					return RelationType.REFERENCER;
-				case RelationType.REFERENCER:
-					return RelationType.DEPENDENCY;
-				default:
-					throw new Exception();
-			}
-		}
-
-		public Color GetConnectionColorForType(string typeId)
-		{
-			return _nodeDependencyLookupContext.ConnectionTypeLookup.GetDependencyType(typeId).Colour;
-		}
-		
 		private void InvalidateNodePositionData(VisualizationNodeBase node, RelationType relationType)
 		{
 			node.InvalidatePositionData();
@@ -938,16 +1428,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 					if (_viewAreaData.IsRectInDrawArea(r, new Color(0.6f, 0.2f, 0.1f, 0.3f)))
 					{
-						childNode.Draw(depth, relationType, this, this, DisplayData, _viewAreaData);
+						childNode.Draw(depth, relationType, this, this, _displayData, _viewAreaData);
 					}
 				}
 			}
 
-			List<VisualizationConnection> childConnections = node.GetRelations(InvertRelationType(relationType), false, true);
+			List<VisualizationConnection> childConnections = node.GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType), false, true);
 
 			foreach (VisualizationConnection childConnection in childConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, InvertRelationType(relationType), true, childConnections.Count);
+				DrawConnectionForNodes(node, childConnection, NodeDependencyLookupUtility.InvertRelationType(relationType), true, childConnections.Count);
 			}
 		}
 
@@ -985,9 +1475,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void DrawRecursionButton(bool isRecursion, VisualizationNodeBase node, VisualizationNodeBase childNode, RelationType relationType)
 		{
 			int offset = relationType == RelationType.REFERENCER ? childNode.Bounds.Width :  - 16;
-			Vector2 position = childNode.GetPosition(_viewAreaData);
+			Vector2 nodePosition = childNode.GetPosition(_viewAreaData);
 
-			if (isRecursion && GUI.Button(new Rect(position.x + offset, position.y, 16, 16), ">"))
+			if (isRecursion && GUI.Button(new Rect(nodePosition.x + offset, nodePosition.y, 16, 16), ">"))
 			{
 				JumpToNode(node);
 			}
@@ -996,8 +1486,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void BuildNodeStructure(Node node)
 		{
 			Connection rootConnection = new Connection(node, "Root", new PathSegment[0]);
-			
-			_nodeStructure = GetVisualizationNode(rootConnection.Node.Id, rootConnection.Node.Type);
+
+			Node rootConnectionNode = rootConnection.Node;
+			_nodeStructure = GetVisualizationNode(rootConnectionNode);
 
 			int iterations = 0;
 			CreateNodeHierarchyRec(new HashSet<string>(), new Stack<VisualizationNode>(), _nodeStructure, rootConnection, 0, RelationType.DEPENDENCY, _nodeDisplayOptions, ref iterations);
@@ -1020,7 +1511,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				string nodeKey = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
 
-				if (!MergeRelations.GetValue())
+				if (!_mergeRelations.GetValue())
 				{
 					nodeKey = (i++).ToString(); // leads to nodes not being merged by target
 				}
@@ -1030,7 +1521,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					result.Add(nodeKey, new MergedNode{Target = connection});
 				}
 				
-				result[nodeKey].Datas.Add(new VisualizationConnection.Data(connection.Type, connection.PathSegments));
+				result[nodeKey].Datas.Add(new VisualizationConnection.Data(connection.DependencyType, connection.PathSegments));
 			}
 
 			return result.Values.ToList();
@@ -1038,37 +1529,34 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private VisualizationNode HasRecursion(string key, Stack<VisualizationNode> visualizationNodeStack)
 		{
+			int hash = key.GetHashCode();
 			foreach (VisualizationNode node in visualizationNodeStack)
 			{
-				if (node.Key == key)
+				if (node.Hash == hash && node.Key == key)
 					return node;
 			}
 
 			return null;
 		}
 
-		public void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes, Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
+		private void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes, Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
-			// prevent the tree from becoming too big
-			if (iterations >= 0xFFFF)
+			visualizationNode.SetKey(connection.Node.Key);
+			bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
+			
+			bool nodeLimitReached = iterations > 0xFFF;
+			
+			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && (nodeDisplayOptions.ShowHierarchyOnce || nodeLimitReached)))
 			{
 				return;
 			}
 
+			if (!nodeDisplayOptions.ConnectionTypesToDisplay.Contains(connection.DependencyType) && connection.DependencyType != "Root")
+			{
+				return;
+			}
+			
 			iterations++;
-			
-			visualizationNode.Key = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
-			bool containedNode = addedVisualizationNodes.Contains(visualizationNode.Key);
-			
-			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && nodeDisplayOptions.ShowHierarchyOnce))
-			{
-				return;
-			}
-
-			if (!nodeDisplayOptions.ConnectionTypesToDisplay.Contains(connection.Type) && connection.Type != "Root")
-			{
-				return;
-			}
 
 			addedVisualizationNodes.Add(visualizationNode.Key);
 			visualizationNodeStack.Push(visualizationNode);
@@ -1078,18 +1566,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (MergedNode mergedNode in mergedNodes)
 			{
 				Node childNode = mergedNode.Target.Node;
-				string childNodeKey = NodeDependencyLookupUtility.GetNodeKey(childNode.Id, childNode.Type);
 
-				if (addedVisualizationNodes.Contains(childNodeKey) && _nodeDisplayOptions.ShowNodesOnce)
+				if (addedVisualizationNodes.Contains(childNode.Key) && _nodeDisplayOptions.ShowNodesOnce)
 				{
 					continue;
 				}
-
-				VisualizationNode recursionNode = HasRecursion(childNodeKey, visualizationNodeStack);
+				
+				VisualizationNode recursionNode = HasRecursion(childNode.Key, visualizationNodeStack);
 				bool isRecursion = recursionNode != null;
-				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode.Id, childNode.Type);
+				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode);
 
-				visualizationChildNode.IsFiltered = IsNodeFiltered(childNode.Id, childNode.Type);
+				visualizationChildNode.IsFiltered = IsNodeFiltered(childNode);
 
 				if (!isRecursion)
 				{
@@ -1122,13 +1609,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				}
 			
 				node.AddRelation(relationType, new VisualizationConnection(datas, pathVisualizationNode, false));
-				pathVisualizationNode.AddRelation(InvertRelationType(relationType), new VisualizationConnection(datas, node, false));
+				pathVisualizationNode.AddRelation(NodeDependencyLookupUtility.InvertRelationType(relationType), new VisualizationConnection(datas, node, false));
 
 				node = pathVisualizationNode;
 			}
 			
 			node.AddRelation(relationType, new VisualizationConnection(datas, target, isRecursion));
-			target.AddRelation(InvertRelationType(relationType), new VisualizationConnection(datas, node, isRecursion));
+			target.AddRelation(NodeDependencyLookupUtility.InvertRelationType(relationType), new VisualizationConnection(datas, node, isRecursion));
 		}
 
 		private bool HasNoneFilteredChildren(VisualizationNode node, RelationType relationType)
@@ -1142,14 +1629,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return !node.IsFiltered;
 		}
 
-		private bool IsNodeFiltered(string id, string type)
+		private bool IsNodeFiltered(Node node)
 		{
-			string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
+			if (_nodeFilterTokens.Length == 0 && _typeFilterTokens.Length == 0)
+			{
+				return false;
+			}
 			
-			VisualizationNodeData nodeData = _cachedVisualizationNodeDatas[key];
-			ITypeHandler typeHandler = nodeData.TypeHandler;
-
-			return typeHandler.HasFilter() && !typeHandler.IsFiltered(nodeData.Id);
+			return !IsNodeMatchingFilter(GetOrCreateSearchDataForNode(node), _nodeFilterTokens, _typeFilterTokens);
 		}
 
 		private void SortChildNodes(VisualizationNode visualizationNode, RelationType relationType)
@@ -1161,9 +1648,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}).ToList(), relationType);
 		}
 
-		private VisualizationNode GetVisualizationNode(string id, string type)
+		private VisualizationNode GetVisualizationNode(Node node)
 		{
-			return new VisualizationNode{NodeData = AddNodeCacheForNode(id, type)};
+			return new VisualizationNode{NodeData = AddNodeCacheForNode(node.Id, node.Type, node.Key)};
 		}
 		
 		/// <summary>

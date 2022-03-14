@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -13,43 +17,27 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     public class InSceneTypeHandler : ITypeHandler
     {
-        private const string HandledType = "InScene";
-        private const string SyncPrefKey = "InSceneSync";
+        private const string SyncPrefKey = "InSceneTypeHandler_Sync";
+        private const string AutoRefreshPrefKey = "InSceneTypeHandler_AutoRefresh";
         private AssetRelationsViewerWindow _viewerWindow;
+        private InSceneDependencyNodeHandler _nodeHandler;
 
         private HashSet<string> _nodes = new HashSet<string>();
-        private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
 
-        private GameObject m_currentNode = null;
+        private GameObject _currentNode = null;
+        private int _currentLoadedSceneKey;
+        
+        private Type cacheType = typeof(OpenSceneDependencyCache);
+        private Type resolverType = typeof(InSceneDependencyResolver);
 
         public string GetHandledType()
         {
-            return HandledType;
+            return InSceneNodeType.Name;
         }
 
         public string GetSortingKey(string name)
         {
             return name;
-        }
-
-        public bool HasFilter()
-        {
-            return false;
-        }
-
-        public bool IsFiltered(string id)
-        {
-            return false;
-        }
-
-        public string GetName(string id)
-        {
-            if (!_hashToGameObject.ContainsKey(id))
-            {
-                return id;
-            }
-
-            return _hashToGameObject[id].name;
         }
 
         public VisualizationNodeData CreateNodeCachedData(string id)
@@ -81,77 +69,72 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnGui()
         {
-            EditorPrefs.SetBool(SyncPrefKey, 
-                EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
-
-            GameObject newSelection = EditorGUILayout.ObjectField(m_currentNode, typeof(GameObject), true) as GameObject;
-
-            bool selectionChanged = newSelection != null && newSelection != m_currentNode;
-            m_currentNode = newSelection;
-            
-            if (selectionChanged || (m_currentNode != null && GUILayout.Button("Select")))
+            if (!IsCacheActive())
             {
-                _viewerWindow.ChangeSelection(m_currentNode.GetHashCode().ToString(), HandledType);
+                EditorGUILayout.LabelField("Scene GameObject->GameObject");
+                EditorGUILayout.LabelField("dependency type not loaded!");
             }
+            
+            EditorPrefs.SetBool(SyncPrefKey, EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
+            EditorPrefs.SetBool(AutoRefreshPrefKey, EditorGUILayout.ToggleLeft("Auto refresh scene switch:", EditorPrefs.GetBool(AutoRefreshPrefKey, false)));
+
+            GameObject newSelection = EditorGUILayout.ObjectField(_currentNode, typeof(GameObject), true) as GameObject;
+
+            bool selectionChanged = newSelection != null && newSelection != _currentNode;
+            _currentNode = newSelection;
+            
+            if (selectionChanged || (_currentNode != null && GUILayout.Button("Select")))
+            {
+                _viewerWindow.ChangeSelection(_currentNode.GetHashCode().ToString(), InSceneNodeType.Name);
+            }
+            
+            AutoRefreshSceneAfterChange();
         }
 
         public void OnSelectAsset(string id, string type)
         {
-            if (type == HandledType && _hashToGameObject.ContainsKey(id))
+            GameObject node = _nodeHandler.GetGameObjectById(id);
+
+            if (type == InSceneNodeType.Name && node != null)
             {
-                m_currentNode = _hashToGameObject[id];
-                Selection.activeObject = m_currentNode;
+                _currentNode = node; 
+                Selection.activeObject = _currentNode;
             }
         }
 
-        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow)
+        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow, INodeHandler nodeHandler)
         {
             _viewerWindow = viewerWindow;
+            _nodeHandler = nodeHandler as InSceneDependencyNodeHandler;
 
             HashSet<string> nodes = new HashSet<string>();
 
             foreach (KeyValuePair<string, CreatedDependencyCache> pair in context.CreatedCaches)
             {
-                List<IResolvedNode> resolvedNodes = new List<IResolvedNode>();
+                List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>();
                 pair.Value.Cache.AddExistingNodes(resolvedNodes);
 
-                foreach (IResolvedNode node in resolvedNodes)
+                foreach (IDependencyMappingNode node in resolvedNodes)
                 {
-                    if (node.Type == HandledType)
+                    if (node.Type == InSceneNodeType.Name)
                         nodes.Add(node.Id);
                 }
             }
 
             _nodes = new HashSet<string>(nodes);
-
-            BuildHashToGameObjectMapping();
+            _nodeHandler.BuildHashToGameObjectMapping();
 
             Selection.selectionChanged += SelectionChanged;
         }
-
-        private void BuildHashToGameObjectMapping()
+        
+        public bool HandlesCurrentNode()
         {
-            _hashToGameObject.Clear();
-
-            foreach (GameObject rootGameObject in OpenSceneDependencyCache.GetRootGameObjects())
-            {
-                BuildHashToGameObjectMapping(rootGameObject);
-            }
-        }
-
-        private void BuildHashToGameObjectMapping(GameObject go)
-        {
-            _hashToGameObject.Add(go.GetHashCode().ToString(), go);
-
-            for (int i = 0; i < go.transform.childCount; ++i)
-            {
-                BuildHashToGameObjectMapping(go.transform.GetChild(i).gameObject);
-            }
+            return _currentNode != null;
         }
 
         private void SelectionChanged()
         {
-            m_currentNode = null;
+            _currentNode = null;
             Object activeObject = Selection.activeObject;
 
             if (activeObject == null)
@@ -163,20 +146,56 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodes.Contains(hashCode))
             {
-                m_currentNode = _hashToGameObject[hashCode];
+                _currentNode = _nodeHandler.GetGameObjectById(hashCode);
 
                 if (EditorPrefs.GetBool(SyncPrefKey))
                 {
-                    _viewerWindow.ChangeSelection(hashCode, "InScene");
+                    _viewerWindow.ChangeSelection(hashCode, InSceneNodeType.Name);
                 }
 
                 _viewerWindow.Repaint();
             }
         }
 
-        public bool HandlesCurrentNode()
+        private bool IsCacheActive()
         {
-            return m_currentNode != null;
+            return _viewerWindow.IsCacheAndResolverTypeActive(cacheType, resolverType) &&
+                   _viewerWindow.IsCacheAndResolverTypeLoaded(cacheType, resolverType);
+        }
+
+        private void AutoRefreshSceneAfterChange()
+        {
+            if (!EditorPrefs.GetBool(AutoRefreshPrefKey))
+            {
+                return;
+            }
+
+            if (!IsCacheActive())
+            {
+                return;
+            }
+            
+            int loadedScenesKey = GetLoadedScenesKey();
+            
+            if (_currentLoadedSceneKey != 0 && loadedScenesKey != _currentLoadedSceneKey)
+            {
+                _viewerWindow.RefreshContext(cacheType, resolverType, null);
+            }
+            
+            _currentLoadedSceneKey = loadedScenesKey;
+        }
+
+        private int GetLoadedScenesKey()
+        {
+            int result = 0;
+            
+            for (int i = 0; i < EditorSceneManager.loadedSceneCount; ++i)
+            {
+                Scene scene = EditorSceneManager.GetSceneAt(i);
+                result ^= scene.name.GetHashCode();
+            }
+
+            return result;
         }
     }
 }

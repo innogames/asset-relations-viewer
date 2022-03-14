@@ -9,9 +9,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
     public class AssetTypeHandler : ITypeHandler
     {
-        private HashSet<string> _filteredNodes;
-        private PrefValueString _filterString = new PrefValueString("AssetTypeHandler_FilterString", String.Empty);
-
         private Object _selectedAsset;
         private AssetRelationsViewerWindow _viewerWindow;
 
@@ -19,41 +16,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public string GetHandledType()
         {
-            return "Asset";
+            return AssetNodeType.Name;
         }
 
         public string GetSortingKey(string name)
         {
             return $"Asset {name}";
-        }
-
-        public bool HasFilter()
-        {
-            return _filteredNodes != null;
-        }
-
-        public bool IsFiltered(string id)
-        {
-            return _filteredNodes.Contains(id);
-        }
-
-        public string GetName(string id)
-        {
-            Object asset = NodeDependencyLookupUtility.GetAssetById(id);
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-
-            if (asset != null)
-            {
-                return $"{asset.name}";
-            }
-
-            if (!string.IsNullOrEmpty(path))
-            {
-                return path;
-            }
-
-            return id;
         }
 
         public VisualizationNodeData CreateNodeCachedData(string id)
@@ -98,10 +66,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
-            AssetRelationsViewerWindow window)
+            AssetRelationsViewerWindow window, INodeHandler nodeHandler)
         {
             _viewerWindow = window;
-            _filteredNodes = CreateFilter(_filterString);
             Selection.selectionChanged += HandleSyncToExplorer;
         }
 
@@ -130,17 +97,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _viewerWindow.ChangeSelection(fileId, GetHandledType());
 
                 _selectedAsset = newSelectedAsset;
-            }
-
-            float origWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 50;
-            _filterString.DirtyOnChange(EditorGUILayout.TextField("Filter:", _filterString, GUILayout.MinWidth(200)));
-            EditorGUIUtility.labelWidth = origWidth;
-
-            if (GUILayout.Button("Apply"))
-            {
-                _filteredNodes = CreateFilter(_filterString);
-                _viewerWindow.InvalidateNodeStructure();
             }
 
             AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:");
