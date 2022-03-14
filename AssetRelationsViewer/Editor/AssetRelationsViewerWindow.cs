@@ -725,7 +725,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					filteredNodes.Add(node);
 
-					if (filteredNodes.Count > 50)
+					if (filteredNodes.Count > 200)
 					{
 						break;
 					}
