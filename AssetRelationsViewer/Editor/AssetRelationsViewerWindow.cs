@@ -24,16 +24,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	/// </summary>
 	public class AssetRelationsViewerWindow : EditorWindow, INodeDisplayDataProvider, ISelectionChanger
 	{
-		public class NodeDisplayOptions
+		private class NodeDisplayOptions
 		{
 			public PrefValueInt MaxDepth = new PrefValueInt("MaxDepth", 64, 0, 64);
 			public PrefValueBool ShowNodesOnce = new PrefValueBool("ShowNodesOnce", false);
-			public PrefValueBool ShowHierarchyOnce = new PrefValueBool("ShowHierarchyOnce", true);
+			public PrefValueBool ShowHierarchyOnce = new PrefValueBool("ShowHierarchyOnce", false);
 			public PrefValueBool DrawReferencerNodes = new PrefValueBool("DrawReferencerNodes", true);
 			public PrefValueBool ShowPropertyPathes = new PrefValueBool("ShowPropertyPathes", true);
 			public PrefValueBool AlignNodes = new PrefValueBool("AlignNodes", true);
 			public PrefValueBool HideFilteredNodes = new PrefValueBool("HideFilteredNodes", true);
-			
+			public PrefValueBool MergeRelations = new PrefValueBool("MergeRelations", true);
+
 			public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
 		}
 		
@@ -63,9 +64,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 		
 		private const string OwnName = "AssetRelationsViewer";
-		private const string FirstStartupPrefKey = "ARV_FirstStartup_V1.2";
-		
-		private readonly NodeDisplayData _displayData = new NodeDisplayData();
+		private string FirstStartupPrefKey = String.Empty;
+
+		private NodeDisplayData _displayData;
 		
 		// Selected Node
 		private string _selectedNodeId;
@@ -91,7 +92,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private bool _visualizationDirty = true;
 		private bool _selectionDirty = true;
 
-		private NodeDisplayOptions _nodeDisplayOptions = new NodeDisplayOptions();
+		private NodeDisplayOptions _nodeDisplayOptions;
 
 		private List<CacheState> _cacheStates = new List<CacheState>();
 		private List<INodeHandler> _nodeHandlers = new List<INodeHandler>();
@@ -100,9 +101,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private Dictionary<string, INodeHandler> _nodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
 
-		private PrefValueBool _mergeRelations = new PrefValueBool("MergeRelations", true);
-		private PrefValueBool _showthumbnails = new PrefValueBool("Showthumbnails", false);
-		
 		private Vector2 _cachesScrollPosition;
 		private Vector2 _handlersScrollPosition;
 		
@@ -243,6 +241,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			_isInitialized = false;
 			
+			minSize = new Vector2(800, 600);
+			
+			FirstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V1.4");
+			_displayData = new NodeDisplayData();
+			_nodeDisplayOptions = new NodeDisplayOptions();
+
 			HandleFirstStartup();
 			
 			CreateCacheStates();
@@ -492,8 +496,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			GUILayout.EndHorizontal();
 
-			IntSliderPref(_displayData.AssetPreviewSize, "ThumbnailSize:", i => InvalidateTreeVisualization());
-			IntSliderPref(_nodeDisplayOptions.MaxDepth, "NodeDepth:", i => InvalidateNodeStructure());
+			EditorPrefUtilities.IntSliderPref(_displayData.AssetPreviewSize, "ThumbnailSize:", i => InvalidateTreeVisualization());
+			EditorPrefUtilities.IntSliderPref(_nodeDisplayOptions.MaxDepth, "NodeDepth:", i => InvalidateNodeStructure());
 
 			if (GUILayout.Button("Refresh"))
 			{
@@ -545,27 +549,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			EditorGUILayout.BeginVertical("Box", GUILayout.Width(220), GUILayout.Height(170));
 			
-			TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.DrawReferencerNodes, "Show Referencers", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.ShowPropertyPathes, "Show Property Pathes", b => InvalidateNodeStructure());
-			TogglePref(_nodeDisplayOptions.AlignNodes, "Align Nodes", b => InvalidateTreeVisualization());
-			TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.ShowNodesOnce, "Show Nodes Once", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.ShowHierarchyOnce, "Show Hierarchy Once", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.DrawReferencerNodes, "Show Referencers", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.ShowPropertyPathes, "Show Property Pathes", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.AlignNodes, "Align Nodes", b => InvalidateTreeVisualization());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_nodeDisplayOptions.MergeRelations, "Merge Relations", b => InvalidateNodeStructure());
 			
-			TogglePref(_displayData.HighlightPackagedAssets, "Highlight packaged assets", b => InvalidateNodeStructure());
-			TogglePref(_mergeRelations, "Merge Relations", b => InvalidateNodeStructure());
+			EditorPrefUtilities.TogglePref(_displayData.HighlightPackagedAssets, "Highlight packaged assets", b => InvalidateNodeStructure());
 
 			EditorGUILayout.EndVertical();
-		}
-
-		public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null, int width = 180)
-		{
-			pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(width)), onChange);
-		}
-
-		public static void IntSliderPref(PrefValue<int> pref, string label, Action<int> onChange = null)
-		{
-			pref.DirtyOnChange(EditorGUILayout.IntSlider(label, pref, pref.MinValue, pref.MaxValue), onChange);
 		}
 
 		private void CreateCacheStates()
@@ -765,8 +759,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				EditorGUILayout.BeginVertical("Box");
 				
 				string handledType = typeHandler.GetHandledType();
-				string key = "Option_" + handledType;
-				bool isActive = EditorPrefs.GetBool(key, true);
+				string typeHandlerActiveEditorPrefKey = EditorPrefUtilities.GetProjectSpecificKey("Option_" + handledType);
+				bool isActive = EditorPrefs.GetBool(typeHandlerActiveEditorPrefKey, true);
 
 				bool newIsActive = EditorGUILayout.ToggleLeft("Options: " + handledType, isActive);
 
@@ -779,7 +773,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				if (newIsActive != isActive)
 				{
-					EditorPrefs.SetBool(key, newIsActive);
+					EditorPrefs.SetBool(typeHandlerActiveEditorPrefKey, newIsActive);
 				}
 
 				if (newIsActive)
@@ -1087,8 +1081,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayMiscOptions()
 		{
-			TogglePref(_displayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure(), 240);
-			TogglePref(_showthumbnails, "Show thumbnails", b => RefreshNodeStructure(), 240);
+			EditorPrefUtilities.TogglePref(_displayData.ShowAdditionalInformation, "Show additional node information", b => RefreshNodeStructure(), 240);
+			EditorPrefUtilities.TogglePref(_displayData.ShowThumbnails, "Show thumbnails", b => RefreshNodeStructure(), 240);
 
 			EditorGUILayout.Space();
 		}
@@ -1511,7 +1505,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				string nodeKey = NodeDependencyLookupUtility.GetNodeKey(connection.Node.Id, connection.Node.Type);
 
-				if (!_mergeRelations.GetValue())
+				if (!_nodeDisplayOptions.MergeRelations.GetValue())
 				{
 					nodeKey = (i++).ToString(); // leads to nodes not being merged by target
 				}

@@ -99,7 +99,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _selectedAsset = newSelectedAsset;
             }
 
-            AssetRelationsViewerWindow.TogglePref(_explorerSyncModePref, "Sync to explorer:");
+            EditorPrefUtilities.TogglePref(_explorerSyncModePref, "Sync to explorer:");
             EditorGUILayout.EndVertical();
         }
 
