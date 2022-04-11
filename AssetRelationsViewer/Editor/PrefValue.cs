@@ -19,10 +19,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		protected abstract void Save();
 		protected abstract void Load();
-			
+
+		private string GetProjectSpecificKey(string key)
+		{
+			return EditorPrefUtilities.GetProjectSpecificKey(key);
+		}
+
 		public PrefValue(string key, T defaultValue, T minValue, T maxValue)
 		{
-			Key = key;
+			Key = GetProjectSpecificKey(key);
 			DefaultValue = defaultValue;
 				
 			MinValue = minValue;

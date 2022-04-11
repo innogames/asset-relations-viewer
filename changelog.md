@@ -1,3 +1,7 @@
+**1.4.1**
+ - Bugfix for dependency types being initially activated instead of disabled
+ - Settings are now saved project independently per project inside editor prefs
+
 **1.4.0**
  - Optimized performance of initial dependency calculation
  - Optimized performance of dependency tree view calculation

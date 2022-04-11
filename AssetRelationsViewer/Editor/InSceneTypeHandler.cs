@@ -17,8 +17,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     public class InSceneTypeHandler : ITypeHandler
     {
-        private const string SyncPrefKey = "InSceneTypeHandler_Sync";
-        private const string AutoRefreshPrefKey = "InSceneTypeHandler_AutoRefresh";
+        private PrefValueBool SyncPref = new PrefValueBool("InSceneTypeHandler_Sync", false);
+        private PrefValueBool AutoRefreshPref = new PrefValueBool("InSceneTypeHandler_AutoRefresh", true);
         private AssetRelationsViewerWindow _viewerWindow;
         private InSceneDependencyNodeHandler _nodeHandler;
 
@@ -75,8 +75,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorGUILayout.LabelField("dependency type not loaded!");
             }
             
-            EditorPrefs.SetBool(SyncPrefKey, EditorGUILayout.ToggleLeft("Sync to Hierarchy:", EditorPrefs.GetBool(SyncPrefKey, false)));
-            EditorPrefs.SetBool(AutoRefreshPrefKey, EditorGUILayout.ToggleLeft("Auto refresh scene switch:", EditorPrefs.GetBool(AutoRefreshPrefKey, false)));
+            EditorPrefUtilities.TogglePref(SyncPref, "Sync to Hierarchy:");
+            EditorPrefUtilities.TogglePref(AutoRefreshPref, "Auto refresh scene switch:");
 
             GameObject newSelection = EditorGUILayout.ObjectField(_currentNode, typeof(GameObject), true) as GameObject;
 
@@ -148,7 +148,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             {
                 _currentNode = _nodeHandler.GetGameObjectById(hashCode);
 
-                if (EditorPrefs.GetBool(SyncPrefKey))
+                if (SyncPref.GetValue())
                 {
                     _viewerWindow.ChangeSelection(hashCode, InSceneNodeType.Name);
                 }
@@ -165,7 +165,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void AutoRefreshSceneAfterChange()
         {
-            if (!EditorPrefs.GetBool(AutoRefreshPrefKey))
+            if (!AutoRefreshPref.GetValue())
             {
                 return;
             }
