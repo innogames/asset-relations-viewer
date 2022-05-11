@@ -42,7 +42,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        private string GetAssetPathForAsset(object obj)
+        private string GetAssetPathForAsset(string sourceAssetId, object obj)
         {
             Object value = obj as Object;
 
@@ -51,32 +51,46 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             string assetPath = AssetDatabase.GetAssetPath(value);
 
-            if (string.IsNullOrEmpty(assetPath))
-                return null;
-
-            if (ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
-                return null;
-            
-            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-
-            if (!(guid.StartsWith("0000000") || value is ScriptableObject || AssetDatabase.IsSubAsset(value) || AssetDatabase.IsMainAsset(value)))
+            if (string.IsNullOrEmpty(assetPath) || ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
             {
                 return null;
             }
 
-            return assetId;
+            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+
+            bool isUnityAsset = guid.StartsWith("0000000");
+            bool isScriptableObject = value is ScriptableObject;
+            
+            bool isMainAsset = AssetDatabase.IsMainAsset(value);
+            bool isSubAsset = AssetDatabase.IsSubAsset(value);
+            bool isAsset = isMainAsset || isSubAsset;
+            bool isComponentAssetReference = value is Component && NodeDependencyLookupUtility.GetGuidFromAssetId(sourceAssetId) != guid;
+
+            if (isUnityAsset || isScriptableObject || isAsset)
+            {
+                return assetId;
+            }
+            
+            if (isComponentAssetReference)
+            {
+                Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
+                return NodeDependencyLookupUtility.GetAssetIdForAsset(mainAsset);
+            }
+
+            return null;
         }
 
-        public override Result GetDependency(object obj, string propertyPath, SerializedPropertyType type,
-            Stack<PathSegment> stack)
+        public override Result GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type)
         {
             if (type != SerializedPropertyType.ObjectReference || obj == null)
+            {
                 return null;
-            
+            }
+
             if(!cachedAssetAsDependencyData.TryGetValue(obj, out string assetId))
             {
-                assetId = GetAssetPathForAsset(obj);
+                assetId = GetAssetPathForAsset(sourceAssetId, obj);
                 cachedAssetAsDependencyData.Add(obj, assetId);
             }
 
