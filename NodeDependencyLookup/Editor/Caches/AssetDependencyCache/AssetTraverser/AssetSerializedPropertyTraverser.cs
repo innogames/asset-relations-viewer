@@ -200,12 +200,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[assetId])
 			{
-				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(obj, propertyPath, type, stack);
+				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(assetId, obj, propertyPath, type);
 				
-				if (result == null)
-					continue;
-				
-				if (assetId == result.Id)
+				if (result == null || assetId == result.Id)
 				{
 					continue;
 				}

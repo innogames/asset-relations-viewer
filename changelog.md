@@ -1,3 +1,6 @@
+**1.4.2**
+ - Referenced components in other prefab assets are now found as a dependency
+ 
 **1.4.1**
  - Bugfix for dependency types being initially activated instead of disabled
  - Settings are now saved project independently per project inside editor prefs
