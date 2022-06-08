@@ -78,6 +78,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 return NodeDependencyLookupUtility.GetAssetIdForAsset(mainAsset);
             }
 
+            if (!(AssetDatabase.LoadMainAssetAtPath(assetPath) is GameObject))
+            {
+                return assetId;
+            }
+
             return null;
         }
 

@@ -76,6 +76,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (asset != null)
 			{
 				name = $"{asset.name}";
+
+				if (string.IsNullOrEmpty(name))
+				{
+					name = $"Unnamed {asset.GetType().Name}";
+				}
+				
 				type = asset.GetType().Name;
 				return;
 			}

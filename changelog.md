@@ -1,3 +1,6 @@
+**1.4.3**
+ - Referenced components of animatorcontrollers are now found as a dependency
+
 **1.4.2**
  - Referenced components in other prefab assets are now found as a dependency
  

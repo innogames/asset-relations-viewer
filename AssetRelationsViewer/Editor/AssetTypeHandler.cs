@@ -39,11 +39,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             foreach (Object asset in allAssets)
             {
+                if (asset == null)
+                {
+                    return;
+                }
+                
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
 
                 if (afileId == fileId)
                 {
                     Selection.activeObject = asset;
+                    return;
                 }
             }
         }
