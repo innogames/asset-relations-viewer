@@ -1,3 +1,6 @@
+**1.4.4**
+- Added support for Unity 2021.3.x
+
 **1.4.3**
  - Referenced components of animatorcontrollers are now found as a dependency
 
