@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEngine;
@@ -23,6 +22,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			int width = PathNode.Width + 16;
 			return new EnclosedBounds(0, count * -8 + 6, width, count * 8 + 10);
 		}
+		
+		public override bool IsAlignable => true;
+		public override int NodeDistanceWidth => 16 * 8;
 
 		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, ISelectionChanger selectionChanger,
 			NodeDisplayData displayData, ViewAreaData viewAreaData)
@@ -32,7 +34,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			DrawPathNodeConnections(PathNode, TargetNodes, displayDataProvider, offset);
 		}
 
-		public override void CalculateCachedDataInternal()
+		protected override void CalculateCachedDataInternal()
 		{
 			TargetNodes.Clear();
 			GeneratePathNodeTree();
@@ -43,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			foreach (PathNode tn in targetNodes)
 			{
-				Color color = colorProvider.GetConnectionColorForType(tn.DependencyType);
+				Color color = colorProvider.GetDependencyType(tn.DependencyType).Colour;
 				int offset = -32;
 				int endX = PosX + Bounds.Width;
 				AssetRelationsViewerWindow.DrawConnection(tn.PosX + tn.Width + PosX - 16, tn.PosY + PosY + yOffset, endX + offset, tn.PosY + PosY + yOffset, color);

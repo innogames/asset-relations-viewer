@@ -22,13 +22,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public abstract string GetSortingKey(RelationType relationType);
 		
 		public abstract EnclosedBounds GetBoundsOwn(NodeDisplayData displayData);
+
+		public abstract bool IsAlignable
+		{
+			get;
+		}
+
+		public abstract int NodeDistanceWidth
+		{
+			get;
+		}
 		
 		public abstract void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider,
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData);
 
-		public virtual void CalculateCachedDataInternal()
+		protected virtual void CalculateCachedDataInternal()
 		{
-			
 		}
 
 		public Vector2 GetPosition(ViewAreaData viewAreaData)
@@ -40,15 +49,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			return GetPositionOffsetInternal(PosY, viewAreaData.ViewArea, Bounds, TreeBounds);
 		}
-		
-		public static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
+
+		private static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
 		{
 			float positionOffset = GetPositionOffsetInternal(posY, viewArea, bounds, treeBounds);
 
 			return new Vector2(posX, posY + positionOffset);
 		}
 
-		public static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
+		private static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
 		{
 			float overallOffset = 270; // this is just a "random" number which I had to apply, I dont know why this offset exists 
 
@@ -106,11 +115,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			PosY = 0;
 			Bounds.Shift((int)pX, 0);
 			TreeBounds.Shift((int)pX, 0);
-			
-			int offsetX = connectionType == RelationType.DEPENDENCY ? ExtendedNodeWidth + displayData.NodeSpaceX: -displayData.NodeSpaceX;
-			
+
 			foreach (VisualizationConnection childConnection in GetRelations(connectionType))
 			{
+				int displayDataNodeSpaceX = childConnection.VNode.NodeDistanceWidth;
+				int offsetX = connectionType == RelationType.DEPENDENCY ? ExtendedNodeWidth + displayDataNodeSpaceX: -displayDataNodeSpaceX;
+				
 				int cOffset = connectionType == RelationType.REFERENCER ? -childConnection.VNode.ExtendedNodeWidth : 0;
 				childConnection.VNode.CalculateXData(pX + offsetX + cOffset, connectionType, displayData);
 			}
@@ -132,6 +142,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				int w1 = connections[i].VNode.TreeBounds.MaxY;
 				int w2 = connections[i + 1].VNode.TreeBounds.MinY;
 				int height = w1 - w2;
+				
 				offsets[i + 1] = height + totalHeight;
 				totalHeight += height;
 			}

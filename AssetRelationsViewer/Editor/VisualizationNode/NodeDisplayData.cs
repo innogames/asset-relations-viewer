@@ -8,7 +8,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     public class NodeDisplayData
     {
         public int NodeWidth = 16 * 16;
-        public int NodeSpaceX = 16 * 8;
         public int NodeSpaceY = 8;
 		
         public PrefValueInt AssetPreviewSize = new PrefValueInt("AssetPreviewSize", 16, 16, 128);

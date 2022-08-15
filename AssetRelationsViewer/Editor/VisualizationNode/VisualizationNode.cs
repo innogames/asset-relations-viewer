@@ -35,6 +35,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			height = displayData.NodeSpaceY + Math.Max(height, PathNode.NodeHeight);
 			return new EnclosedBounds(0, 0, (int)width, (int)height);
 		}
+		
+		public override bool IsAlignable => true;
+		public override int NodeDistanceWidth => 16 * 8;
 
 		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, 
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData)
@@ -71,7 +74,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			if (depth > 0)
 			{
 				string typeId = GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType))[0].Datas[0].Type;
-				textColor = displayDataProvider.GetConnectionColorForType(typeId);
+				textColor = displayDataProvider.GetDependencyType(typeId).Colour;
 			}
 				
 			textColor *= ARVStyles.TextColorMod;
@@ -89,8 +92,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
 				}
-				
-				
+
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), typeText);
 
 				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";

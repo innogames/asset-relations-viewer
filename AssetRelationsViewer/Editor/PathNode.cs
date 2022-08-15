@@ -111,7 +111,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (PathNode child in node.Children)
 			{
 				DrawPathNodeRec(px, py, child, colorProvider);
-				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py, child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
+				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py, child.PosX + px, child.PosY + py, colorProvider.GetDependencyType(child.DependencyType).Colour);
 			}
 		}
 
