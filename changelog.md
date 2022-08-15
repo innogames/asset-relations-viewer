@@ -1,3 +1,7 @@
+**1.5.0**
+- Added support for the unity_builtin_extra file
+- Added dependency resolver to show dependencies between AssemblyDefintions
+
 **1.4.4**
 - Added support for Unity 2021.3.x
 

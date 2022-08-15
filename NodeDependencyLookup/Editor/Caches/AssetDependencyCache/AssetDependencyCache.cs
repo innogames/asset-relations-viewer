@@ -124,7 +124,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public bool NeedsUpdate()
 		{
-			string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+			string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(false);
 			long[] timeStampsForFiles = NodeDependencyLookupUtility.GetTimeStampsForFiles(assetIds);
 
 			foreach (CreatedResolver resolverUsage in _createdDependencyCache.ResolverUsages)
@@ -252,7 +252,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private FileToAssetNode[] GetDependenciesForAssets(FileToAssetNode[] fileToAssetNodes,
 			CreatedDependencyCache createdDependencyCache)
 		{
-			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(false);
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
 			List<AssetResolverData> data = new List<AssetResolverData>();
