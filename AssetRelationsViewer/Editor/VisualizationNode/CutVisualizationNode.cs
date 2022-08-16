@@ -9,12 +9,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private string countString;
         private int textLength;
         private string cutReasonString;
+        private bool longSpace;
         
-        public CutVisualizationNode(int c, AssetRelationsViewerWindow.CutReason reason)
+        public CutVisualizationNode(int c, AssetRelationsViewerWindow.CutReason reason, bool space)
         {
             countString = c.ToString();
             textLength = GetTextLength(countString, GUI.skin.font);
             cutReasonString = GetCutReasonString(reason);
+            longSpace = space;
         }
 
         private string GetCutReasonString(AssetRelationsViewerWindow.CutReason reason)
@@ -56,7 +58,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         public override bool IsAlignable => false;
-        public override int NodeDistanceWidth => 16;
+        public override int NodeDistanceWidth => longSpace ? 16 * 8 : 16;
 
         public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider,
             ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData)

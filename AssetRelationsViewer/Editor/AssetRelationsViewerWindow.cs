@@ -47,6 +47,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private class MergedNode
 		{
 			public VisualizationNode VisualizationNode;
+			public bool IsRecursion;
 			public Connection Target;
 			public List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
 		}
@@ -1562,9 +1563,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 			
 			iterations++;
-
 			addedVisualizationNodes.Add(visualizationNode.Key);
-			
+
 			if (maxDepthReached || alreadyShown || limitReached)
 			{
 				CutReason reasons = 0;
@@ -1578,19 +1578,35 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			visualizationNodeStack.Push(visualizationNode);
 
 			AddBidirConnections(mergedNodes, addedVisualizationNodes, visualizationNodeStack, visualizationNode, connection, depth, relationType, nodeDisplayOptions, ref iterations);
-			SortChildNodes(visualizationNode, relationType);
-			//IEnumerable<MergedNode> sortedMergedNodes = SortChildNodes(mergedNodes, relationType);
-			//AddChildNodes(sortedMergedNodes, addedVisualizationNodes, visualizationNodeStack, depth, relationType, nodeDisplayOptions, ref iterations);
+			IEnumerable<MergedNode> sortedMergedNodes = SortChildNodes(mergedNodes, relationType);
+			AddChildNodes(sortedMergedNodes, visualizationNode, addedVisualizationNodes, visualizationNodeStack, depth, relationType, nodeDisplayOptions, ref iterations);
 
 			visualizationNodeStack.Pop();
 		}
 
-		private void AddChildNodes(IEnumerable<MergedNode> mergedNodes, HashSet<string> addedVisualizationNodes,
+		private void AddChildNodes(IEnumerable<MergedNode> mergedNodes, VisualizationNode visualizationNode, HashSet<string> addedVisualizationNodes,
 			Stack<VisualizationNode> visualizationNodeStack, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
 			foreach (MergedNode mergedNode in mergedNodes)
 			{
-				CreateNodeHierarchyRec(addedVisualizationNodes, visualizationNodeStack, mergedNode.VisualizationNode, mergedNode.Target, depth + 1, relationType, nodeDisplayOptions, ref iterations);
+				if (mergedNode.VisualizationNode == null)
+				{
+					continue;
+				}
+				
+				if (!mergedNode.IsRecursion)
+				{
+					CreateNodeHierarchyRec(addedVisualizationNodes, visualizationNodeStack, mergedNode.VisualizationNode, mergedNode.Target, depth + 1, relationType, nodeDisplayOptions, ref iterations);
+				}
+				
+				if (!nodeDisplayOptions.HideFilteredNodes || HasNoneFilteredChildren(mergedNode.VisualizationNode, relationType))
+				{
+					VisualizationNode recursionNode = HasRecursion(mergedNode.VisualizationNode.Key, visualizationNodeStack);
+					bool isRecursion = recursionNode != null;
+					
+					mergedNode.VisualizationNode.HasNoneFilteredChildren = true;
+					AddBidirConnection(relationType, visualizationNode, mergedNode.VisualizationNode, mergedNode.Datas, isRecursion);
+				}
 			}
 		}
 		
@@ -1599,6 +1615,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
 			_cutNodeCounts.Clear();
+			int count = 0;
 
 			foreach (MergedNode mergedNode in mergedNodes)
 			{
@@ -1620,23 +1637,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode);
 
 				visualizationChildNode.IsFiltered = IsNodeFiltered(childNode);
+				
+				mergedNode.VisualizationNode = visualizationChildNode;
+				mergedNode.IsRecursion = isRecursion;
 
-				if (!isRecursion)
-				{
-					mergedNode.VisualizationNode = visualizationChildNode;
-					CreateNodeHierarchyRec(addedVisualizationNodes, visualizationNodeStack, visualizationChildNode, mergedNode.Target, depth + 1, relationType, nodeDisplayOptions, ref iterations);
-				}
-
-				if (!nodeDisplayOptions.HideFilteredNodes || HasNoneFilteredChildren(visualizationChildNode, relationType))
-				{
-					visualizationChildNode.HasNoneFilteredChildren = true;
-					AddBidirConnection(relationType, visualizationNode, visualizationChildNode, mergedNode.Datas, isRecursion);
-				}
+				count++;
 			}
 			
 			foreach (var pair in _cutNodeCounts)
 			{
-				AddCutNode(visualizationNode, relationType, pair.Value, pair.Key, CutReason.NodeShown);
+				AddCutNode(visualizationNode, relationType, pair.Value, pair.Key, CutReason.NodeShown, count > 0);
 			}
 		}
 		
@@ -1658,15 +1668,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			
 			foreach (KeyValuePair<string, int> pair in dependencyTypes)
 			{
-				AddCutNode(node, relationType, pair.Value, pair.Key, cutReason);
+				AddCutNode(node, relationType, pair.Value, pair.Key, cutReason, false);
 			}
 		}
 
-		private void AddCutNode(VisualizationNode node, RelationType relationType, int count, string typeId, CutReason cutReason)
+		private void AddCutNode(VisualizationNode node, RelationType relationType, int count, string typeId, CutReason cutReason, bool longSpace)
 		{
 			List<VisualizationConnection.Data> datas = new List<VisualizationConnection.Data>();
 			datas.Add(new VisualizationConnection.Data(typeId, Array.Empty<PathSegment>()));
-			CutVisualizationNode cutNode = new CutVisualizationNode(count, cutReason);
+			CutVisualizationNode cutNode = new CutVisualizationNode(count, cutReason, longSpace);
 			node.AddRelation(relationType, new VisualizationConnection(datas, cutNode, false));
 			cutNode.AddRelation(NodeDependencyLookupUtility.InvertRelationType(relationType), new VisualizationConnection(datas, node, false));
 		}
@@ -1715,18 +1725,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return !IsNodeMatchingFilter(GetOrCreateSearchDataForNode(node), _nodeFilterTokens, _typeFilterTokens);
 		}
 
-		private void SortChildNodes(VisualizationNode visualizationNode, RelationType relationType)
-		{
-			visualizationNode.SetRelations(visualizationNode.GetRelations(relationType, true, true).OrderBy(p =>
-			{
-				return p.VNode.GetSortingKey(relationType);
-
-			}).ToList(), relationType);
-		}
-		
 		private IEnumerable<MergedNode> SortChildNodes(List<MergedNode> mergedNodes, RelationType relationType)
 		{
-			return mergedNodes.OrderBy(node => node.VisualizationNode.GetSortingKey(relationType));
+			return mergedNodes.OrderBy(node => node.VisualizationNode == null ? string.Empty : node.VisualizationNode.GetSortingKey(relationType));
 		}
 
 		private VisualizationNode GetVisualizationNode(Node node)
