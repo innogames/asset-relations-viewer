@@ -16,7 +16,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
 			int offset = 0;
 			
-			CacheSerializerUtils.EncodeShort((short)fileToAssetNodes.Length, ref bytes, ref offset);
+			CacheSerializerUtils.EncodeLong(fileToAssetNodes.Length, ref bytes, ref offset);
 
 			foreach (FileToAssetNode fileToAssetNode in fileToAssetNodes)
 			{
@@ -59,7 +59,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static FileToAssetNode[] Deserialize(byte[] bytes)
 		{
 			int offset = 0;
-			int numFileToAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+			int numFileToAssetNodes = (int)CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 			
 			FileToAssetNode[] fileToAssetNodes = new FileToAssetNode[numFileToAssetNodes];
 

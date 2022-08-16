@@ -1,3 +1,6 @@
+**1.4.5**
+- Fixed issue that total amount of supported assets was limited to max size of short but is now limitted to max size of int.
+
 **1.4.4**
 - Added support for Unity 2021.3.x
 
