@@ -91,10 +91,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				foreach (AssetNode assetNode in fileToAssetNode.AssetNodes)
 				{
-					if (assetNode.Existing)
-					{
-						nodes.Add(assetNode);
-					}
+					nodes.Add(assetNode);
 				}
 			}
 		}
@@ -172,11 +169,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (list.ContainsKey(guid))
 				{
 					FileToAssetNode fileToAssetNode = list[guid];
-					foreach (AssetNode assetNode in fileToAssetNode.AssetNodes)
-					{
-						assetNode.Existing = true;
-					}
-					
+
 					if (fileToAssetNode.GetResolverTimeStamp(id).TimeStamp != timestamps[i])
 					{
 						return true;
@@ -227,7 +220,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					FileToAssetNode fileToAssetNode = list[guid];
 					foreach (AssetNode assetNode in fileToAssetNode.AssetNodes)
 					{
-						assetNode.Existing = true;
+						// TODO
+						//assetNode.Existing = true;
 					}
 					
 					if (fileToAssetNode.GetResolverTimeStamp(id).TimeStamp != timestamps[i])
@@ -246,13 +240,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Update()
 		{
-			_fileToAssetNodes = GetDependenciesForAssets(_fileToAssetNodes, _createdDependencyCache);
+			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+			
+			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
+			GetDependenciesForAssets(pathes, _createdDependencyCache);
 		}
 
-		private FileToAssetNode[] GetDependenciesForAssets(FileToAssetNode[] fileToAssetNodes,
-			CreatedDependencyCache createdDependencyCache)
+		private void GetDependenciesForAssets(string[] pathes, CreatedDependencyCache createdDependencyCache)
 		{
-			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(false);
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
 			List<AssetResolverData> data = new List<AssetResolverData>();
@@ -276,14 +271,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			_hierarchyTraverser.Initialize();
 			_hierarchyTraverser.Search();
 			
-			Dictionary<string, FileToAssetNode> nodeDict = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
+			Dictionary<string, FileToAssetNode> nodeDict = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetNodes);
 
 			foreach (AssetResolverData resolverData in data)
 			{
 				GetDependenciesForAssetsInResolver(resolverData.ChangedAssets, resolverData.Resolver as IAssetDependencyResolver, nodeDict);
 			}
 
-			return nodeDict.Values.ToArray();
+			_fileToAssetNodes = nodeDict.Values.ToArray();
 		}
 
 		private void GetDependenciesForAssetsInResolver(HashSet<string> changedAssets, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)

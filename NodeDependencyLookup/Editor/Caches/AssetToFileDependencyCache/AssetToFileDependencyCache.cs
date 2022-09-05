@@ -75,7 +75,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             return false;
         }
-        
+
         private HashSet<string> GetChangedAssetIds(string[] pathes, long[] timestamps, FileToAssetsMapping[] fileToAssetMappings)
         {
             HashSet<string> result = new HashSet<string>();
@@ -103,8 +103,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 if (list.ContainsKey(guid))
                 {
                     FileToAssetsMapping fileToAssetsMapping = list[guid];
-                    fileToAssetsMapping.SetExisting();
-                    
                     long timeStamp = timestamps[i];
 
                     if (fileToAssetsMapping.Timestamp != timeStamp)
@@ -136,6 +134,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
             long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
+            NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref fileToAssetsMappings);
             
             List<AssetResolverData> data = new List<AssetResolverData>();
 
@@ -191,10 +190,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 foreach (GenericDependencyMappingNode fileNode in fileToAssetsMapping.FileNodes)
                 {
-                    if (fileNode.Existing)
-                    {
-                        nodes.Add(fileNode);
-                    }
+                    nodes.Add(fileNode);
                 }
             }
         }
@@ -283,14 +279,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             FileNodes.Add(newGenericDependencyMappingNode);
 
             return newGenericDependencyMappingNode;
-        }
-
-        public void SetExisting()
-        {
-            foreach (GenericDependencyMappingNode fileNode in FileNodes)
-            {
-                fileNode.IsExisting = true;
-            }
         }
     }
 

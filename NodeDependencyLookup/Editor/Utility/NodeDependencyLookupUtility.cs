@@ -18,10 +18,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /// </summary>
     public static class NodeDependencyLookupUtility
     {
-        public class CachedNodeSize
+        public struct NodeSize
         {
             public int Size;
-            public HashSet<Node> FlattenedSubTree;
+            public bool ContributesToTreeSize;
         }
         
         public const string DEFAULT_CACHE_SAVE_PATH = "NodeDependencyCache";
@@ -299,12 +299,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public struct NodeSize
-        {
-            public int Size;
-            public bool ContributesToTreeSize;
-        }
-
         public static int GetOwnNodeSize(string id, string type, string key,
             NodeDependencyLookupContext stateContext, Dictionary<string, NodeSize> ownSizeCache)
         {
@@ -518,6 +512,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static string GetNodeKey(string id, string type)
         {
             return $"{id}@{type}";
+        }
+        
+        public static void RemoveNonExistingFilesFromIdentifyableList<T>(string[] pathes, ref T[] list) where T : IIdentifyable
+        {
+            HashSet<string> pathesLookup = new HashSet<string>(pathes);
+            HashSet<T> deletedNodes = new HashSet<T>();
+
+            foreach (T listItem in list)
+            {
+                string filePath = AssetDatabase.GUIDToAssetPath(listItem.Id);
+                if (!pathesLookup.Contains(filePath))
+                {
+                    deletedNodes.Add(listItem);
+                }
+            }
+
+            if (deletedNodes.Count > 0)
+            {
+                List<T> fileToAssetNodesLists = list.ToList();
+                fileToAssetNodesLists.RemoveAll(deletedNodes.Contains);
+                list = fileToAssetNodesLists.ToArray();
+            }
         }
         
         public static RelationType InvertRelationType(RelationType relationType)

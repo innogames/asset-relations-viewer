@@ -28,7 +28,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			AssetNode newAssetNode = new AssetNode(id){Existing = true};
+			AssetNode newAssetNode = new AssetNode(id);
 			AssetNodes.Add(newAssetNode);
 			return newAssetNode;
 		}
@@ -65,8 +65,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		
 		public string Id{get { return AssetId; }}
 		public string Type{get { return AssetNodeType.Name; }}
-		public bool Existing { get; set; }
-		
+
 		public List<ResolverData> ResolverDatas = new List<ResolverData>();
 
 		public AssetNode(string assetId)

@@ -102,10 +102,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             foreach (IDependencyMappingNode node in Nodes)
             {
-                if (node.Existing)
-                {
-                    nodes.Add(node);
-                }
+                nodes.Add(node);
             }
         }
 

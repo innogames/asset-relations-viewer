@@ -12,11 +12,5 @@
 	public interface IDependencyMappingNode : IIdentifyable
 	{
 		string Type { get; }
-		
-		/**
-		 * It can be that a node got cached as being a dependency but is no longer existing anymore.
-		 * This would be the case if an asset got deleted which was used by another one.
-		 */
-		bool Existing { get;  }
 	}
 }
