@@ -1137,15 +1137,39 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			LoadDependencyCache(resolverUsageDefinitionList, _updateCache, partialUpdate);
 			ChangeSelection(_selectedNodeId, _selectedNodeType);
 		}
+		
+		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes)
+		{
+			if (reachedNodes.Contains(node))
+			{
+				return;
+			}
 
-		private void CalculateAllNodeSizes()
+			reachedNodes.Add(node);
+			
+			GetAllReachableNodes(node, reachedNodes, RelationType.DEPENDENCY);
+			GetAllReachableNodes(node, reachedNodes, RelationType.REFERENCER);
+		}
+
+		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, RelationType relationType)
+		{
+			foreach (Connection connection in node.GetRelations(relationType))
+			{
+				GetAllReachableNodes(connection.Node, reachedNodes);
+			}
+		}
+
+		private void CalculateAllNodeSizes(Node rootNode)
 		{
 			if (!_displayData.ShowAdditionalInformation || _skipNodeSizeUpdate)
 			{
 				return;
 			}
-			
-			List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
+
+			HashSet<Node> reachedNodes = new HashSet<Node>();
+			GetAllReachableNodes(rootNode, reachedNodes);
+
+			List<Node> allNodes = reachedNodes.ToList();
 			
 			for (var i = 0; i < allNodes.Count; i++)
 			{
@@ -1177,6 +1201,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				_nodeDisplayOptions.ConnectionTypesToDisplay = GetConnectionTypesToDisplay();
 
 				BuildNodeStructure(rootNode);
+				
+				CalculateAllNodeSizes(rootNode);
 
 				EditorUtility.ClearProgressBar();
 			}
@@ -1189,11 +1215,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (_visualizationDirty)
 				{
 					RefreshNodeVisualizationData();
-					CalculateAllNodeSizes();
 					_skipNodeSizeUpdate = false;
 					_visualizationDirty = false;
 				}
-				
+
 				_viewAreaData.UpdateAreaSize(_nodeStructure, position);
 				_viewAreaData.Update(position);
 				

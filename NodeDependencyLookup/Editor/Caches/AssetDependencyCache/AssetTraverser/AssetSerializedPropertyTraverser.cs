@@ -10,9 +10,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private class ReflectionStackItem
+		private struct ReflectionStackItem
 		{
-			public string fieldName = String.Empty;
+			public string fieldName;
 			public int arrayIndex;
 			public FieldInfo fieldInfo;
 			public object value;
@@ -22,6 +22,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
 		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
 		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
+		private Dictionary<Type, bool> isReflectableCache = new Dictionary<Type, bool>();
 
 		public void Search()
 		{
@@ -80,16 +81,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			SerializedProperty property = serializedObject.GetIterator();
 
 			Type objType = obj.GetType();
-			
-			ReflectionStackItem rootItem = ReflectionStack[0];
+
+			bool isReflectable = false;
+
+			if (!isReflectableCache.TryGetValue(objType, out isReflectable))
+			{
+				isReflectable = objType.GetFields(Flags).Length > 0;
+				isReflectableCache[objType] = isReflectable;
+			}
+
+			ref ReflectionStackItem rootItem = ref ReflectionStack[0];
 			rootItem.value = obj;
 			rootItem.type = objType;
 
 			Type type = typeof(SerializedProperty);
 			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+			property.Next(true);
 
 			SerializedPropertyType propertyType;
-			
+
+			List<SerializedPropertyTraverserSubSystem> resolver = assetIdToResolver[id];
+
 			do
 			{
 				propertyType = property.propertyType;
@@ -101,78 +113,99 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (!onlyOverriden || property.prefabOverride)
 				{
-					Object objectValue = propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null;
-					string modifiedPath = property.propertyPath.Replace(".Array.data[", "[");
-					int stackIndex = UpdateStack(modifiedPath, ReflectionStack);
+					string propertyPath = property.propertyPath;
+					
+					if (!isReflectable)
+					{
+						if (propertyType == SerializedPropertyType.ObjectReference)
+						{
+							TraverseProperty(resolver, id, property.objectReferenceValue, propertyType, propertyPath, stack);
+						}
+						
+						continue;
+					}
 
-					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : objectValue;
-					TraverseProperty(id, generic, propertyType, property.propertyPath, stack);
+					string modifiedPath = propertyPath.Replace(".Array.data[", "[");
+					int stackIndex = propertyType == SerializedPropertyType.Generic ? UpdateStack(modifiedPath, ReflectionStack, property.isArray) : -1;
+
+					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : (propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null);
+
+					if (generic == null)
+					{
+						continue;
+					}
+					
+					TraverseProperty(resolver, id, generic, propertyType, propertyPath, stack);
 				}
 			} while (property.Next(propertyType == SerializedPropertyType.Generic));
 		}
 
-		private int UpdateStack(string path, ReflectionStackItem[] stack)
+		private int UpdateStack(string path, ReflectionStackItem[] stack, bool isArray)
 		{
-			if (string.IsNullOrEmpty(path))
-				return -1;
-
-			string[] tokens = path.Split( '.' );
-
-			for (int i = 0; i < tokens.Length; ++i)
+			int subIndex = 0;
+			int tokenCount = 0;
+			
+			for (int i = 0; i < path.Length; ++i)
 			{
-				string elementName = tokens[i];
-				int stackPos = i + 1;
-				
-				ReflectionStackItem parent = stack[stackPos - 1];
-				ReflectionStackItem item = stack[stackPos];
-				
-				if (parent.type == null)
-					return -1;
-				
-				item.fieldName = elementName;
-				item.arrayIndex = -1;
-
-				if (elementName.Contains("["))
+				if (path[i] == '.')
 				{
-					item.arrayIndex = System.Convert.ToInt32(elementName.Substring(elementName.IndexOf("[")).Replace("[", "").Replace("]", ""));
-					item.fieldName = elementName.Substring(0, elementName.IndexOf("["));
-				}
-
-				item.fieldInfo = parent.type.GetField( item.fieldName , Flags);
-
-				if (item.fieldInfo == null || parent.value == null)
-					return -1;
-
-				item.value = item.fieldInfo.GetValue(parent.value);
-
-				if (item.value == null)
-					return -1;
-				
-				item.type = item.value.GetType();
-				
-				if (item.value != null && item.arrayIndex != -1)
-				{
-					IList genericList = item.value as IList;
-
-					if (genericList == null || item.arrayIndex >= genericList.Count)
-					{
-						return -1;
-					}
-
-					if (genericList.GetType().IsGenericType)
-					{
-						item.type = item.type.GetGenericArguments()[0];
-					}
-					else
-					{
-						item.type = item.type.GetElementType();
-					}
-					
-					item.value = genericList[item.arrayIndex];
+					subIndex = i + 1;
+					tokenCount++;
 				}
 			}
 
-			return tokens.Length;
+			int stackPos = tokenCount + 1;
+			
+			ref ReflectionStackItem parent = ref stack[stackPos - 1];
+
+			if (parent.type == null)
+				return -1;
+			
+			ref ReflectionStackItem item = ref stack[stackPos];
+
+			string elementName = path.Substring(subIndex);
+			item.fieldName = elementName;
+			item.arrayIndex = -1;
+
+			int arrayStartIndex = elementName.LastIndexOf("[");
+
+			if (arrayStartIndex != -1)
+			{
+				int arrayEndIndex = elementName.LastIndexOf("]");
+				int length = arrayEndIndex - arrayStartIndex - 1;
+				string index = elementName.Substring(arrayStartIndex + 1, length);
+				item.arrayIndex = System.Convert.ToInt32(index);
+				item.fieldName = elementName.Substring(0, arrayStartIndex);
+			}
+
+			item.fieldInfo = parent.type.GetField( item.fieldName , Flags);
+
+			if (item.fieldInfo == null || parent.value == null)
+				return -1;
+
+			item.value = item.fieldInfo.GetValue(parent.value);
+
+			if (item.value == null)
+				return -1;
+
+			Type itemType = item.value.GetType();
+
+			item.type = itemType;
+			
+			if (item.value != null && item.arrayIndex != -1)
+			{
+				IList genericList = item.value as IList;
+
+				if (genericList == null)
+				{
+					return -1;
+				}
+
+				item.type = genericList.GetType().IsGenericType ? item.type.GetGenericArguments()[0] : item.type.GetElementType();
+				item.value = genericList[item.arrayIndex];
+			}
+
+			return tokenCount + 1;
 		}
 
 		protected override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
@@ -196,9 +229,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		private void TraverseProperty(string assetId, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
+		private void TraverseProperty(List<SerializedPropertyTraverserSubSystem> resolvers, string assetId, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[assetId])
+			foreach (SerializedPropertyTraverserSubSystem subSystem in resolvers)
 			{
 				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(assetId, obj, propertyPath, type);
 				

@@ -1,3 +1,7 @@
+**1.5.0**
+- AssetDependencyCache update is now a lot faster due to improved reflection code
+- "Calculating all node sizes" step is now faster since it now only calculates reachable nodes
+
 **1.4.5**
 - Fixed issue that total amount of supported assets was limited to max size of short but is now limitted to max size of int.
 
