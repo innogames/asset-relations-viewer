@@ -81,6 +81,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private readonly Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
 		private readonly Dictionary<string, NodeDependencyLookupUtility.NodeSize> _cachedNodeSizes = new Dictionary<string, NodeDependencyLookupUtility.NodeSize>();
 		private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
+		private readonly HashSet<Node> _nodeSizesReachedNodes = new HashSet<Node>();
 
 		private bool _skipNodeSizeUpdate;
 
@@ -291,6 +292,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				_nodeFilterDataLookup.Clear();
 				_cachedNodeSizes.Clear();
+				_nodeSizesReachedNodes.Clear();
 			}
 
 			_nodeSearchDirty = true;
@@ -1138,7 +1140,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			ChangeSelection(_selectedNodeId, _selectedNodeType);
 		}
 		
-		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes)
+		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes)
 		{
 			if (reachedNodes.Contains(node))
 			{
@@ -1146,16 +1148,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 
 			reachedNodes.Add(node);
+			newNodes.Add(node);
 			
-			GetAllReachableNodes(node, reachedNodes, RelationType.DEPENDENCY);
-			GetAllReachableNodes(node, reachedNodes, RelationType.REFERENCER);
+			GetAllReachableNodes(node, reachedNodes, newNodes, RelationType.DEPENDENCY);
+			GetAllReachableNodes(node, reachedNodes, newNodes, RelationType.REFERENCER);
 		}
 
-		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, RelationType relationType)
+		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes, RelationType relationType)
 		{
 			foreach (Connection connection in node.GetRelations(relationType))
 			{
-				GetAllReachableNodes(connection.Node, reachedNodes);
+				GetAllReachableNodes(connection.Node, reachedNodes, newNodes);
 			}
 		}
 
@@ -1166,10 +1169,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				return;
 			}
 
-			HashSet<Node> reachedNodes = new HashSet<Node>();
-			GetAllReachableNodes(rootNode, reachedNodes);
+			HashSet<Node> newNodes = new HashSet<Node>();
+			GetAllReachableNodes(rootNode, _nodeSizesReachedNodes, newNodes);
 
-			List<Node> allNodes = reachedNodes.ToList();
+			List<Node> allNodes = newNodes.ToList();
 			
 			for (var i = 0; i < allNodes.Count; i++)
 			{
