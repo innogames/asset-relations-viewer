@@ -10,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private struct ReflectionStackItem
+		private class ReflectionStackItem
 		{
 			public string fieldName;
 			public int arrayIndex;
@@ -82,15 +82,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Type objType = obj.GetType();
 
-			bool isReflectable = false;
-
-			if (!isReflectableCache.TryGetValue(objType, out isReflectable))
+			if (!isReflectableCache.TryGetValue(objType, out bool isReflectable))
 			{
 				isReflectable = objType.GetFields(Flags).Length > 0;
 				isReflectableCache[objType] = isReflectable;
 			}
 
-			ref ReflectionStackItem rootItem = ref ReflectionStack[0];
+			ReflectionStackItem rootItem = ReflectionStack[0];
 			rootItem.value = obj;
 			rootItem.type = objType;
 
@@ -126,7 +124,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 
 					string modifiedPath = propertyPath.Replace(".Array.data[", "[");
-					int stackIndex = propertyType == SerializedPropertyType.Generic ? UpdateStack(modifiedPath, ReflectionStack, property.isArray) : -1;
+					int stackIndex = propertyType == SerializedPropertyType.Generic ? UpdateStack(modifiedPath, ReflectionStack) : -1;
 
 					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : (propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null);
 
@@ -140,7 +138,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			} while (property.Next(propertyType == SerializedPropertyType.Generic));
 		}
 
-		private int UpdateStack(string path, ReflectionStackItem[] stack, bool isArray)
+		private int UpdateStack(string path, ReflectionStackItem[] stack)
 		{
 			int subIndex = 0;
 			int tokenCount = 0;
