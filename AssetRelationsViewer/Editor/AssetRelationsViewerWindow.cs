@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
 	public interface INodeDisplayDataProvider
 	{
-		Color GetConnectionColorForType(string typeId);
+		DependencyType GetDependencyType(string typeId);
 		void EnqueueTreeSizeCalculationForNode(VisualizationNodeData nodeData);
 	}
 
@@ -233,11 +233,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return false;
 		}
 
-		public Color GetConnectionColorForType(string typeId)
+		public DependencyType GetDependencyType(string typeId)
 		{
-			return _nodeDependencyLookupContext.DependencyTypeLookup.GetDependencyType(typeId).Colour;
+			return _nodeDependencyLookupContext.DependencyTypeLookup.GetDependencyType(typeId);
 		}
-		
+
 		private void OnEnable()
 		{
 			_isInitialized = false;
@@ -1424,9 +1424,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void ApplyNodeWidths(VisualizationNodeBase node, int[] maxPositions, RelationType relationType, int depth)
 		{
 			node.ExtendedNodeWidth = maxPositions[depth];
+			
 			foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
 			{
-				ApplyNodeWidths(childConnection.VNode, maxPositions, relationType, depth + 1);
+				if (childConnection.VNode.IsAlignable)
+				{
+					ApplyNodeWidths(childConnection.VNode, maxPositions, relationType, depth + 1);
+				}
 			}
 		}
 
@@ -1483,14 +1487,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			DrawRecursionButton(isRecursion, node, childNode, relationType);
 
-			if (childConnection.IsIndicator)
-			{
-				return;
-			}
-
 			if (alphaAmount > 0.01)
 			{
-				DrawConnection(currentPos.x + current.Bounds.Width, currentPos.y, targetPos.x, targetPos.y, GetConnectionColorForType(childConnection.Datas[0].Type), alphaAmount);
+				DrawConnection(currentPos.x + current.Bounds.Width, currentPos.y, targetPos.x, targetPos.y, GetDependencyType(childConnection.Datas[0].Type).Colour, alphaAmount);
 			}
 		}
 
@@ -1561,15 +1560,35 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return null;
 		}
 
+		[Flags]
+		public enum CutReason
+		{
+			NodeDepth = 1,
+			HierarchyShown = 2,
+			NodeShown = 4,
+			NodeLimitReached = 8,
+		}
+
 		private void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes, Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
 			visualizationNode.SetKey(connection.Node.Key);
 			bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
 			
 			bool nodeLimitReached = iterations > 0xFFF;
+
+			bool alreadyShown = containedNode && nodeDisplayOptions.ShowHierarchyOnce;
+			bool limitReached = containedNode && nodeLimitReached;
+			bool maxDepthReached = depth == nodeDisplayOptions.MaxDepth;
+
+			List<MergedNode> mergedNodes = GetMergedNodes(connection.Node.GetRelations(relationType));
 			
-			if (depth == nodeDisplayOptions.MaxDepth || (containedNode && (nodeDisplayOptions.ShowHierarchyOnce || nodeLimitReached)))
+			if (maxDepthReached || alreadyShown || limitReached)
 			{
+				CutReason reasons = 0;
+				reasons |= maxDepthReached ? CutReason.NodeDepth : 0;
+				reasons |= alreadyShown ? CutReason.HierarchyShown : 0;
+				reasons |= limitReached ? CutReason.NodeLimitReached : 0;
+				AddCutNodes(mergedNodes, visualizationNode, relationType, reasons);
 				return;
 			}
 
@@ -1582,18 +1601,27 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			addedVisualizationNodes.Add(visualizationNode.Key);
 			visualizationNodeStack.Push(visualizationNode);
+			
+			AddBidirConnections(mergedNodes, addedVisualizationNodes, visualizationNodeStack, visualizationNode, connection, depth, relationType, nodeDisplayOptions, ref iterations);
+			SortChildNodes(visualizationNode, relationType);
 
-			List<MergedNode> mergedNodes = GetMergedNodes(connection.Node.GetRelations(relationType));
+			visualizationNodeStack.Pop();
+		}
 
+		private void AddBidirConnections(List<MergedNode> mergedNodes, HashSet<string> addedVisualizationNodes, 
+			Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection, 
+			int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
+		{
 			foreach (MergedNode mergedNode in mergedNodes)
 			{
 				Node childNode = mergedNode.Target.Node;
 
 				if (addedVisualizationNodes.Contains(childNode.Key) && _nodeDisplayOptions.ShowNodesOnce)
 				{
+					AddCutNode(visualizationNode, relationType, 1, mergedNode.Target.DependencyType, CutReason.NodeShown);
 					continue;
 				}
-				
+			
 				VisualizationNode recursionNode = HasRecursion(childNode.Key, visualizationNodeStack);
 				bool isRecursion = recursionNode != null;
 				VisualizationNode visualizationChildNode = isRecursion ? recursionNode : GetVisualizationNode(childNode);
@@ -1611,10 +1639,37 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					AddBidirConnection(relationType, visualizationNode, visualizationChildNode, mergedNode.Datas, isRecursion);
 				}
 			}
-			
-			SortChildNodes(visualizationNode, relationType);
+		}
+		
+		private void AddCutNodes(List<MergedNode> mergedNodes, VisualizationNode node, RelationType relationType, CutReason cutReason)
+		{
+			Dictionary<string, int> dependencyTypes = new Dictionary<string, int>();
 
-			visualizationNodeStack.Pop();
+			foreach (MergedNode mergedNode in mergedNodes)
+			{
+				string type = mergedNode.Target.DependencyType;
+
+				if (!dependencyTypes.ContainsKey(type))
+				{
+					dependencyTypes.Add(type, 0);
+				}
+
+				dependencyTypes[type]++;
+			}
+			
+			foreach (KeyValuePair<string, int> pair in dependencyTypes)
+			{
+				AddCutNode(node, relationType, pair.Value, pair.Key, cutReason);
+			}
+		}
+
+		private void AddCutNode(VisualizationNode node, RelationType relationType, int count, string typeId, CutReason cutReason)
+		{
+			List<VisualizationConnection.Data> datas = new List<VisualizationConnection.Data>();
+			datas.Add(new VisualizationConnection.Data(typeId, Array.Empty<PathSegment>()));
+			CutVisualizationNode cutNode = new CutVisualizationNode(count, cutReason);
+			node.AddRelation(relationType, new VisualizationConnection(datas, cutNode, false));
+			cutNode.AddRelation(NodeDependencyLookupUtility.InvertRelationType(relationType), new VisualizationConnection(datas, node, false));
 		}
 
 		private void AddBidirConnection(RelationType relationType, VisualizationNodeBase node, VisualizationNodeBase target,
