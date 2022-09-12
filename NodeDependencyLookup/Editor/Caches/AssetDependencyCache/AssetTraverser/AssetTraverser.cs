@@ -81,9 +81,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				PrefabUtility.GetCorrespondingObjectFromSource(go))
 			{
 				onlyOverriden = true;
-				isPrefabInstance = true;
 
 				Object prefabObj = PrefabUtility.GetPrefabInstanceHandle(go);
+				isPrefabInstance = prefabObj != null;
 
 				if(prefabObj != currentPrefab)
 				{
