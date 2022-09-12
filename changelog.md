@@ -1,3 +1,6 @@
+**1.4.6**
+- Fixed issue references inside added components of nested prefabs where not found properly
+
 **1.4.5**
 - Fixed issue that total amount of supported assets was limited to max size of short but is now limitted to max size of int.
 
