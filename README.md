@@ -144,6 +144,10 @@ Note: If the opened scene/prefab changed after opening the AssetRelationViewer t
 
 ![](Docs~/Images/arv_inscene_dependencies.png)
 
+### AsmDef->AsmDef
+Dependencies between AssemblyDefinitions to other AssemblyDefinitions as well as AssemblyDefinitionReferences to AssemblyDefinitions
+![](Docs~/Images/arv_assemblydefintion_to_assemblydefinition_dependencies.png)
+
 ## Caching
 Most dependency types are cached to only update the dependencies again if the file itself got changed. <br/> 
 This greatly reduces the startup time of the AssetRelationsViewer since for large projects finding all Asset->Asset dependencies can take several minutes.
