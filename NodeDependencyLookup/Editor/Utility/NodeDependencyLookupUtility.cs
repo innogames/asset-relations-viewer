@@ -452,6 +452,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             Object[] allAssets = LoadAllAssetsAtPath(path);
+            
+            for (var i = 0; i < allAssets.Length; i++)
+            {
+                if (allAssets[i] == mainAsset)
+                {
+                    allAssets[i] = allAssets[0];
+                    allAssets[0] = mainAsset;
+                    break;
+                }
+            }
 
             foreach (Object asset in allAssets)
             {
