@@ -1,3 +1,7 @@
+**1.5.0**
+- AssetDependencyCache update is now a lot faster due to improved reflection code
+- "Calculating all node sizes" step is now faster since it now only calculates reachable nodes
+
 **1.4.6**
 - Fixed issue references inside added components of nested prefabs where not found properly
 
