@@ -445,6 +445,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 pathList.Add(path);
             }
 
+            if (unityBuiltin)
+            {
+                pathList.Add("Resources/unity_builtin_extra");
+                pathList.Add("Library/unity default resources");
+            }
+
             return pathList.ToArray();
         }
 
