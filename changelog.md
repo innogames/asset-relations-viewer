@@ -1,6 +1,9 @@
 **1.5.0**
 - AssetDependencyCache update is now a lot faster due to improved reflection code
 - "Calculating all node sizes" step is now faster since it now only calculates reachable nodes
+- Unity builtin assets are now references
+- AssetToFile dependency cache node dependencies now always have the main asset as the first element in the list
+- Add support for AssemblyDefitions and AssemblyDefinitionReferences with new AsmDef dependency type
 
 **1.4.6**
 - Fixed issue references inside added components of nested prefabs where not found properly
