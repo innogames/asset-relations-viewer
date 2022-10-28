@@ -165,11 +165,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			item.fieldName = elementName;
 			item.arrayIndex = -1;
 
-			int arrayStartIndex = elementName.LastIndexOf("[");
+			int arrayStartIndex = elementName.LastIndexOf('[');
 
 			if (arrayStartIndex != -1)
 			{
-				int arrayEndIndex = elementName.LastIndexOf("]");
+				int arrayEndIndex = elementName.LastIndexOf(']');
 				int length = arrayEndIndex - arrayStartIndex - 1;
 				string index = elementName.Substring(arrayStartIndex + 1, length);
 				item.arrayIndex = System.Convert.ToInt32(index);
