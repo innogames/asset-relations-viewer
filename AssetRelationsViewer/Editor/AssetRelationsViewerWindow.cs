@@ -1139,8 +1139,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			LoadDependencyCache(resolverUsageDefinitionList, _updateCache, partialUpdate);
 			ChangeSelection(_selectedNodeId, _selectedNodeType);
 		}
-		
-		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes)
+
+		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes, RelationType relationType)
 		{
 			if (reachedNodes.Contains(node))
 			{
@@ -1150,15 +1150,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			reachedNodes.Add(node);
 			newNodes.Add(node);
 			
-			GetAllReachableNodes(node, reachedNodes, newNodes, RelationType.DEPENDENCY);
-			GetAllReachableNodes(node, reachedNodes, newNodes, RelationType.REFERENCER);
-		}
-
-		private void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes, RelationType relationType)
-		{
 			foreach (Connection connection in node.GetRelations(relationType))
 			{
-				GetAllReachableNodes(connection.Node, reachedNodes, newNodes);
+				GetAllReachableNodes(connection.Node, reachedNodes, newNodes, relationType);
 			}
 		}
 
@@ -1170,7 +1164,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 
 			HashSet<Node> newNodes = new HashSet<Node>();
-			GetAllReachableNodes(rootNode, _nodeSizesReachedNodes, newNodes);
+			HashSet<Node> referencerNodes = new HashSet<Node>();
+			
+			GetAllReachableNodes(rootNode, referencerNodes, referencerNodes, RelationType.REFERENCER);
+			
+			foreach (Node referencerNode in referencerNodes)
+			{
+				GetAllReachableNodes(referencerNode, _nodeSizesReachedNodes, newNodes, RelationType.DEPENDENCY);
+			}
 
 			List<Node> allNodes = newNodes.ToList();
 			
