@@ -11,11 +11,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 		
 		public string FileId;
-		public List<AssetNode> AssetNodes = new List<AssetNode>();
+		public List<AssetNode> AssetNodes;
 
 		public string Id => FileId;
 
-		public List<ResolverTimeStamp> ResolverTimeStamps = new List<ResolverTimeStamp>();
+		public List<ResolverTimeStamp> ResolverTimeStamps = new List<ResolverTimeStamp>(4);
 
 
 		public AssetNode GetAssetNode(string id)
@@ -58,19 +58,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public class ResolverData
 		{
 			public string ResolverId;
-			public List<Dependency> Dependencies = new List<Dependency>();
+			public List<Dependency> Dependencies;
 		}
 
-		public string AssetId;
+		private string AssetId;
+		private string KeyId;
 		
-		public string Id{get { return AssetId; }}
-		public string Type{get { return AssetNodeType.Name; }}
+		public string Id => AssetId;
+		public string Type => AssetNodeType.Name;
+		public string Key => KeyId;
 
 		public List<ResolverData> ResolverDatas = new List<ResolverData>();
 
 		public AssetNode(string assetId)
 		{
 			AssetId = assetId;
+			KeyId = NodeDependencyLookupUtility.GetNodeKey(AssetId, Type);
 		}
 
 		public ResolverData GetResolverData(string id)

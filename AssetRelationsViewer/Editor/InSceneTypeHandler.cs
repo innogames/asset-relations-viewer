@@ -20,7 +20,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private PrefValueBool SyncPref = new PrefValueBool("InSceneTypeHandler_Sync", false);
         private PrefValueBool AutoRefreshPref = new PrefValueBool("InSceneTypeHandler_AutoRefresh", true);
         private AssetRelationsViewerWindow _viewerWindow;
-        private InSceneDependencyNodeHandler _nodeHandler;
+        private NodeDependencyLookupContext _context;
 
         private HashSet<string> _nodes = new HashSet<string>();
 
@@ -37,10 +37,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public string GetSortingKey(string name)
         {
-            return name;
+            return $"InScene {name}";
         }
 
-        public VisualizationNodeData CreateNodeCachedData(string id)
+        public VisualizationNodeData CreateNodeCachedData(Node node)
         {
             return new InSceneVisualizationNodeData();
         }
@@ -93,7 +93,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnSelectAsset(string id, string type)
         {
-            GameObject node = _nodeHandler.GetGameObjectById(id);
+            InSceneDependencyNodeHandler nodeHandler = _context.NodeHandlerLookup[GetHandledType()] as InSceneDependencyNodeHandler;
+            GameObject node = nodeHandler.GetGameObjectById(id);
 
             if (type == InSceneNodeType.Name && node != null)
             {
@@ -102,10 +103,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
         }
 
-        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow, INodeHandler nodeHandler)
+        public void InitContext(NodeDependencyLookupContext context, AssetRelationsViewerWindow viewerWindow)
         {
             _viewerWindow = viewerWindow;
-            _nodeHandler = nodeHandler as InSceneDependencyNodeHandler;
+            _context = context;
 
             HashSet<string> nodes = new HashSet<string>();
 
@@ -122,7 +123,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
 
             _nodes = new HashSet<string>(nodes);
-            _nodeHandler.BuildHashToGameObjectMapping();
+
+            InSceneDependencyNodeHandler nodeHandler = _context.NodeHandlerLookup[GetHandledType()] as InSceneDependencyNodeHandler;
+            nodeHandler.BuildHashToGameObjectMapping();
 
             Selection.selectionChanged += SelectionChanged;
         }
@@ -146,7 +149,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodes.Contains(hashCode))
             {
-                _currentNode = _nodeHandler.GetGameObjectById(hashCode);
+                InSceneDependencyNodeHandler nodeHandler = _context.NodeHandlerLookup[GetHandledType()] as InSceneDependencyNodeHandler;
+                _currentNode = nodeHandler.GetGameObjectById(hashCode);
 
                 if (SyncPref.GetValue())
                 {
@@ -179,7 +183,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             
             if (_currentLoadedSceneKey != 0 && loadedScenesKey != _currentLoadedSceneKey)
             {
-                _viewerWindow.RefreshContext(cacheType, resolverType, null);
+                _viewerWindow.RefreshContext(cacheType, resolverType, null, true);
             }
             
             _currentLoadedSceneKey = loadedScenesKey;

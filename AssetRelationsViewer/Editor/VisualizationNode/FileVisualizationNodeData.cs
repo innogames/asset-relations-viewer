@@ -12,11 +12,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     	private const int MAX_ASSET_PREVIEW_RENDER_RETRIES = 100;
 
-    	public FileVisualizationNodeData(string id, string type)
-    	{
-    		Id = id;
-    		Type = type;
-    	}
+    	public FileVisualizationNodeData(Node node)
+        {
+	        Node = node;
+        }
 
     	public override Texture2D AssetPreviewTexture
     	{
@@ -27,7 +26,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     	{
     		if (!_assetLoaded)
     		{
-	            _loadedMainAsset = NodeDependencyLookupUtility.GetMainAssetById(Id);
+	            _loadedMainAsset = NodeDependencyLookupUtility.GetMainAssetById(Node.Id);
     			_assetLoaded = true;
     		}
     		
@@ -61,7 +60,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     	{
     		if (_thumbNail == null)
     		{
-    			string path = AssetDatabase.GUIDToAssetPath(Id);
+    			string path = AssetDatabase.GUIDToAssetPath(Node.Id);
     			_thumbNail = AssetDatabase.GetCachedIcon(path) as Texture2D;
 
     			if (_thumbNail == null)

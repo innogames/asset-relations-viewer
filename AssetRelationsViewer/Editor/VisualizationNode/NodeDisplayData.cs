@@ -14,6 +14,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public PrefValueInt AssetPreviewSize = new PrefValueInt("AssetPreviewSize", 16, 16, 128);
         public PrefValueBool HighlightPackagedAssets = new PrefValueBool("HighlightPackagedAssets", false);
         public PrefValueBool ShowAdditionalInformation = new PrefValueBool("ShowAdditionalInformation", false);
-        public PrefValueBool ShowThumbnails = new PrefValueBool("ShowThumbnails", false);
+        public PrefValueBool ShowAssetPreview = new PrefValueBool("ShowAssetPreview", false);
     }
 }

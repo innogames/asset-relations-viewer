@@ -33,11 +33,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        public bool NeedsUpdate()
-        {
-            return true;
-        }
-
         public bool CanUpdate()
         {
             return true;
@@ -64,7 +59,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return rootGameObjects.ToArray();
         }
 
-        public void Update()
+        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
         {
             Lookup.Clear();
 
@@ -91,6 +86,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Nodes[count++] = pair.Value;
             }
+
+            return true;
         }
 
         public struct TraverseValues
@@ -240,9 +237,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             if (!Lookup.ContainsKey(id))
             {
-                GenericDependencyMappingNode node = new GenericDependencyMappingNode();
-                node.NodeId = id;
-                node.NodeType = InSceneNodeType.Name;
+                GenericDependencyMappingNode node = new GenericDependencyMappingNode(id, InSceneNodeType.Name);
                 Lookup.Add(id, node);
             }
 
@@ -289,25 +284,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class InSceneDependencyNodeHandler : INodeHandler
     {
         private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
-        
-        public string GetId()
-        {
-            return "InSceneDependencyNodeHandler";
-        }
 
         public string GetHandledNodeType()
         {
             return InSceneNodeType.Name;
         }
 
-        public int GetOwnFileSize(string type, string id, string key,
-            NodeDependencyLookupContext stateContext,
-            Dictionary<string, NodeDependencyLookupUtility.NodeSize> ownSizeCache)
+        public Node.NodeSize GetOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
         {
-            return 0;
+            return new Node.NodeSize{Size = 0, ContributesToTreeSize = false};
         }
 
-        public bool IsNodePackedToApp(string id, string type, bool alwaysExcluded)
+        public bool IsNodePackedToApp(Node node, bool alwaysExcluded)
         {
             return false;
         }
@@ -317,11 +305,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public bool ContributesToTreeSize()
-        {
-            return false;
-        }
-        
         public void BuildHashToGameObjectMapping()
         {
             _hashToGameObject.Clear();
@@ -358,6 +341,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public long GetChangedTimeStamp(string id)
         {
             return -1;
+        }
+
+        public void SaveCaches()
+        {
         }
 
         public GameObject GetGameObjectById(string id)

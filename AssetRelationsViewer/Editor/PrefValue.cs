@@ -10,6 +10,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	public abstract class PrefValue<T>
 	{
 		protected T DefaultValue;
+		protected T CachedValue;
 			
 		protected string Key;
 		protected T Value;
@@ -32,11 +33,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				
 			MinValue = minValue;
 			MaxValue = maxValue;
+
+			CachedValue = GetValue();
 		}
 
 		public void SetValue(T value)
 		{
 			Value = value;
+			CachedValue = value;
 			Save();
 		}
 
@@ -59,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public static implicit operator T(PrefValue<T> pref)
 		{
-			return pref.GetValue();
+			return pref.CachedValue;
 		}
 	}
 		

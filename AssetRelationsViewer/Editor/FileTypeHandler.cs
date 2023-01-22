@@ -8,8 +8,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	public class FileTypeHandler : ITypeHandler
 	{
 		private Object _selectedAsset;
-		private AssetRelationsViewerWindow _viewerWindow;
-		private FileNodeHandler _nodeHandler;
 
 		public string GetHandledType()
 		{
@@ -21,9 +19,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return $"File {name}";
 		}
 
-		public VisualizationNodeData CreateNodeCachedData(string id)
+		public VisualizationNodeData CreateNodeCachedData(Node node)
 		{
-			return new FileVisualizationNodeData(id, GetHandledType());
+			return new FileVisualizationNodeData(node);
 		}
 
 		public void SelectInEditor(string id)
@@ -55,10 +53,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window, INodeHandler nodeHandler)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
 		{
-			_viewerWindow = window;
-			_nodeHandler = nodeHandler as FileNodeHandler;
 		}
 
 		public bool HandlesCurrentNode()

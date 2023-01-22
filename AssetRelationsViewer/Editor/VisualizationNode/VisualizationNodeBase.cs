@@ -5,10 +5,31 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	public enum CutReason
+	{
+		DepthReached,
+		NodeLimitReached,
+		HierarchyAlreadyShown,
+		NodeAlreadyShown,
+	}
+	
+	public class CutData
+	{
+		public class Entry
+		{
+			public int Count;
+			public CutReason CutReason;
+		}
+
+		public List<Entry> Entries = new List<Entry>();
+	}
+	
     public abstract class VisualizationNodeBase
 	{
-		public List<VisualizationConnection> Dependencies = new List<VisualizationConnection>();
-		public List<VisualizationConnection> Referencers = new List<VisualizationConnection>();
+		private List<VisualizationConnection> _dependencies = new List<VisualizationConnection>();
+		private List<VisualizationConnection> _referencers = new List<VisualizationConnection>();
+
+		private CutData[] _cutDatas = new CutData[2];
 
 		protected int PosX = Int32.MaxValue;
 		protected int PosY = Int32.MaxValue;
@@ -165,11 +186,24 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			switch (relationType)
 			{
-				case RelationType.DEPENDENCY: return Dependencies;
-				case RelationType.REFERENCER: return Referencers;
+				case RelationType.DEPENDENCY: return _dependencies;
+				case RelationType.REFERENCER: return _referencers;
 			}
 
 			return null;
+		}
+		
+		public CutData GetCutData(RelationType relationType, bool createIfNotExisting)
+		{
+			int type = (int)relationType;
+			CutData cutData = _cutDatas[type];
+
+			if (createIfNotExisting && cutData == null)
+			{
+				_cutDatas[type] = new CutData();
+			}
+			
+			return _cutDatas[type];
 		}
 
 		public List<VisualizationConnection> GetRelations(RelationType type, bool nonRecursive = true, bool recursive = false)
@@ -189,8 +223,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			switch (type)
 			{
-				case RelationType.DEPENDENCY: Dependencies = nodes; break;
-				case RelationType.REFERENCER: Referencers = nodes; break;
+				case RelationType.DEPENDENCY: _dependencies = nodes; break;
+				case RelationType.REFERENCER: _referencers = nodes; break;
 			}
 		}
 	}

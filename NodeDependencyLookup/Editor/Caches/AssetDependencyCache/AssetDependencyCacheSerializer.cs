@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -78,6 +79,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				int numAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+				fileAssetNode.AssetNodes = new List<AssetNode>(numAssetNodes);
 
 				for (var i = 0; i < numAssetNodes; i++)
 				{

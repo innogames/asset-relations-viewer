@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
@@ -73,14 +74,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				string typeId = GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType))[0].Datas[0].Type;
 				textColor = displayDataProvider.GetConnectionColorForType(typeId);
 			}
-				
+			
 			textColor *= ARVStyles.TextColorMod;
 
 			style.normal.textColor = textColor;
 			style.clipping = TextClipping.Clip;
-			string typeText = $"[{NodeData.TypeName}]";
-			string name = isMissing ? "Missing!!!" : NodeData.Name;
-			string tooltip = typeText + " " + name;
+			bool contributesToTreeSize = NodeData.Node.OwnSize.ContributesToTreeSize;
+			string fullTypeText = $"[{NodeData.Node.ConcreteType}]";
+			string typeText = $"[{GetNameFromFullName(NodeData.Node.ConcreteType)}]";
+			string name = isMissing ? "Missing!!!" : NodeData.Node.Name;
+			string tooltip = fullTypeText + " " + name + $"\nContributes to tree size: {contributesToTreeSize.ToString()}";
 			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), new GUIContent(name, tooltip), style);
 
 			if (displayData.ShowAdditionalInformation)
@@ -89,27 +92,57 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					displayDataProvider.EnqueueTreeSizeCalculationForNode(NodeData);
 				}
-				
-				
+
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 16, 200, 16), typeText);
 
-				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{NodeData.HierarchySize}kb" : "calc...";
-				
-				string text = $"{NodeData.OwnSize}kb | deps: {threeSizeText}";
+				string treeSizeAmountText = (NodeData.HierarchySize / 1024).ToString();
+				string threeSizeText = NodeData.HierarchySize >= 0 ? $"{treeSizeAmountText}kb" : "calc...";
+				string sizeAmountText = (NodeData.Node.OwnSize.Size / 1024).ToString();
+
+				string text = $"{sizeAmountText}kb | Tree: {threeSizeText}";
 				GUI.Label(new Rect(position.x + assetPreviewSize, position.y + 32, 200, 16), text);
 			}
-			
+
+			CutData cutData = GetCutData(relationType, false);
+
+			if (cutData != null)
+			{
+				float x = relationType == RelationType.DEPENDENCY ? Bounds.Rect.xMax : Bounds.Rect.xMin - 16;
+				string cutTooltip = "Connections hidden due to reasons:";
+				
+				foreach (CutData.Entry entry in cutData.Entries)
+				{
+					cutTooltip += $"\n{entry.CutReason} : {entry.Count}";
+				}
+
+				style.fontSize = 20;
+				style.normal.textColor = new Color(0.7f, 0.7f, 0.8f, 1);
+				GUI.Label(new Rect(x, position.y - 5, 20, 20), new GUIContent("+", cutTooltip), style);
+			}
+
 			DrawIsFilteredOverlay(position, displayData);
 			
 			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 16, position.y, 16, 16), ">"))
 			{
-				selectionChanger.ChangeSelection(NodeData.Id, NodeData.Type);
+				selectionChanger.ChangeSelection(NodeData.Node.Id, NodeData.Node.Type);
 			}
 
 			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 32, position.y, 16, 16), "s"))
 			{
-				NodeData.TypeHandler.SelectInEditor(NodeData.Id);
+				NodeData.TypeHandler.SelectInEditor(NodeData.Node.Id);
 			}
+		}
+
+		private string GetNameFromFullName(string fullName)
+		{
+			int lastIndex = fullName.LastIndexOf('.');
+
+			if (lastIndex != -1)
+			{
+				return fullName.Substring(lastIndex + 1);
+			}
+
+			return fullName;
 		}
 
 		public void DrawIsFilteredOverlay(Vector2 position, NodeDisplayData displayData)
@@ -129,7 +162,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void DrawPreviewTexture(float pX, float pY, NodeDisplayData displayData)
 		{
 			int assetPreviewSize = displayData.AssetPreviewSize;
-			Texture2D texture = NodeData.AssetPreviewTexture != null ? NodeData.AssetPreviewTexture : NodeData.ThumbNailTexture;
+
+			Texture2D texture = NodeData.ThumbNailTexture;
+
+			if (displayData.ShowAssetPreview)
+			{
+				Texture2D assetPreview = NodeData.AssetPreviewTexture;
+
+				if (assetPreview != null)
+				{
+					texture = assetPreview;
+				}
+			}
+
 			Rect position = new Rect(pX, pY, assetPreviewSize, assetPreviewSize);
 
 			if (texture != null)

@@ -1,3 +1,13 @@
+**2.0.0**
+- Removed IsExisting info from nodes since caches now need to delete nodes if they are saved but not existing anymore on update from their node list
+- Added use of Span from Unity 2021 onwards where previously as lot of garbage was created due to strings
+- Node name, type and type information is now directly stored inside the Node class itself
+- Added functions to NodeDependencyLookupUtility to get all node sizes, names and type information
+- Sprites file sizes are not taken into account anymore if they are part of a SpriteAtlases
+- Sizes of SpriteAtlases and AudioClips are now calculated correctly
+- Sped up creation of large dependency trees in ARV
+- AssetRelationsViewer can now be opened without updating or loading any caches
+
 **1.5.1**
 - Increase serialize version of AssetToFileDependencyCache because of dependency order change
 - Fixed possible StackOverflowException with very huge dependency trees and ShowAdditionalInformation option being enabled

@@ -1,12 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.U2D;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public class AssetToAssetObjectDependency
 	{
 		public const string Name = "ATOA_Object";
+	}
+
+	public class AssetToAssetByObjectDependencyType : DependencyType
+	{
+		public AssetToAssetByObjectDependencyType(string name, Color color, bool isIndirect, bool isHard, string description) : 
+			base(name, color, isIndirect, isHard, description)
+		{
+		}
+
+		public override bool IsHardConnection(Connection connection, Node source)
+		{
+			return !IsSpriteOfSpriteAtlas(source, connection.Node);
+		}
+
+		private bool IsSpriteOfSpriteAtlas(Node source, Node target)
+		{
+			Type spriteType = typeof(Sprite);
+			Type spriteAtlasType = typeof(SpriteAtlas);
+
+			return source.ConcreteType == spriteAtlasType.FullName && target.ConcreteType == spriteType.FullName;
+		}
 	}
 
 	/**
@@ -16,7 +39,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
 		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
-		private static DependencyType ObjectType = new DependencyType("Asset->Asset by Object", new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
+		private static DependencyType ObjectType = new AssetToAssetByObjectDependencyType("Asset->Asset by Object", new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		private const string Id = "ObjectSerializedDependencyResolver";

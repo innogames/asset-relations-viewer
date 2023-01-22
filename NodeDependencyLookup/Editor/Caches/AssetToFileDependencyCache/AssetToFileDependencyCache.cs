@@ -40,42 +40,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        public bool NeedsUpdate()
-        {
-            string[] assetIds = NodeDependencyLookupUtility.GetAllAssetPathes(true);
-            long[] timeStampsForFiles = NodeDependencyLookupUtility.GetTimeStampsForFiles(assetIds);
-            
-            return GetNeedsUpdate(assetIds, timeStampsForFiles);
-        }
-        
-        private bool GetNeedsUpdate(string[] pathes, long[] timestamps)
-        {
-            Dictionary<string, FileToAssetsMapping> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetsMappings);
-
-            for (int i = 0; i < pathes.Length; ++i)
-            {
-                string path = pathes[i];
-                string guid = AssetDatabase.AssetPathToGUID(path);
-
-                if (list.ContainsKey(guid))
-                {
-                    FileToAssetsMapping fileToAssetsMapping = list[guid];
-                    long timeStamp = timestamps[i];
-
-                    if (fileToAssetsMapping.Timestamp != timeStamp)
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private HashSet<string> GetChangedAssetIds(string[] pathes, long[] timestamps, FileToAssetsMapping[] fileToAssetMappings)
         {
             HashSet<string> result = new HashSet<string>();
@@ -124,9 +88,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return true;
         }
 
-        public void Update()
+        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
         {
+            if (!shouldUpdate)
+            {
+                return false;
+            }
+            
             _fileToAssetsMappings = GetDependenciesForAssets(_fileToAssetsMappings, _createdDependencyCache);
+            return true; // TODO return false if no file changed
         }
 
         private FileToAssetsMapping[] GetDependenciesForAssets(FileToAssetsMapping[] fileToAssetsMappings,
@@ -275,7 +245,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
             }
 
-            GenericDependencyMappingNode newGenericDependencyMappingNode = new GenericDependencyMappingNode {NodeId = id, NodeType = AssetNodeType.Name};
+            GenericDependencyMappingNode newGenericDependencyMappingNode = new GenericDependencyMappingNode(id, AssetNodeType.Name);
             FileNodes.Add(newGenericDependencyMappingNode);
 
             return newGenericDependencyMappingNode;

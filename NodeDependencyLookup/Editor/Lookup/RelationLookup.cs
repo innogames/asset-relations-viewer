@@ -11,9 +11,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
 
-			public void Build(List<CreatedDependencyCache> caches)
+			public void Build(List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate)
 			{
-				_lookup = RelationLookupBuilder.CreateRelationMapping(caches);
+				_lookup = RelationLookupBuilder.CreateRelationMapping(caches, nodeDictionary, fastUpdate);
 			}
 
 			public Node GetNode(string id, string type)
@@ -52,29 +52,40 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return list;
 			}
 
-			public static Dictionary<string, Node> CreateRelationMapping(List<CreatedDependencyCache> dependencyCaches)
+			public static Dictionary<string, Node> CreateRelationMapping(List<CreatedDependencyCache> dependencyCaches, 
+				Dictionary<string, Node> nodeDictionary, bool isFastUpdate)
 			{
-				Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
-				int index = 0;
+				List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
+
+				if (isFastUpdate)
+				{
+					foreach (KeyValuePair<string,Node> pair in nodeDictionary)
+					{
+						pair.Value.ResetRelationInformation();
+					}
+				}
+				else
+				{
+					nodeDictionary.Clear();
+				}
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
 					IDependencyCache cache = dependencyCache.Cache;
-					List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>();
+					resolvedNodes.Clear();
 
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
-					
+
 					// create dependency structure here
 					foreach (var resolvedNode in resolvedNodes)
 					{
-						Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, nodeDictionary, ref index);
-						
+						Node referencerNode = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary);
 						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(referencerNode.Id);
 
 						foreach (Dependency dependency in dependenciesForId)
 						{
-							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, nodeDictionary, ref index);
+							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary);
 							referencerNode.Dependencies.Add(
 								new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments));
 						}
@@ -97,14 +108,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return nodeDictionary;
 			}
 
-			private static Node GetOrCreateNode(string id, string type, Dictionary<string, Node> nodeDictionary, ref int index)
+			private static Node GetOrCreateNode(string id, string type, string key,
+				Dictionary<string, Node> nodeDictionary)
 			{
-				string key = NodeDependencyLookupUtility.GetNodeKey(id, type);
-
 				if (!nodeDictionary.ContainsKey(key))
 				{
-					nodeDictionary.Add(key, new Node(id, type, index));
-					index++;
+					nodeDictionary.Add(key, new Node(id, type));
 				}
 
 				return nodeDictionary[key];

@@ -26,11 +26,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
             _createdDependencyCache = createdDependencyCache;
         }
 
-        public bool NeedsUpdate()
-        {
-            return true;
-        }
-
         public bool CanUpdate()
         {
             return true;
@@ -47,7 +42,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
             public string reference;
         }
 
-        public void Update()
+        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
         {
             _lookup.Clear();
 
@@ -58,6 +53,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
             AddAsmRefs(nodes, nameToFileMapping);
             
             Nodes = nodes.ToArray();
+
+            return true;
         }
 
         private Dictionary<string, string> GenerateAsmDefFileMapping()
@@ -106,9 +103,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
                 TextAsset asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
                 AsmDefJson asmDefJson = JsonUtility.FromJson<AsmDefJson>(asmdef.text);
                 
-                GenericDependencyMappingNode node = new GenericDependencyMappingNode();
-                node.NodeId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmdef);
-                node.NodeType = AssetNodeType.Name;
+                GenericDependencyMappingNode node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmdef), AssetNodeType.Name);
 
                 int g = 0;
                 
@@ -142,10 +137,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
                 TextAsset asmref = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
                 AsmRefJson asmRefJson = JsonUtility.FromJson<AsmRefJson>(asmref.text);
                 
-                GenericDependencyMappingNode node = new GenericDependencyMappingNode();
-                node.NodeId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmref);
-                node.NodeType = AssetNodeType.Name;
-                
+                GenericDependencyMappingNode node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmref), AssetNodeType.Name);
+
                 if (!TryGetRefPathFromGUID(asmRefJson.reference, nameToFileMapping, out string refPath))
                 {
                     continue;
@@ -166,10 +159,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
         {
             foreach (IDependencyMappingNode node in Nodes)
             {
-                if (node.Existing)
-                {
-                    nodes.Add(node);
-                }
+                nodes.Add(node);
             }
         }
 

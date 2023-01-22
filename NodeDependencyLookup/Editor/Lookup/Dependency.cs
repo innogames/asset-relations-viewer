@@ -8,6 +8,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public string NodeType;
 		public string Id;
+		public string Key;
 		public string DependencyType;
 		public PathSegment[] PathSegments;
 
@@ -17,6 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			DependencyType = dependencyType;
 			PathSegments = pathSegments;
 			NodeType = nodeType;
+			Key = NodeDependencyLookupUtility.GetNodeKey(id, nodeType);
 		}
 	}
 }

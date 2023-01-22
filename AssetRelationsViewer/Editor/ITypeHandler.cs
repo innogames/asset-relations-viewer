@@ -9,11 +9,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		string GetHandledType();
 		string GetSortingKey(string name);
-		VisualizationNodeData CreateNodeCachedData(string id);
+		VisualizationNodeData CreateNodeCachedData(Node node);
 		void SelectInEditor(string id);
 		void OnGui();
 		void OnSelectAsset(string id, string type);
-		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow viewerWindow, INodeHandler nodeHandler);
+		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow viewerWindow);
 		bool HandlesCurrentNode();
 	}
 }

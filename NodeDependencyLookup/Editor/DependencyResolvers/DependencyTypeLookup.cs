@@ -37,6 +37,7 @@ namespace Assets.Package.Editor.DependencyResolvers
 				return _lookup[typeId];
 			}
 
+			Debug.LogError($"No DependencyType found with typeId {typeId}");
 			return _defaultType;
 		}
 	}

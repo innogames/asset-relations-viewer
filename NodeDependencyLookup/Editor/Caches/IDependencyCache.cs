@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	public struct CacheUpdateInfo
+	{
+		public bool Load;
+		public bool Update;
+		public bool Save;
+	}
+	
 	/**
 	 * Interface for the Dependency Cache
 	 * A dependencyCache stores already updated Assets, etc. so that a not changed asset for example doesnt need to be searched for dependencies again.
@@ -14,9 +21,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
-		bool NeedsUpdate();
 		bool CanUpdate();
-		void Update();
+		bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate);
 		void AddExistingNodes(List<IDependencyMappingNode> nodes);
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);

@@ -53,5 +53,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly string Description;
 
 		public readonly string Name;
+
+		public virtual bool IsHardConnection(Connection connection, Node source)
+		{
+			return IsHard;
+		}
 	}
 }

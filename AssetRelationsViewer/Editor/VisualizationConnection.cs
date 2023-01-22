@@ -7,14 +7,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     {
         public class Data
         {
-            public Data(string type, PathSegment[] pathSegments)
+            public Data(string type, PathSegment[] pathSegments, bool hardRef)
             {
                 Type = type;
                 PathSegments = pathSegments;
+                IsHardRef = hardRef;
             }
 			
             public readonly string Type;
             public PathSegment[] PathSegments;
+            public bool IsHardRef;
         }
 		
         public VisualizationConnection(List<Data> datas, VisualizationNodeBase node, bool isRecursion)
@@ -34,8 +36,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             return false;
         }
-
-        public bool IsIndicator;
+        
         public readonly VisualizationNodeBase VNode;
         public readonly List<Data> Datas;
         public readonly bool IsRecursion;

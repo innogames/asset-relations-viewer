@@ -28,26 +28,59 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				Update = update;
 				Save = save;
 			}
+
+			internal bool HasActiveConnectionTypes()
+			{
+				return ConnectionTypes == null || ConnectionTypes.Count > 0;
+			}
 		}
 		
 		internal List<Entry> CacheUsages = new List<Entry>();
 		internal Dictionary<string, Entry> ResolverUsagesLookup = new Dictionary<string, Entry>();
 
-		public void GetUpdateStateForCache(Type cacheType, out bool load, out bool update, out bool save)
+		public bool IsCacheActive(Type cacheType)
 		{
-			load = false;
-			update = false;
-			save = false;
+			foreach (Entry cacheUsage in CacheUsages)
+			{
+				if (cacheUsage.CacheType == cacheType && cacheUsage.HasActiveConnectionTypes())
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		public CacheUpdateInfo GetUpdateStateForCache(Type cacheType)
+		{
+			bool load = false;
+			bool update = false;
+			bool save = false;
 
 			foreach (Entry cacheUsage in CacheUsages)
 			{
-				if (cacheUsage.CacheType == cacheType)
+				if (cacheUsage.CacheType == cacheType && cacheUsage.HasActiveConnectionTypes())
 				{
 					load |= cacheUsage.Load;
 					update |= cacheUsage.Update;
 					save |= cacheUsage.Save;
 				}
 			}
+
+			return new CacheUpdateInfo {Load = load, Update = update, Save = save};
+		}
+
+		public CacheUpdateInfo GetUpdateStateForResolver(Type resolverType)
+		{
+			foreach (Entry cacheUsage in CacheUsages)
+			{
+				if (cacheUsage.ResolverType == resolverType && cacheUsage.HasActiveConnectionTypes())
+				{
+					return new CacheUpdateInfo {Load = cacheUsage.Load, Update = cacheUsage.Update, Save = cacheUsage.Save};
+				}
+			}
+
+			return new CacheUpdateInfo {Load = false, Update = false, Save = false};
 		}
 
 		public void Add<C, R>(bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver

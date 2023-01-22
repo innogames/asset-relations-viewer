@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -64,13 +65,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static string DecodeString(ref byte[] bytes, ref int offset)
         {
             int length = DecodeShort(ref bytes, ref offset);
-            char[] charArray = new char[length];
+            
+#if UNITY_2021_1_OR_NEWER
+                Span<char> charArray = stackalloc char[length];
+#else
+                char[] charArray = new char[length];
+#endif
 			
             for (var c = 0; c < length; c++)
             {
                 charArray[c] = (char)bytes[offset++];
             }
-			
+
             return new string(charArray);
         }
 
@@ -125,7 +131,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static List<Dependency> DecodeDependencies(ref byte[] bytes, ref int offset)
         {
             int numDependencies = DecodeShort(ref bytes, ref offset);
-            List<Dependency> dependencies = new List<Dependency>();
+            List<Dependency> dependencies = new List<Dependency>(numDependencies);
 
             for (var k = 0; k < numDependencies; k++)
             {
@@ -139,5 +145,71 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             return dependencies;
         }
+        
+        public static Dictionary<string, GenericDependencyMappingNode> GenerateIdLookup(
+			GenericDependencyMappingNode[] nodes)
+		{
+			Dictionary<string, GenericDependencyMappingNode> lookup =
+				new Dictionary<string, GenericDependencyMappingNode>();
+
+			foreach (GenericDependencyMappingNode node in nodes)
+			{
+				lookup[node.Id] = node;
+			}
+
+			return lookup;
+		}
+
+		public static GenericDependencyMappingNode[] LoadGenericLookup(string path)
+		{
+			if (!File.Exists(path))
+			{
+				return new GenericDependencyMappingNode[0];
+			}
+			
+			byte[] bytes = File.ReadAllBytes(path);
+			int offset = 0;
+			
+			long count = DecodeLong(ref bytes, ref offset);
+
+			GenericDependencyMappingNode[] nodes = new GenericDependencyMappingNode[count];
+
+			for (int i = 0; i < count; ++i)
+			{
+				string id = DecodeString(ref bytes, ref offset);
+				string type = DecodeString(ref bytes, ref offset);
+				List<Dependency> dependencies = DecodeDependencies(ref bytes, ref offset);
+				GenericDependencyMappingNode node = new GenericDependencyMappingNode(id, type) {Dependencies = dependencies};
+				nodes[i] = node;
+			}
+
+			return nodes;
+		}
+
+		public static void SaveGenericMapping(string directory, string fileName, GenericDependencyMappingNode[] nodes)
+		{
+			byte[] bytes = new byte[ARRAY_SIZE_OFFSET];
+			int offset = 0;
+			
+			EncodeLong(nodes.Length, ref bytes, ref offset);
+			
+			foreach (GenericDependencyMappingNode node in nodes)
+			{
+				EncodeString(node.Id, ref bytes, ref offset);
+				EncodeString(node.Type, ref bytes, ref offset);
+				EncodeDependencies(node.Dependencies, ref bytes, ref offset);
+
+				bytes = EnsureSize(bytes, offset);
+			}
+
+			string path = Path.Combine(directory, fileName);
+
+			if (!Directory.Exists(directory))
+			{
+				Directory.CreateDirectory(directory);
+			}
+			
+			File.WriteAllBytes(path, bytes);
+		}
     }
 }

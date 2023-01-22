@@ -10,6 +10,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class NodeDependencyLookupContext
 	{
+		public Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
+		
 		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts = new Dictionary<string, NodeDependencyLookupContext>();
 		
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
@@ -25,6 +27,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return m_stateContexts[name];
 		}
 
+		public NodeDependencyLookupContext()
+		{
+			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
+			//Reset();
+		}
+
 		public static void ResetContexts()
 		{
 			m_stateContexts.Clear();
@@ -33,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void Reset()
 		{
 			RelationsLookup = new RelationLookup.RelationsLookup();
-			NodeHandlerLookup.Clear();
+			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 			DependencyTypeLookup = null;
 		}
 		
@@ -55,7 +63,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 			
 			DependencyTypeLookup = new DependencyTypeLookup(GetCaches());
-			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 		}
 
 		public void ResetCacheUsages()

@@ -12,5 +12,6 @@
 	public interface IDependencyMappingNode : IIdentifyable
 	{
 		string Type { get; }
+		string Key { get; }
 	}
 }

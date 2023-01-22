@@ -51,14 +51,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				
 				int numFileNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
 
-				mapping.FileNodes = new List<GenericDependencyMappingNode>();
+				mapping.FileNodes = new List<GenericDependencyMappingNode>(numFileNodes);
 
 				for (int i = 0; i < numFileNodes; ++i)
 				{
-					GenericDependencyMappingNode fileNode = new GenericDependencyMappingNode();
-					
-					fileNode.NodeId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-					fileNode.NodeType = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+					GenericDependencyMappingNode fileNode = new GenericDependencyMappingNode(CacheSerializerUtils.DecodeString(ref bytes, ref offset), CacheSerializerUtils.DecodeString(ref bytes, ref offset));
 					fileNode.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
 
 					mapping.FileNodes.Add(fileNode);

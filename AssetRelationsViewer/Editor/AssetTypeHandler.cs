@@ -24,9 +24,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return $"Asset {name}";
         }
 
-        public VisualizationNodeData CreateNodeCachedData(string id)
+        public VisualizationNodeData CreateNodeCachedData(Node node)
         {
-            return new AssetVisualizationNodeData(id, GetHandledType());
+            return new AssetVisualizationNodeData(node);
         }
 
         public void SelectInEditor(string id)
@@ -72,7 +72,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
-            AssetRelationsViewerWindow window, INodeHandler nodeHandler)
+            AssetRelationsViewerWindow window)
         {
             _viewerWindow = window;
             Selection.selectionChanged += HandleSyncToExplorer;

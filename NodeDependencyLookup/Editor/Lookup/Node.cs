@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -8,21 +9,29 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class Node
 	{
+		public struct NodeSize
+		{
+			public int Size;
+			public bool ContributesToTreeSize;
+		}
+		
 		public readonly List<Connection> Dependencies = new List<Connection>();
 		public readonly List<Connection> Referencers = new List<Connection>();
 
 		public readonly string Id;
 		public readonly string Type;
 		public readonly string Key;
-		public readonly int Index;
 
-		public Node(string id, string type, int index)
+		public string Name = String.Empty;
+		public string ConcreteType = String.Empty;
+
+		public NodeSize OwnSize = new NodeSize{Size = -1};
+
+		public Node(string id, string type)
 		{
 			Id = id;
 			Type = type;
 			Key = NodeDependencyLookupUtility.GetNodeKey(id, type);
-
-			Index = index;
 		}
 
 		public List<Connection> GetRelations(RelationType type)
@@ -34,6 +43,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			return null;
+		}
+
+		public void ResetRelationInformation()
+		{
+			Dependencies.Clear();
+			Referencers.Clear();
 		}
 	}
 }
