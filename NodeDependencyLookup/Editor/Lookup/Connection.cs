@@ -18,12 +18,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly Node Node;
 		public readonly string DependencyType;
 		public readonly PathSegment[] PathSegments;
+		public readonly bool IsHardDependency;
 
-		public Connection(Node node, string dependencyType, PathSegment[] pathSegments)
+		public Connection(Node node, string dependencyType, PathSegment[] pathSegments, bool isHardDependency)
 		{
 			Node = node;
 			DependencyType = dependencyType;
 			PathSegments = pathSegments;
+			IsHardDependency = isHardDependency;
 		}
 	}
 }

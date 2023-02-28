@@ -46,15 +46,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		// Indirect dependencies might be assets another asset is build on (NGUI texture atlas for example)
 		public readonly bool IsIndirect;
 
-		// A hard reference marks that the bundle should be loaded together 
+		// A hard reference marks that the bundle should be loaded together
 		public readonly bool IsHard;
-		
+
 		// Discription of the connection type that will be displayed in the AssetRelationsViewer
 		public readonly string Description;
 
 		public readonly string Name;
 
-		public virtual bool IsHardConnection(Connection connection, Node source)
+		public virtual bool IsHardConnection(Node source, Node target)
 		{
 			return IsHard;
 		}

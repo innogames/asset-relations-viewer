@@ -136,7 +136,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             RelationLookup.RelationsLookup lookup = new RelationLookup.RelationsLookup();
             Profiler.BeginSample("BuildLookup");
-            lookup.Build(caches, stateContext.nodeDictionary, isFastUpdate);
+            lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate);
             Profiler.EndSample();
 
             stateContext.RelationsLookup = lookup;
@@ -305,14 +305,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return node.OwnSize;
         }
 
-        public static int GetTreeSize(Node node, NodeDependencyLookupContext stateContext)
+        public static int GetTreeSize(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> flattenedHierarchy)
         {
             int size = 0;
+            flattenedHierarchy.Clear();
 
-            HashSet<Node> flattedHierarchy = new HashSet<Node>();
-            TraverseHardDependencyNodesRecNoFlattened(node, stateContext, flattedHierarchy);
+            TraverseHardDependencyNodesRecNoFlattened(node, stateContext, flattenedHierarchy);
 
-            foreach (Node traversedNode in flattedHierarchy)
+            foreach (Node traversedNode in flattenedHierarchy)
             {
                 if(traversedNode.OwnSize.ContributesToTreeSize)
                 {
@@ -340,7 +340,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (Connection connection in node.Dependencies)
             {
-                if (stateContext.DependencyTypeLookup.GetDependencyType(connection.DependencyType).IsHardConnection(connection, node))
+                if (connection.IsHardDependency)
                 {
                     TraverseHardDependencyNodesRecNoFlattened(connection.Node, stateContext, traversedNodes);
                 }

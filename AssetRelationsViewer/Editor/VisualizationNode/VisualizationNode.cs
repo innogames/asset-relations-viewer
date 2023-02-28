@@ -1,8 +1,8 @@
 using System;
-using System.IO;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -12,36 +12,45 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public string Key;
 		public int Hash;
 
+		public bool HasNonFilteredChildren = false;
+		public bool Filtered;
+
 		public void SetKey(string value)
 		{
 			Key = value;
 			Hash = value.GetHashCode();
 		}
 
-		public override string GetSortingKey(RelationType relationType)
+		public override string GetSortingKey(RelationType relationType, bool sortBySize)
 		{
+			if (sortBySize)
+			{
+				return NodeData.Node.OwnSize.Size.ToString("000000000000000000000");
+			}
+
 			return NodeData.GetSortingKey();
 		}
 
 		public override EnclosedBounds GetBoundsOwn(NodeDisplayData displayData)
 		{
 			float height = displayData.AssetPreviewSize;
-				
+
 			if (displayData.ShowAdditionalInformation)
 			{
 				height = Math.Max(48, height);
 			}
-			
+
 			float width = displayData.AssetPreviewSize + displayData.NodeWidth;
 			height = displayData.NodeSpaceY + Math.Max(height, PathNode.NodeHeight);
 			return new EnclosedBounds(0, 0, (int)width, (int)height);
 		}
 
-		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider, 
+		public override void Draw(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider,
 			ISelectionChanger selectionChanger, NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
+			Profiler.BeginSample("VisualizationNode::Draw()");
 			Vector2 position = GetPosition(viewAreaData);
-			
+
 			Color rectColor = (depth == 0) ? ARVStyles.NodeBackGroundColorOwn : ARVStyles.NodeBackGroundColor;
 
 			bool isMissing = NodeData.IsMissing;
@@ -68,13 +77,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			GUIStyle style = new GUIStyle();
 			Color textColor = Color.white;
-			
+
 			if (depth > 0)
 			{
 				string typeId = GetRelations(NodeDependencyLookupUtility.InvertRelationType(relationType))[0].Datas[0].Type;
 				textColor = displayDataProvider.GetConnectionColorForType(typeId);
 			}
-			
+
 			textColor *= ARVStyles.TextColorMod;
 
 			style.normal.textColor = textColor;
@@ -109,7 +118,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				float x = relationType == RelationType.DEPENDENCY ? Bounds.Rect.xMax : Bounds.Rect.xMin - 16;
 				string cutTooltip = "Connections hidden due to reasons:";
-				
+
 				foreach (CutData.Entry entry in cutData.Entries)
 				{
 					cutTooltip += $"\n{entry.CutReason} : {entry.Count}";
@@ -121,7 +130,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 
 			DrawIsFilteredOverlay(position, displayData);
-			
+
 			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 16, position.y, 16, 16), ">"))
 			{
 				selectionChanger.ChangeSelection(NodeData.Node.Id, NodeData.Node.Type);
@@ -131,6 +140,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				NodeData.TypeHandler.SelectInEditor(NodeData.Node.Id);
 			}
+
+			Profiler.EndSample();
+		}
+
+		public override bool HasNoneFilteredChildren(RelationType relationType)
+		{
+			return HasNonFilteredChildren;
+		}
+
+		public override bool IsFiltered(RelationType relationType)
+		{
+			return Filtered;
 		}
 
 		private string GetNameFromFullName(string fullName)
@@ -145,17 +166,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return fullName;
 		}
 
-		public void DrawIsFilteredOverlay(Vector2 position, NodeDisplayData displayData)
+		private void DrawIsFilteredOverlay(Vector2 position, NodeDisplayData displayData)
 		{
-			if (IsFiltered)
+			if (Filtered)
 			{
 				Rect b = GetBoundsOwn(displayData).Rect;
 				Rect rect = new Rect(b.x + position.x, b.y + position.y, b.width, b.height);
-				
+
 				EditorGUI.DrawRect(rect, ARVStyles.NodeFilteredOverlayColor);
 			}
 		}
-		
+
 		/// <summary>
 		/// Draws the preview texture for the asset. Tries to use the actual Previewtexture but uses the Thumbnail if no preview could be rendered
 		/// </summary>

@@ -13,14 +13,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 	public class AssetToAssetByObjectDependencyType : DependencyType
 	{
-		public AssetToAssetByObjectDependencyType(string name, Color color, bool isIndirect, bool isHard, string description) : 
+		public AssetToAssetByObjectDependencyType(string name, Color color, bool isIndirect, bool isHard, string description) :
 			base(name, color, isIndirect, isHard, description)
 		{
 		}
 
-		public override bool IsHardConnection(Connection connection, Node source)
+		public override bool IsHardConnection(Node source, Node target)
 		{
-			return !IsSpriteOfSpriteAtlas(source, connection.Node);
+			return !IsSpriteOfSpriteAtlas(source, target);
 		}
 
 		private bool IsSpriteOfSpriteAtlas(Node source, Node target)
@@ -45,14 +45,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const string Id = "ObjectSerializedDependencyResolver";
 
 		private readonly SerializedPropertyTraverserSubSystem TraverserSubSystem = new ObjectSerializedPropertyTraverserSubSystem();
-		
+
 		public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
 		{
 			List<Dependency> subSystemDependencies = new List<Dependency>();
 			HashSet<string> foundDependenciesHashSet = new HashSet<string>();
 
 			GetDependenciesForIdFromSerializedPropertyTraverser(assetId, subSystemDependencies);
-			
+
 			foreach (Dependency dependency in subSystemDependencies)
 			{
 				foundDependenciesHashSet.Add(dependency.Id);
@@ -101,11 +101,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			_inValidGuids.Clear();
 
-			string[] filters = 
+			string[] filters =
 			{
 				"t:Script",
 			};
-			
+
 			foreach (string filter in filters)
 			{
 				foreach (string guid in AssetDatabase.FindAssets(filter))
@@ -118,7 +118,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets)
 		{
 			TraverserSubSystem.Clear();
-			
+
 			foreach (string assetId in changedAssets)
 			{
 				string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);

@@ -7,6 +7,7 @@
 - Sizes of SpriteAtlases and AudioClips are now calculated correctly
 - Sped up creation of large dependency trees in ARV
 - AssetRelationsViewer can now be opened without updating or loading any caches
+- Node Search calculation is now done in seperate thread
 
 **1.5.1**
 - Increase serialize version of AssetToFileDependencyCache because of dependency order change

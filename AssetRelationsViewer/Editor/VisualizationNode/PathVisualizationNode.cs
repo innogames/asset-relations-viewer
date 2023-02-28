@@ -11,9 +11,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public PathNode PathNode;
 		public HashSet<PathNode> TargetNodes = new HashSet<PathNode>();
 
-		public override string GetSortingKey(RelationType relationType)
+		public override string GetSortingKey(RelationType relationType, bool sortBySize)
 		{
-			string sortingKey = GetRelationArray(relationType)[0].VNode.GetSortingKey(relationType);
+			string sortingKey = GetRelationArray(relationType)[0].VNode.GetSortingKey(relationType, sortBySize);
 			return sortingKey;
 		}
 
@@ -37,6 +37,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			TargetNodes.Clear();
 			GeneratePathNodeTree();
 			PathNode.CalculatePositionData(0, 0, TargetNodes);
+		}
+
+		public override bool HasNoneFilteredChildren(RelationType relationType)
+		{
+			return GetRelationArray(relationType)[0].VNode.HasNoneFilteredChildren(relationType);
+		}
+
+		public override bool IsFiltered(RelationType relationType)
+		{
+			return GetRelationArray(relationType)[0].VNode.IsFiltered(relationType);
 		}
 
 		private void DrawPathNodeConnections(PathNode rootNode, HashSet<PathNode> targetNodes, INodeDisplayDataProvider colorProvider, float yOffset)
@@ -65,14 +75,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					}
 				}
 			}
-			
+
 			return pathCount;
 		}
-		
+
 		private void GeneratePathNodeTree()
 		{
 			PathNode = new PathNode(string.Empty, PathSegmentType.GameObject, "Root");
-			
+
 			foreach (VisualizationConnection connection in GetRelations(RelationType.DEPENDENCY, true, true))
 			{
 				foreach (VisualizationConnection.Data data in connection.Datas)
@@ -80,7 +90,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					PathNode.AddPath(PathNode, data.PathSegments.Reverse().ToArray(), data.Type);
 				}
 			}
-			
+
 			PathNode.CalculateNodeHeight(PathNode);
 		}
 	}
