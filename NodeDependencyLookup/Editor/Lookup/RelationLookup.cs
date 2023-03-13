@@ -88,6 +88,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
 
+					int k = 0;
+					string cacheName = cache.GetType().Name;
+
 					// create dependency structure here
 					foreach (var resolvedNode in resolvedNodes)
 					{
@@ -102,6 +105,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 							Connection connection = new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments, isHardConnection);
 							node.Dependencies.Add(connection);
 						}
+
+						if (k % 2000 == 0)
+						{
+							EditorUtility.DisplayProgressBar("RelationLookup", $"Building relation lookup for {cacheName}", (float)k / resolvedNodes.Count);
+						}
+
+						k++;
 					}
 				}
 
@@ -114,6 +124,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					{
 						connection.Node.Referencers.Add(new Connection(referencerNode, connection.DependencyType, connection.PathSegments, connection.IsHardDependency));
 					}
+				}
+
+				// Save nodehandler lookup caches
+				foreach (KeyValuePair<string,INodeHandler> pair in stateContext.NodeHandlerLookup)
+				{
+					pair.Value.SaveCaches();
 				}
 
 				EditorUtility.ClearProgressBar();
