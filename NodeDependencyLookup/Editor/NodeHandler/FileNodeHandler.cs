@@ -23,16 +23,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private MethodInfo getPreviewTextureMethod;
         private MethodInfo getAudioSizeMethod;
         private MethodInfo getStorageMemorySizeMethod;
-        
+
         public FileNodeHandler()
         {
-            Type spriteAtlasExtensionsType = typeof(SpriteAtlasExtensions); 
+            Type spriteAtlasExtensionsType = typeof(SpriteAtlasExtensions);
             getPreviewTextureMethod = spriteAtlasExtensionsType.GetMethod("GetPreviewTextures", BindingFlags.Static | BindingFlags.NonPublic);
 
             Assembly unityAssembly = Assembly.Load("UnityEditor.dll");
             Type textureUtilType = unityAssembly.GetType("UnityEditor.TextureUtil");
             getStorageMemorySizeMethod = textureUtilType.GetMethod("GetStorageMemorySize", BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public);
-            
+
             Type audioUtilType = unityAssembly.GetType("UnityEditor.AudioImporter");
             getAudioSizeMethod = audioUtilType.GetMethod("get_compSize", BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
         }
@@ -49,7 +49,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             return new Node.NodeSize
             {
-                Size = NodeDependencyLookupUtility.GetPackedAssetSize(node.Id) + GetSpriteAtlasSize(node) + GetAudioClipSize(node), 
+                Size = NodeDependencyLookupUtility.GetPackedAssetSize(node.Id) + GetSpriteAtlasSize(node) + GetAudioClipSize(node),
                 ContributesToTreeSize = contributesToTreeSize
             };
         }
@@ -58,7 +58,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             Type spriteAtlasType = typeof(SpriteAtlas);
             int size = 0;
-            
+
             foreach (Connection connection in node.Referencers)
             {
                 if (connection.Node.ConcreteType == spriteAtlasType.FullName)
@@ -67,7 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     string path = AssetDatabase.GUIDToAssetPath(guid);
                     SpriteAtlas spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(path);
                     Texture2D[] previewTextures = getPreviewTextureMethod.Invoke(null, new object[]{spriteAtlas}) as Texture2D[];
-                            
+
                     foreach (Texture2D previewTexture in previewTextures)
                     {
                         size += (int)getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture });;
@@ -77,11 +77,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             return size;
         }
-        
+
         private int GetAudioClipSize(Node node)
         {
             Type spriteAtlasType = typeof(AudioClip);
-            
+
             foreach (Connection connection in node.Referencers)
             {
                 if (connection.Node.ConcreteType == spriteAtlasType.FullName)
@@ -116,7 +116,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     return false;
                 }
             }
-            
+
             return false;
         }
 
@@ -126,7 +126,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 return !IsNodeEditorOnly(node.Id, node.Type);
             }
-			
+
             string path = AssetDatabase.GUIDToAssetPath(node.Id);
             return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000");
         }
@@ -139,13 +139,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public void GetNameAndType(string id, out string name, out string type)
         {
-            name = Path.GetFileName(AssetDatabase.GUIDToAssetPath(id));
+            name = AssetDatabase.GUIDToAssetPath(id);
             type = "File";
         }
 
         public long GetChangedTimeStamp(string id)
         {
             return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
+        }
+
+        public void InitNameAndTypeInformation()
+        {
         }
 
         public void SaveCaches()
@@ -156,7 +160,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             // nothing to do
         }
-		
+
         private bool IsSceneAndPacked(string path)
         {
             if (Path.GetExtension(path).Equals(".unity"))

@@ -71,11 +71,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
 		}
 
+		public void InitNameAndTypeInformation()
+		{
+			LoadTypeAndNameCache();
+		}
+
 		public void SaveCaches()
 		{
 			SerializeCache();
 		}
-
 
 		private string GetCachePath()
 		{
@@ -83,7 +87,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH, $"AssetNodeHandlerCache_{version}.cache");
 		}
 
-		private void LoadCache()
+		private void LoadTypeAndNameCache()
 		{
 			_typeAndNameLookup.Clear();
 
@@ -134,11 +138,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void GetNameAndType(string id, out string name, out string type)
 		{
-			if (_typeAndNameLookup.Count == 0)
-			{
-				LoadCache();
-			}
-
 			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 

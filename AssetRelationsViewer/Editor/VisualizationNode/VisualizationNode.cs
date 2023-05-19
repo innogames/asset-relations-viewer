@@ -7,7 +7,8 @@ using UnityEngine.Profiling;
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
     public class VisualizationNode : VisualizationNodeBase
-	{
+    {
+	    public ITypeHandler TypeHandler;
 		public VisualizationNodeData NodeData;
 		public string Key;
 		public int Hash;
@@ -91,8 +92,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			bool contributesToTreeSize = NodeData.Node.OwnSize.ContributesToTreeSize;
 			string fullTypeText = $"[{NodeData.Node.ConcreteType}]";
 			string typeText = $"[{GetNameFromFullName(NodeData.Node.ConcreteType)}]";
-			string name = isMissing ? "Missing!!!" : NodeData.Node.Name;
-			string tooltip = fullTypeText + " " + name + $"\nContributes to tree size: {contributesToTreeSize.ToString()}";
+			string name = isMissing ? "Missing!!!" : TypeHandler.GetNodeDisplayName(NodeData.Node);
+			string fullname = isMissing ? "Missing!!!" : NodeData.Node.Name;
+			string tooltip = fullTypeText + " " + fullname + $"\nContributes to tree size: {contributesToTreeSize.ToString()}";
 			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize), new GUIContent(name, tooltip), style);
 
 			if (displayData.ShowAdditionalInformation)

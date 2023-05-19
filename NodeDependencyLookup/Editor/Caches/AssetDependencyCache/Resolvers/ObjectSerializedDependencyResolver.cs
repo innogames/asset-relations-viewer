@@ -48,33 +48,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
 		{
-			List<Dependency> subSystemDependencies = new List<Dependency>();
-			HashSet<string> foundDependenciesHashSet = new HashSet<string>();
-
-			GetDependenciesForIdFromSerializedPropertyTraverser(assetId, subSystemDependencies);
-
-			foreach (Dependency dependency in subSystemDependencies)
-			{
-				foundDependenciesHashSet.Add(dependency.Id);
-				dependencies.Add(dependency);
-			}
-		}
-
-		public void GetDependenciesForIdFromSerializedPropertyTraverser(string assetId, List<Dependency> dependencies)
-		{
-			if (TraverserSubSystem.Dependencies.ContainsKey(assetId))
-			{
-				foreach (var foundDependency in TraverserSubSystem.Dependencies[assetId])
-				{
-					string dependency = foundDependency.Id;
-
-					// Avoid adding node itself as dependency
-					if (dependency != assetId)
-					{
-						dependencies.Add(foundDependency);
-					}
-				}
-			}
+			TraverserSubSystem.GetDependenciesForId(assetId, dependencies);
 		}
 
 		public bool IsGuidValid(string guid)

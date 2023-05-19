@@ -80,6 +80,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					nodeDictionary.Clear();
 				}
 
+				// Init Name and Type information for node handlers
+				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+				{
+					pair.Value.InitNameAndTypeInformation();
+				}
+
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
 				{
 					IDependencyCache cache = dependencyCache.Cache;
@@ -127,7 +133,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				// Save nodehandler lookup caches
-				foreach (KeyValuePair<string,INodeHandler> pair in stateContext.NodeHandlerLookup)
+				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
 				{
 					pair.Value.SaveCaches();
 				}

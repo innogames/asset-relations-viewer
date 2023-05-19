@@ -7,13 +7,13 @@ using UnityEngine;
 using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
-{	
+{
 	public struct AssetResolverData
 	{
 		public IDependencyResolver Resolver;
 		public HashSet<string> ChangedAssets;
 	}
-	
+
 	/**
 	 * Cache to store all dependencies of assets to other nodes
 	 */
@@ -25,7 +25,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private FileToAssetNode[] _fileToAssetNodes = new FileToAssetNode[0];
 		private Dictionary<string, AssetNode> _assetNodesDict = new Dictionary<string, AssetNode>();
-		
+
 		public AssetSerializedPropertyTraverser _hierarchyTraverser = new AssetSerializedPropertyTraverser();
 
 		private CreatedDependencyCache _createdDependencyCache;
@@ -43,7 +43,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void Load(string directory)
 		{
 			Profiler.BeginSample("AssetDependencyCache Load");
-			
+
 			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Loading cache", 0);
 			string path = Path.Combine(directory, VersionedFileName);
 
@@ -56,7 +56,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				_fileToAssetNodes = new FileToAssetNode[0];
 			}
-			
+
 			Profiler.EndSample();
 		}
 
@@ -69,14 +69,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				Directory.CreateDirectory(directory);
 			}
-			
+
 			File.WriteAllBytes(path, AssetDependencyCacheSerializer.Serialize(_fileToAssetNodes));
 		}
 
 		public void ClearFile(string directory)
 		{
 			string path = Path.Combine(directory, VersionedFileName);
-			
+
 			if (File.Exists(path))
 			{
 				File.Delete(path);
@@ -141,7 +141,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					{
 						throw new DependencyUpdateAbortedException();
 					}
-					
+
 					lastDisplayedPercentage = progressPercentage;
 				}
 
@@ -177,7 +177,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				return false;
 			}
-			
+
 			foreach (CreatedResolver resolverUsage in _createdDependencyCache.ResolverUsages)
 			{
 				if(resolverUsage.Resolver is IAssetDependencyResolver assetDependencyResolver)
@@ -185,9 +185,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					assetDependencyResolver.SetValidGUIDs();
 				}
 			}
-			
+
 			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
-			
+
 			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
 			return GetDependenciesForAssets(pathes, _createdDependencyCache);
 		}
@@ -197,17 +197,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
 			List<AssetResolverData> data = new List<AssetResolverData>();
-			
+
 			_hierarchyTraverser.Clear();
 			bool hasChanges = false;
 
 			foreach (CreatedResolver resolverUsage in createdDependencyCache.ResolverUsages)
 			{
 				if (!(resolverUsage.Resolver is IAssetDependencyResolver))
+				{
+					Debug.LogError($"AssetDependencyCache {resolverUsage.Resolver.GetType().Name} is not of baseType {typeof(IAssetDependencyResolver).Name}");
 					continue;
-				
+				}
+
 				IAssetDependencyResolver resolver = (IAssetDependencyResolver) resolverUsage.Resolver;
-				
+
 				HashSet<string> changedAssets = GetChangedAssetIdsForResolver(resolver, pathes, timestamps, _fileToAssetNodes);
 				data.Add(new AssetResolverData{ChangedAssets = changedAssets, Resolver = resolver});
 
@@ -215,11 +218,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				hasChanges |= changedAssets.Count > 0;
 			}
-			
+
 			// Execute the searcher for all registered subsystems here to find hierarchy and property pathes
-			_hierarchyTraverser.Initialize();
 			_hierarchyTraverser.Search();
-			
+
 			Dictionary<string, FileToAssetNode> nodeDict = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetNodes);
 
 			foreach (AssetResolverData resolverData in data)
@@ -234,31 +236,35 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private void GetDependenciesForAssetsInResolver(HashSet<string> changedAssets, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
 		{
-			string resolverId = resolver.GetId();
-			
 			foreach (string assetId in changedAssets)
 			{
-				string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-
-				if (!resultList.ContainsKey(fileId))
-				{
-					resultList.Add(fileId, new FileToAssetNode{FileId = fileId, AssetNodes = new List<AssetNode>()});
-				}
-
-				FileToAssetNode fileToAssetNode = resultList[fileId];
-				AssetNode assetNode = fileToAssetNode.GetAssetNode(assetId);
-
-				List<Dependency> dependencies = new List<Dependency>();
-
-				resolver.GetDependenciesForId(assetId, dependencies);
-
-				AssetNode.ResolverData resolverData = assetNode.GetResolverData(resolverId);
-
-				resolverData.Dependencies = dependencies;
-
-				fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp =
-					NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
+				GetDependenciesForAssetInResolver(assetId, resolver, resultList);
 			}
+		}
+
+		private void GetDependenciesForAssetInResolver(string assetId, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
+		{
+			string resolverId = resolver.GetId();
+			string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+
+			if (!resultList.ContainsKey(fileId))
+			{
+				resultList.Add(fileId, new FileToAssetNode{FileId = fileId, AssetNodes = new List<AssetNode>()});
+			}
+
+			FileToAssetNode fileToAssetNode = resultList[fileId];
+			AssetNode assetNode = fileToAssetNode.GetAssetNode(assetId);
+
+			List<Dependency> dependencies = new List<Dependency>();
+
+			resolver.GetDependenciesForId(assetId, dependencies);
+
+			AssetNode.ResolverData resolverData = assetNode.GetResolverData(resolverId);
+
+			resolverData.Dependencies = dependencies;
+
+			fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp =
+				NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
 		}
 	}
 }

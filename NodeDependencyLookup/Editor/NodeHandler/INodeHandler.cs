@@ -18,6 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
 		void GetNameAndType(string id, out string name, out string type);
 		long GetChangedTimeStamp(string id);
+		void InitNameAndTypeInformation();
 		void SaveCaches();
 	}
 }

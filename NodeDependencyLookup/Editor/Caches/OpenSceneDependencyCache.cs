@@ -55,7 +55,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 rootGameObjects.AddRange(SceneManager.GetSceneAt(i).GetRootGameObjects());
             }
-            
+
             return rootGameObjects.ToArray();
         }
 
@@ -149,9 +149,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private void TraverseGameObject(GameObject go, Stack<PathSegment> stack, TraverseValues traverseValues)
         {
             GetNode(go.GetHashCode().ToString());
-            
+
             Component[] components = go.GetComponents<Component>();
-            
+
             foreach (Component component in components)
             {
                 TraverseComponent(go, component, stack, traverseValues);
@@ -275,7 +275,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     {
         public const string Name = "InSceneGameObject";
     }
-    
+
     public class InSceneConnectionType
     {
         public const string Name = "GTOG_InScene";
@@ -328,7 +328,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public void GetNameAndType(string id, out string name, out string type)
         {
             type = "GameObject";
-            
+
             if (!_hashToGameObject.ContainsKey(id))
             {
                 name = id;
@@ -343,6 +343,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return -1;
         }
 
+        public void InitNameAndTypeInformation()
+        {
+            BuildHashToGameObjectMapping();
+        }
+
         public void SaveCaches()
         {
         }
@@ -353,7 +358,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 return null;
             }
-            
+
             if (_hashToGameObject.TryGetValue(id, out GameObject go))
             {
                 return go;

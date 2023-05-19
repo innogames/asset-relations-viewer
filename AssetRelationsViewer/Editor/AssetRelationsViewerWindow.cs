@@ -251,12 +251,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             minSize = new Vector2(800, 600);
 
-            FirstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V1.4");
+            FirstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V2.0");
             _displayData = new NodeDisplayData();
             _nodeDisplayOptions = new NodeDisplayOptions();
             _filterFoldout = new PrefValueBool("FilterFoldout", true);
-            _infoFoldout = new PrefValueBool("InfoFoldout", false);
-            _miscFoldout = new PrefValueBool("MiscFoldout", false);
+            _infoFoldout = new PrefValueBool("InfoFoldout", true);
+            _miscFoldout = new PrefValueBool("MiscFoldout", true);
 
             HandleFirstStartup();
 
@@ -1562,6 +1562,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
             List<Connection> connections = connection.Node.GetRelations(relationType);
 
+            addedVisualizationNodes.Add(visualizationNode.Key);
+
             if (depth == nodeDisplayOptions.MaxDepth)
             {
                 if (connections.Count > 0)
@@ -1604,7 +1606,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             iterations++;
 
-            addedVisualizationNodes.Add(visualizationNode.Key);
             visualizationNodeStack.Push(visualizationNode);
 
             IEnumerable<MergedNode> mergedNodes = GetMergedNodes(connection.Node, connections);
@@ -1719,7 +1720,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private VisualizationNode GetVisualizationNode(Node node)
         {
-            return new VisualizationNode {NodeData = AddNodeCacheForNode(node)};
+            return new VisualizationNode {NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type]};
         }
 
         /// <summary>

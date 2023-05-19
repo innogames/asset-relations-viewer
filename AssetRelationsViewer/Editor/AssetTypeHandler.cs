@@ -29,6 +29,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return new AssetVisualizationNodeData(node);
         }
 
+        public string GetNodeDisplayName(Node node)
+        {
+            return node.Name;
+        }
+
         public void SelectInEditor(string id)
         {
             string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
@@ -43,7 +48,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 {
                     return;
                 }
-                
+
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
 
                 if (afileId == fileId)
@@ -82,7 +87,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             return _selectedAsset != null;
         }
-        
+
         private void HandleSyncToExplorer()
         {
             if (_explorerSyncModePref.GetValue())

@@ -1,4 +1,5 @@
-﻿using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+﻿using System.IO;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -22,6 +23,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public VisualizationNodeData CreateNodeCachedData(Node node)
 		{
 			return new FileVisualizationNodeData(node);
+		}
+
+		public string GetNodeDisplayName(Node node)
+		{
+			return Path.GetFileName(node.Name);
 		}
 
 		public void SelectInEditor(string id)

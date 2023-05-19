@@ -11,14 +11,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class NodeDependencyLookupContext
 	{
 		public Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
-		
+
 		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts = new Dictionary<string, NodeDependencyLookupContext>();
-		
+
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
 		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		public DependencyTypeLookup DependencyTypeLookup;
 		public Dictionary<string, CreatedDependencyCache> CreatedCaches = new Dictionary<string, CreatedDependencyCache>();
-		
+
 		public static NodeDependencyLookupContext GetStateContextForName(string name)
 		{
 			if(!m_stateContexts.ContainsKey(name))
@@ -37,20 +37,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			m_stateContexts.Clear();
 		}
-		
+
 		public void Reset()
 		{
 			RelationsLookup = new RelationLookup.RelationsLookup();
-			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
+			//NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 			DependencyTypeLookup = null;
 		}
-		
+
 		public void UpdateFromDefinition(ResolverUsageDefinitionList definitionList)
 		{
 			foreach (ResolverUsageDefinitionList.Entry entry in definitionList.CacheUsages)
 			{
 				string cacheTypeFullName = entry.CacheType.FullName;
-				
+
 				if (!CreatedCaches.ContainsKey(cacheTypeFullName))
 				{
 					IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(entry.CacheType);
@@ -61,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				CreatedCaches[cacheTypeFullName].AddResolver(entry.ResolverType, entry.ConnectionTypes);
 			}
-			
+
 			DependencyTypeLookup = new DependencyTypeLookup(GetCaches());
 		}
 
