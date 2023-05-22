@@ -27,18 +27,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void SetValidGUIDs();
 		void Initialize(AssetDependencyCache cache);
-		void GetDependenciesForId(string assetId, List<Dependency> dependencies);
 		bool IsGuidValid(string path);
 
 		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
-		void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
-
-		void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+		void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
+		void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
 
 		// Returns a dependency result of the given serialized property is a UnityEngine.Object
 		public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type);
-
-		void AddDependency(string id, Dependency dependency);
 	}
 
 	/// <summary>

@@ -86,10 +86,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     FindDependenciesForAssets(changedAssetIds, resolver, path, fileToAssetMappingDictionary);
                 }
 
-                if (j % 3000 == 0)
+                /*if (j % 3000 == 0)
                 {
                     EditorUtility.UnloadUnusedAssetsImmediate();
-                }
+                }*/
             }
 
             fileToAssetMappings = fileToAssetMappingDictionary.Values.ToArray();

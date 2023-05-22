@@ -3,11 +3,40 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
-using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	public class ResolverDependencySearchContext
+	{
+		public string AssetId = string.Empty;
+		public List<IAssetDependencyResolver> Resolvers;
+		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies;
+
+		public ResolverDependencySearchContext(string assetId, List<IAssetDependencyResolver> resolvers)
+		{
+			AssetId = assetId;
+			Resolvers = resolvers;
+			ResolverDependencies = new Dictionary<IAssetDependencyResolver, List<Dependency>>();
+
+			foreach (IAssetDependencyResolver resolver in resolvers)
+			{
+				ResolverDependencies.Add(resolver, new List<Dependency>());
+			}
+		}
+
+		public void AddDependency(IAssetDependencyResolver resolver, Dependency dependency)
+		{
+			if (dependency.Id == AssetId)
+			{
+				// Dont add self dependency
+				return;
+			}
+
+			ResolverDependencies[resolver].Add(dependency);
+		}
+	}
+
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
 		private class ReflectionStackItem
@@ -31,19 +60,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public void Search(string assetId, List<IAssetDependencyResolver> resolvers)
+		public void Search(ResolverDependencySearchContext searchContext)
 		{
-			Object asset = NodeDependencyLookupUtility.GetAssetById(assetId);
+			Object asset = NodeDependencyLookupUtility.GetAssetById(searchContext.AssetId);
 
 			if (asset == null)
 			{
 				return;
 			}
 
-			Traverse(assetId, resolvers, asset, new Stack<PathSegment>());
+			Traverse(searchContext, asset, new Stack<PathSegment>());
 		}
 
-		protected override void TraverseObject(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
+		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj, bool onlyOverriden, Stack<PathSegment> stack)
 		{
 			// this can happen if the linked asset doesnt exist anymore
 			if (obj == null)
@@ -87,7 +116,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					{
 						if (propertyType == SerializedPropertyType.ObjectReference)
 						{
-							TraverseProperty(resolvers, id, property.objectReferenceValue, propertyType, property.propertyPath, stack);
+							TraverseProperty(searchContext, property.objectReferenceValue, propertyType, property.propertyPath, stack);
 						}
 
 						continue;
@@ -110,7 +139,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						continue;
 					}
 
-					TraverseProperty(resolvers, id, generic, propertyType, propertyPath, stack);
+					TraverseProperty(searchContext, generic, propertyType, propertyPath, stack);
 				}
 			} while (property.Next(propertyType == SerializedPropertyType.Generic));
 
@@ -185,35 +214,35 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return tokenCount + 1;
 		}
 
-		protected override void TraversePrefab(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
 		{
-			foreach (IAssetDependencyResolver resolver in resolvers)
+			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
 			{
-				resolver.TraversePrefab(id, obj, stack);
+				resolver.TraversePrefab(searchContext, obj, stack);
 			}
 		}
 
-		protected override void TraversePrefabVariant(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
 		{
-			foreach (IAssetDependencyResolver resolver in resolvers)
+			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
 			{
-				resolver.TraversePrefabVariant(id, obj, stack);
+				resolver.TraversePrefabVariant(searchContext, obj, stack);
 			}
 		}
 
-		private void TraverseProperty(List<IAssetDependencyResolver> resolvers, string assetId, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
+		private void TraverseProperty(ResolverDependencySearchContext searchContext, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			foreach (IAssetDependencyResolver resolver in resolvers)
+			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
 			{
-				AssetDependencyResolverResult result = resolver.GetDependency(assetId, obj, propertyPath, type);
+				AssetDependencyResolverResult result = resolver.GetDependency(searchContext.AssetId, obj, propertyPath, type);
 
-				if (result == null || assetId == result.Id)
+				if (result == null || searchContext.AssetId == result.Id)
 				{
 					continue;
 				}
 
 				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-				resolver.AddDependency(assetId, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
+				searchContext.AddDependency(resolver, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
 			}
 		}

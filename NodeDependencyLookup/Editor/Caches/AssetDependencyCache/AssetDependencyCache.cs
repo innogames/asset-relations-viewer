@@ -168,12 +168,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					FindDependenciesForResolvers(resolversToExecute, result, path, list);
 				}
 
-				if (j % 3000 == 0)
+				/*if (j % 3000 == 0)
 				{
 					Resources.UnloadUnusedAssets();
 					EditorUtility.UnloadUnusedAssetsImmediate();
 					GC.Collect();
-				}
+				}*/
 			}
 
 			_fileToAssetNodes = list.Values.ToArray();
@@ -188,11 +188,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (string assetId in assetIds)
 			{
-				_hierarchyTraverser.Search(assetId, resolvers);
+				ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext(assetId, resolvers);
+				_hierarchyTraverser.Search(searchContext);
 
 				foreach (IAssetDependencyResolver resolver in resolvers)
 				{
-					GetDependenciesForAssetInResolver(assetId, resolver, list);
+					GetDependenciesForResolver(searchContext, resolver, list);
 				}
 
 				result.Add(assetId);
@@ -251,10 +252,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return hasChanges;
 		}
 
-		private void GetDependenciesForAssetInResolver(string assetId, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
+		private void GetDependenciesForResolver(ResolverDependencySearchContext searchContext, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
 		{
 			string resolverId = resolver.GetId();
-			string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+			string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId);
 
 			if (!resultList.ContainsKey(fileId))
 			{
@@ -262,11 +263,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			FileToAssetNode fileToAssetNode = resultList[fileId];
-			AssetNode assetNode = fileToAssetNode.GetAssetNode(assetId);
+			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 
-			List<Dependency> dependencies = new List<Dependency>();
-
-			resolver.GetDependenciesForId(assetId, dependencies);
+			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
 
 			AssetNode.ResolverData resolverData = assetNode.GetResolverData(resolverId);
 

@@ -54,57 +54,29 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private Dictionary<object, string> cachedAssetAsDependencyData = new Dictionary<object, string>();
 
-        public readonly Dictionary<string, List<Dependency>> Dependencies = new Dictionary<string, List<Dependency>>();
-
-        public void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
+        public void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
         {
-            AddPrefabAsDependency(id, obj, stack);
+            AddPrefabAsDependency(searchContext, obj, stack);
         }
 
-        public void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+        public void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
         {
             stack.Push(new PathSegment("Variant Of", PathSegmentType.Component));
-            AddPrefabAsDependency(id, obj, stack);
+            AddPrefabAsDependency(searchContext, obj, stack);
             stack.Pop();
         }
 
-        private void AddPrefabAsDependency(string id, Object obj, Stack<PathSegment> stack)
+        private void AddPrefabAsDependency(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
         {
             Object correspondingObjectFromSource = PrefabUtility.GetCorrespondingObjectFromSource(obj);
             string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(correspondingObjectFromSource);
             string assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
-            if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(id))
+            if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId))
             {
-                AddDependency(id, new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
+	            searchContext.AddDependency(this, new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
             }
-        }
-
-        public void AddDependency(string id, Dependency dependency)
-        {
-	        if (!Dependencies.ContainsKey(id))
-	        {
-		        Dependencies.Add(id, new List<Dependency>());
-	        }
-
-	        Dependencies[id].Add(dependency);
-        }
-
-        public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
-        {
-	        if (Dependencies.ContainsKey(assetId))
-	        {
-		        foreach (Dependency dependency in Dependencies[assetId])
-		        {
-			        string dependencyGuid = dependency.Id;
-
-			        if (dependencyGuid != assetId)
-			        {
-				        dependencies.Add(dependency);
-			        }
-		        }
-	        }
         }
 
         private string GetAssetPathForAsset(string sourceAssetId, object obj)
@@ -212,7 +184,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Initialize(AssetDependencyCache cache)
 		{
-			Dependencies.Clear();
 		}
 	}
 }
