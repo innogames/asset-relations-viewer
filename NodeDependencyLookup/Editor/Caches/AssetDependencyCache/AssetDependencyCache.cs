@@ -3,17 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.U2D;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public struct AssetResolverData
-	{
-		public IDependencyResolver Resolver;
-		public HashSet<string> ChangedAssets;
-	}
-
 	/**
 	 * Cache to store all dependencies of assets to other nodes
 	 */
@@ -122,53 +118,85 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !Application.isPlaying && !EditorApplication.isCompiling;
 		}
 
-		private HashSet<string> GetChangedAssetIdsForResolver(IAssetDependencyResolver resolver, string[] pathes, long[] timestamps, FileToAssetNode[] fileToAssetNodes)
+		private HashSet<string> GetChangedAssetIdsForResolvers(List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
 		{
 			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
-			string id = resolver.GetId();
-			string progressBarTitle = $"AssetDependencyCache: {id}";
+			string progressBarTitle = $"AssetDependencyCache";
+
+			List<IAssetDependencyResolver> resolversToExecute = new List<IAssetDependencyResolver>();
 
 			float lastDisplayedPercentage = 0;
 
-			for (int i = 0; i < pathes.Length; ++i)
+			for (int i = 0, j = 0; i < pathes.Length; ++i)
 			{
-				float progressPercentage = (float) i / pathes.Length;
-
-				if (progressPercentage - lastDisplayedPercentage > 0.01f)
+				if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, $"Finding Dependencies {pathes[i]}", (float)i / pathes.Length))
 				{
-					if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, $"Finding and loading changed assets {result.Count}", (float)i / pathes.Length))
-					{
-						throw new DependencyUpdateAbortedException();
-					}
-
-					lastDisplayedPercentage = progressPercentage;
+					throw new DependencyUpdateAbortedException();
 				}
 
 				string path = pathes[i];
 				string guid = AssetDatabase.AssetPathToGUID(path);
 
-				if (!resolver.IsGuidValid(guid))
-				{
-					continue;
-				}
+				resolversToExecute.Clear();
 
-				if (list.ContainsKey(guid))
+				foreach (IAssetDependencyResolver resolver in resolvers)
 				{
-					FileToAssetNode fileToAssetNode = list[guid];
-
-					if (fileToAssetNode.GetResolverTimeStamp(id).TimeStamp != timestamps[i])
+					if (!resolver.IsGuidValid(guid))
 					{
-						NodeDependencyLookupUtility.AddAssetsToList(result, path);
+						continue;
+					}
+
+					if (list.ContainsKey(guid))
+					{
+						FileToAssetNode fileToAssetNode = list[guid];
+
+						if (fileToAssetNode.GetResolverTimeStamp(resolver.GetId()).TimeStamp != timestamps[i])
+						{
+							resolversToExecute.Add(resolver);
+						}
+					}
+					else
+					{
+						resolversToExecute.Add(resolver);
 					}
 				}
-				else
+
+				if (resolversToExecute.Count > 0)
 				{
-					NodeDependencyLookupUtility.AddAssetsToList(result, path);
+					j++;
+					FindDependenciesForResolvers(resolversToExecute, result, path, list);
+				}
+
+				if (j % 3000 == 0)
+				{
+					Resources.UnloadUnusedAssets();
+					EditorUtility.UnloadUnusedAssetsImmediate();
+					GC.Collect();
 				}
 			}
 
+			_fileToAssetNodes = list.Values.ToArray();
+
 			return result;
+		}
+
+		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list)
+		{
+			HashSet<string> assetIds = new HashSet<string>();
+			NodeDependencyLookupUtility.AddAssetsToList(assetIds, path);
+
+			foreach (string assetId in assetIds)
+			{
+				_hierarchyTraverser.Search(assetId, resolvers);
+
+				foreach (IAssetDependencyResolver resolver in resolvers)
+				{
+					GetDependenciesForAssetInResolver(assetId, resolver, list);
+				}
+
+				result.Add(assetId);
+			}
 		}
 
 		public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
@@ -186,6 +214,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
+			SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
+
 			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 
 			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
@@ -196,10 +226,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
-			List<AssetResolverData> data = new List<AssetResolverData>();
-
-			_hierarchyTraverser.Clear();
+			_hierarchyTraverser.Initialize();
 			bool hasChanges = false;
+
+			List<IAssetDependencyResolver> resolvers = new List<IAssetDependencyResolver>();
 
 			foreach (CreatedResolver resolverUsage in createdDependencyCache.ResolverUsages)
 			{
@@ -210,36 +240,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				IAssetDependencyResolver resolver = (IAssetDependencyResolver) resolverUsage.Resolver;
+				resolvers.Add(resolver);
 
-				HashSet<string> changedAssets = GetChangedAssetIdsForResolver(resolver, pathes, timestamps, _fileToAssetNodes);
-				data.Add(new AssetResolverData{ChangedAssets = changedAssets, Resolver = resolver});
-
-				resolver.Initialize(this, changedAssets);
-
-				hasChanges |= changedAssets.Count > 0;
+				resolver.Initialize(this);
 			}
 
-			// Execute the searcher for all registered subsystems here to find hierarchy and property pathes
-			_hierarchyTraverser.Search();
-
-			Dictionary<string, FileToAssetNode> nodeDict = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetNodes);
-
-			foreach (AssetResolverData resolverData in data)
-			{
-				GetDependenciesForAssetsInResolver(resolverData.ChangedAssets, resolverData.Resolver as IAssetDependencyResolver, nodeDict);
-			}
-
-			_fileToAssetNodes = nodeDict.Values.ToArray();
+			HashSet<string> changedAssets = GetChangedAssetIdsForResolvers(resolvers, pathes, timestamps, ref _fileToAssetNodes);
+			hasChanges |= changedAssets.Count > 0;
 
 			return hasChanges;
-		}
-
-		private void GetDependenciesForAssetsInResolver(HashSet<string> changedAssets, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
-		{
-			foreach (string assetId in changedAssets)
-			{
-				GetDependenciesForAssetInResolver(assetId, resolver, resultList);
-			}
 		}
 
 		private void GetDependenciesForAssetInResolver(string assetId, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -10,6 +11,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		DependencyType GetDependencyTypeForId(string typeId);
 	}
 
+	public class AssetDependencyResolverResult
+	{
+		public string Id;
+		public string DependencyType;
+		public string NodeType;
+	}
+
 	/// <summary>
 	/// A ICustomAssetDependencyResolver is a class which enables to show relations between assets that are not found by unity AssetDatabase.GetDependencies() function
 	/// A usecase for this would be the atlases in NGUI where you maybe want to see that there is a relation between the atlas and the textures which it is using as a raw input.
@@ -18,9 +26,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public interface IAssetDependencyResolver : IDependencyResolver
 	{
 		void SetValidGUIDs();
-		void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets);
+		void Initialize(AssetDependencyCache cache);
 		void GetDependenciesForId(string assetId, List<Dependency> dependencies);
 		bool IsGuidValid(string path);
+
+		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
+		void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
+
+		void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+
+		// Returns a dependency result of the given serialized property is a UnityEngine.Object
+		public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type);
+
+		void AddDependency(string id, Dependency dependency);
 	}
 
 	/// <summary>

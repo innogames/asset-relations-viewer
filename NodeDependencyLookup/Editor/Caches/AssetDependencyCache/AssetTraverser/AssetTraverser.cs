@@ -15,14 +15,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public abstract class AssetTraverser
 	{
 		// Traverses an object (Monobehaviour, ScriptableObject) to get the dependencies from it
-		protected abstract void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden);
-		
+		protected abstract void TraverseObject(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack, bool onlyOverriden);
+
 		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
-		protected abstract void TraversePrefab(string id, Object obj, Stack<PathSegment> stack);
+		protected abstract void TraversePrefab(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack);
 
-		protected abstract void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack);
+		protected abstract void TraversePrefabVariant(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack);
 
-		protected void Traverse(string id, Object obj, Stack<PathSegment> stack)
+		protected void Traverse(string id, List<IAssetDependencyResolver> resolvers, Object obj, Stack<PathSegment> stack)
 		{
 			// TODO avoid adding them at another place
 			if (obj is Mesh)
@@ -32,19 +32,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (obj is GameObject gameObject)
 			{
-				TraverseGameObject(id, gameObject, stack, null);
+				TraverseGameObject(id, resolvers, gameObject, stack, null);
 			}
 			else if (obj is SceneAsset sceneAsset)
 			{
-				TraverseScene(id, sceneAsset, stack);
+				TraverseScene(id, resolvers, sceneAsset, stack);
 			}
 			else
 			{
-				TraverseObject(id, obj, stack, false);
+				TraverseObject(id, resolvers, obj, stack, false);
 			}
 		}
 
-		private void TraverseScene(string id, SceneAsset sceneAsset, Stack<PathSegment> stack)
+		private void TraverseScene(string id, List<IAssetDependencyResolver> resolvers, SceneAsset sceneAsset, Stack<PathSegment> stack)
 		{
 			string path = AssetDatabase.GetAssetPath(sceneAsset);
 
@@ -55,12 +55,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
-			TraverseObject(id, sceneAsset, new Stack<PathSegment>(), false);
+			TraverseObject(id, resolvers, sceneAsset, new Stack<PathSegment>(), false);
 
 			foreach (GameObject go in scene.GetRootGameObjects())
 			{
 				stack.Push(new PathSegment(go.name, PathSegmentType.GameObject));
-				TraverseGameObject(id, go, stack, null);
+				TraverseGameObject(id, resolvers, go, stack, null);
 				stack.Pop();
 			}
 
@@ -69,7 +69,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #pragma warning restore 618
 		}
 
-		private void TraverseGameObject(string id, GameObject go, Stack<PathSegment> stack, Object currentPrefab)
+		private void TraverseGameObject(string id, List<IAssetDependencyResolver> resolvers, GameObject go, Stack<PathSegment> stack, Object currentPrefab)
 		{
 			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
@@ -89,18 +89,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					if (prefabAssetType == PrefabAssetType.Regular)
 					{
-						TraversePrefab(id, go, stack);
+						TraversePrefab(id, resolvers, go, stack);
 					}
 					else
 					{
-						TraversePrefabVariant(id, go, stack);
+						TraversePrefabVariant(id, resolvers, go, stack);
 					}
-					
+
 					currentPrefab = prefabObj;
 				}
 			}
 #endif
-			
+
 #if !UNITY_2018_3_OR_NEWER
 			PrefabType prefabType = PrefabUtility.GetPrefabType(go);
 
@@ -116,7 +116,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 #endif
-			
+
 			Dictionary<string, int> componentToCount = new Dictionary<string, int>();
 			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;
 
@@ -128,7 +128,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				bool componentOverriden = onlyOverriden;
-				
+
 				if (isPrefabInstance)
 				{
 					bool isAddedComponent = addedComponents.Any(addedComponent => addedComponent.instanceComponent == component);
@@ -144,9 +144,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				int sameComponentCount = componentToCount[componentName]++;
 				string segmentName = sameComponentCount > 1 ? $"{componentName}_{sameComponentCount}" : componentName;
-				
+
 				stack.Push(new PathSegment(segmentName, PathSegmentType.Component));
-				TraverseObject(id, component, stack, componentOverriden);
+				TraverseObject(id, resolvers, component, stack, componentOverriden);
 				stack.Pop();
 			}
 
@@ -155,7 +155,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				GameObject child = go.transform.GetChild(i).gameObject;
 
 				stack.Push(new PathSegment(child.name, PathSegmentType.GameObject));
-				TraverseGameObject(id, child, stack, currentPrefab);
+				TraverseGameObject(id, resolvers, child, stack, currentPrefab);
 				stack.Pop();
 			}
 		}
