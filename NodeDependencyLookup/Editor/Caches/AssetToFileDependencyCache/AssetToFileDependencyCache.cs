@@ -99,13 +99,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private void FindDependenciesForAssets(HashSet<string> changedAssetIds, IAssetToFileDependencyResolver resolver, string path, Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
         {
-            HashSet<string> assetIds = new HashSet<string>();
-            NodeDependencyLookupUtility.AddAssetsToList(assetIds, path);
+            List<AssetListEntry> entries = new List<AssetListEntry>();
+            NodeDependencyLookupUtility.AddAssetsToList(entries, path);
 
-            foreach (string assetId in assetIds)
+            foreach (AssetListEntry entry in entries)
             {
-                GetDependenciesForAssetInResolver(assetId, resolver, fileToAssetMappingDictionary);
-                changedAssetIds.Add(assetId);
+                GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, resolver, fileToAssetMappingDictionary);
+                changedAssetIds.Add(entry.AssetId);
             }
         }
 
@@ -150,7 +150,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return hasChanges;
         }
 
-        private void GetDependenciesForAssetInResolver(string assetId, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
+        private void GetDependenciesForAssetInResolver(string assetId, UnityEngine.Object asset, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
         {
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
@@ -163,7 +163,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             GenericDependencyMappingNode genericDependencyMappingNode = fileToAssetsMapping.GetFileNode(assetId);
 
             genericDependencyMappingNode.Dependencies.Clear();
-            resolver.GetDependenciesForId(assetId, genericDependencyMappingNode.Dependencies);
+            resolver.GetDependenciesForAsset(assetId, genericDependencyMappingNode.Dependencies);
 
             fileToAssetsMapping.Timestamp = NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
         }
@@ -269,7 +269,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public interface IAssetToFileDependencyResolver : IDependencyResolver
     {
         void Initialize(AssetToFileDependencyCache cache);
-        void GetDependenciesForId(string assetId, List<Dependency> dependencies);
+        void GetDependenciesForAsset(string assetId, List<Dependency> dependencies);
     }
 
     public class AssetToFileDependencyResolver : IAssetToFileDependencyResolver
@@ -297,7 +297,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
         }
 
-        public void GetDependenciesForId(string assetId, List<Dependency> dependencies)
+        public void GetDependenciesForAsset(string assetId, List<Dependency> dependencies)
         {
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
             dependencies.Add(new Dependency(fileId, AssetToFileDependency.Name, FileNodeType.Name, new []{new PathSegment(FileNodeType.Name, PathSegmentType.Property)}));

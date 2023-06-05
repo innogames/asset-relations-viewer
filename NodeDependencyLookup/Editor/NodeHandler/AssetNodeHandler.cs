@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.U2D;
-using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -14,20 +11,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public const string Name = "Asset";
 	}
 
+	public class SerializedNodeData
+	{
+		public string Id;
+		public string Name;
+		public string Type;
+		public int Size;
+		public long TimeStamp;
+	}
+
 	/**
 	 * NodeHandler for assets
 	 */
 	public class AssetNodeHandler : INodeHandler
 	{
-		private class SerializedTypeAndName
-		{
-			public string Id;
-			public string Name;
-			public string Type;
-			public long TimeStamp;
-		}
-
-		private readonly Dictionary<string, SerializedTypeAndName> _typeAndNameLookup = new Dictionary<string, SerializedTypeAndName>();
+		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup = new Dictionary<string, SerializedNodeData>();
+		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>();
+		private Dictionary<string, Object> idToAssetLookup = new Dictionary<string, Object>();
 
 		public string GetHandledNodeType()
 		{
@@ -40,8 +40,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				if (dependency.DependencyType == AssetToFileDependency.Name)
 				{
-					Node.NodeSize ownNodeSize = NodeDependencyLookupUtility.UpdateNodeSize(dependency.Node, stateContext);
+					Node.NodeSize ownNodeSize = NodeDependencyLookupUtility.GetNodeSize(dependency.Node, stateContext);
 					ownNodeSize.ContributesToTreeSize = false;
+
 					return ownNodeSize;
 				}
 			}
@@ -71,25 +72,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
 		}
 
-		public void InitNameAndTypeInformation()
+		public void InitNodeDataInformation()
 		{
-			LoadTypeAndNameCache();
+			LoadNodeDataCache();
 		}
 
 		public void SaveCaches()
 		{
-			SerializeCache();
+			SaveNodeDataCache();
+			idToAssetLookup.Clear();
+			cachedTimeStamps.Clear();
 		}
 
 		private string GetCachePath()
 		{
-			string version = "1.0";
-			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH, $"AssetNodeHandlerCache_{version}.cache");
+			string version = "2.2";
+			string buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
+			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH, $"AssetNodeHandlerCache_{buildTarget}_{version}.cache");
 		}
 
-		private void LoadTypeAndNameCache()
+		private void LoadNodeDataCache()
 		{
-			_typeAndNameLookup.Clear();
+			_cachedNodeDataLookup.Clear();
 
 			string cachePath = GetCachePath();
 
@@ -107,13 +111,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				string name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 				long timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
-				_typeAndNameLookup.Add(id, new SerializedTypeAndName{Id = id, Type = type, Name = name, TimeStamp = timeStamp});
+				_cachedNodeDataLookup.Add(id, new SerializedNodeData{Id = id, Type = type, Name = name, Size = -1, TimeStamp = timeStamp});
 			}
 		}
 
-		private void SerializeCache()
+		private void SaveNodeDataCache()
 		{
-			if (_typeAndNameLookup.Count == 0)
+			if (_cachedNodeDataLookup.Count == 0)
 			{
 				return;
 			}
@@ -121,9 +125,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			int offset = 0;
 			byte[] bytes = new byte[512 * 1024];
 
-			CacheSerializerUtils.EncodeLong(_typeAndNameLookup.Count, ref bytes, ref offset);
+			CacheSerializerUtils.EncodeLong(_cachedNodeDataLookup.Count, ref bytes, ref offset);
 
-			foreach (var pair in _typeAndNameLookup)
+			foreach (var pair in _cachedNodeDataLookup)
 			{
 				CacheSerializerUtils.EncodeString(pair.Value.Id, ref bytes, ref offset);
 				CacheSerializerUtils.EncodeString(pair.Value.Type, ref bytes, ref offset);
@@ -136,43 +140,69 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			File.WriteAllBytes(GetCachePath(), bytes);
 		}
 
-		public void GetNameAndType(string id, out string name, out string type)
+		public Node CreateNode(string id, string type, bool update)
 		{
 			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
 			if (string.IsNullOrEmpty(path))
 			{
-				GetNameAndType(guid, id, out name, out type);
-				return;
+				return null;
 			}
 
-			long timeStamp = File.GetLastWriteTime(path).Millisecond;
+			bool wasCached = _cachedNodeDataLookup.TryGetValue(id, out SerializedNodeData cachedValue);
+			long timeStamp = 0;
+			bool timeStampChanged = false;
 
-			if (_typeAndNameLookup.TryGetValue(id, out SerializedTypeAndName value) && value.TimeStamp == timeStamp)
+			if (update)
 			{
-				name = value.Name;
-				type = value.Type;
-				return;
+				if (cachedTimeStamps.TryGetValue(guid, out long value))
+				{
+					timeStamp = value;
+				}
+				else
+				{
+					timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(path);
+					cachedTimeStamps.Add(guid, timeStamp);
+				}
+
+				timeStampChanged = !wasCached || cachedValue.TimeStamp != timeStamp;
+			}
+			else if(wasCached)
+			{
+				timeStamp = cachedValue.TimeStamp;
 			}
 
-			GetNameAndType(guid, id, out name, out type);
-			SerializedTypeAndName typeAndName = new SerializedTypeAndName{Id = id, Name = name, Type = type, TimeStamp = timeStamp};
-
-			if (_typeAndNameLookup.ContainsKey(id))
+			if (wasCached && !timeStampChanged)
 			{
-				_typeAndNameLookup[id] = typeAndName;
+				return new Node(id, type, cachedValue.Name, cachedValue.Type, cachedValue.TimeStamp);
+			}
+
+			GetNameAndType(guid, id, out string name, out string concreteType);
+			SerializedNodeData cachedSerializedNodeData = new SerializedNodeData{Id = id, Name = name, Type = concreteType, Size = -1, TimeStamp = timeStamp};
+
+			if (!wasCached)
+			{
+				_cachedNodeDataLookup.Add(id, cachedSerializedNodeData);
 			}
 			else
 			{
-				_typeAndNameLookup.Add(id, typeAndName);
+				_cachedNodeDataLookup[id] = cachedSerializedNodeData;
 			}
+
+			return new Node(id, type, name, concreteType, timeStamp);
 		}
 
 		private void GetNameAndType(string guid, string id, out string name, out string type)
 		{
 			string path = AssetDatabase.GUIDToAssetPath(guid);
-			Object asset = NodeDependencyLookupUtility.GetAssetById(id);
+
+			if (!idToAssetLookup.ContainsKey(id))
+			{
+				NodeDependencyLookupUtility.AddAllAssetsOfId(id, idToAssetLookup);
+			}
+
+			idToAssetLookup.TryGetValue(id, out Object asset);
 
 			if (asset != null)
 			{

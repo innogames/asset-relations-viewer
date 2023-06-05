@@ -25,12 +25,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !IsSpriteOfSpriteAtlas(source, target);
 		}
 
+		private string spriteTypeFullName = typeof(Sprite).FullName;
+		private string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
+
 		private bool IsSpriteOfSpriteAtlas(Node source, Node target)
 		{
-			Type spriteType = typeof(Sprite);
-			Type spriteAtlasType = typeof(SpriteAtlas);
-
-			return source.ConcreteType == spriteAtlasType.FullName && target.ConcreteType == spriteType.FullName;
+			return source.ConcreteType == spriteAtlasTypeName && target.ConcreteType == spriteTypeFullName;
 		}
 	}
 

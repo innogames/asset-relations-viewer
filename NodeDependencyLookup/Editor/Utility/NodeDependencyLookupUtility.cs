@@ -13,6 +13,11 @@ using UnityEditor.Experimental;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+    public class AssetListEntry
+    {
+        public string AssetId;
+        public UnityEngine.Object Asset;
+    }
     /// <summary>
     /// Contains utility functions that are needed by the AssetRelationsWindow but should be independent from the class so they can be used from other places
     /// </summary>
@@ -40,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
         {
             Dictionary<string, CreatedResolver> resolverUsagesLookup = createdCache.ResolverUsagesLookup;
-            return resolverUsagesLookup.ContainsKey(id) && resolverUsagesLookup[id].DependencyTypes.Contains(connectionType);
+            return resolverUsagesLookup.TryGetValue(id, out CreatedResolver resolver) && resolver.DependencyTypes.Contains(connectionType);
         }
 
         public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -94,6 +99,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             stateContext.UpdateFromDefinition(resolverUsageDefinitionList);
 
             List<CreatedDependencyCache> caches = stateContext.GetCaches();
+            bool needsDataUpdate = false;
 
             foreach (CreatedDependencyCache cacheUsage in caches)
             {
@@ -119,6 +125,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     Profiler.EndSample();
                 }
 
+                needsDataUpdate |= updateInfo.Update;
+
                 if (cache.CanUpdate())
                 {
                     bool hasChanges = cache.Update(resolverUsageDefinitionList, updateInfo.Update);
@@ -136,7 +144,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             RelationLookup.RelationsLookup lookup = new RelationLookup.RelationsLookup();
             Profiler.BeginSample("BuildLookup");
-            lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate);
+            lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
             Profiler.EndSample();
 
             stateContext.RelationsLookup = lookup;
@@ -289,20 +297,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static Node.NodeSize UpdateNodeSize(Node node, NodeDependencyLookupContext stateContext, bool forceUpdate = true)
+        public static Node.NodeSize GetNodeSize(Node node, NodeDependencyLookupContext stateContext, bool forceUpdate = true)
         {
             if (!(forceUpdate || node.OwnSize.Size == -1))
             {
                 return node.OwnSize;
             }
 
-            if (!stateContext.NodeHandlerLookup.ContainsKey(node.Type))
+            if (stateContext.NodeHandlerLookup.TryGetValue(node.Type, out INodeHandler nodeHandler))
             {
-                return new Node.NodeSize();
+                return nodeHandler.GetOwnFileSize(node, stateContext);
             }
 
-            node.OwnSize = stateContext.NodeHandlerLookup[node.Type].GetOwnFileSize(node, stateContext);
-            return node.OwnSize;
+            return new Node.NodeSize();
         }
 
         public static int GetTreeSize(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> flattenedHierarchy)
@@ -387,6 +394,33 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return null;
         }
 
+        public static void AddAllAssetsOfId(string id, Dictionary<string, Object> list)
+        {
+            string guid = GetGuidFromAssetId(id);
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Object[] assetsAtPath = LoadAllAssetsAtPath(path);
+
+            foreach (Object asset in assetsAtPath)
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+
+                string assetId = GetAssetIdForAsset(asset);
+
+                if (!list.ContainsKey(assetId))
+                {
+                    list.Add(assetId, asset);
+                }
+            }
+
+            if (!list.ContainsKey(id))
+            {
+                list.Add(id, null);
+            }
+        }
+
         public static Object GetMainAssetById(string id)
         {
             string guid = GetGuidFromAssetId(id);
@@ -425,7 +459,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return pathList.ToArray();
         }
 
-        public static void AddAssetsToList(HashSet<string> assetList, string path)
+        public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
         {
             Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             Object[] allAssets = LoadAllAssetsAtPath(path);
@@ -450,7 +484,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 if (!(mainAsset is GameObject) || (AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset)))
                 {
                     AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileID);
-                    assetList.Add($"{guid}_{fileID}");
+                    assetList.Add(new AssetListEntry{AssetId = $"{guid}_{fileID}", Asset = asset});
                 }
             }
         }
@@ -584,52 +618,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                 if (node.OwnSize.Size == -1)
                 {
-                    node.OwnSize = UpdateNodeSize(node, context);
+                    node.OwnSize = GetNodeSize(node, context);
                 }
 
-                if (i % 100 == 0)
+                if (i % 1000 == 0)
                 {
-                    EditorUtility.DisplayProgressBar("Calculating all node sizes", "", i / (float)nodes.Count);
+                    EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}", i / (float)nodes.Count);
                 }
             }
 
             EditorUtility.ClearProgressBar();
-        }
-
-        public static void CalculateAllNodeNameAndTypeInformation(List<Node> nodes, NodeDependencyLookupContext context)
-        {
-            bool changed = false;
-
-            for (var i = 0; i < nodes.Count; i++)
-            {
-                Node node = nodes[i];
-
-                if (!string.IsNullOrEmpty(node.Name))
-                {
-                    continue;
-                }
-
-                INodeHandler nodeHandler = context.NodeHandlerLookup[node.Type];
-                nodeHandler.GetNameAndType(node.Id, out node.Name, out node.ConcreteType);
-                changed = true;
-
-                if (i % 100 == 0)
-                {
-                    EditorUtility.DisplayProgressBar("Calculating all node name and type info", "", i / (float)nodes.Count);
-                }
-            }
-
-            EditorUtility.ClearProgressBar();
-
-            if (!changed)
-            {
-                return;
-            }
-
-            foreach (KeyValuePair<string,INodeHandler> pair in context.NodeHandlerLookup)
-            {
-                pair.Value.SaveCaches();
-            }
         }
 
         /**

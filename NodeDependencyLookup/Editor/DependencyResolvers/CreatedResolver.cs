@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void AddResolver(Type resolverType, List<string> dependencyTypes)
 		{
 			string resolverTypeFullName = resolverType.FullName;
-			
+
 			if (!CreatedResolvers.ContainsKey(resolverTypeFullName))
 			{
 				IDependencyResolver dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(resolverType);
@@ -39,7 +39,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			string[] collection = dependencyTypes != null ? dependencyTypes.ToArray() : createdResolver.Resolver.GetDependencyTypes();
-			createdResolver.DependencyTypes = new HashSet<string>(collection);
+			createdResolver.DependencyTypes = new List<string>(collection);
 			createdResolver.IsActive = true;
 		}
 
@@ -47,7 +47,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			ResolverUsages.Clear();
 			ResolverUsagesLookup.Clear();
-			
+
 			foreach (KeyValuePair<string,CreatedResolver> pair in CreatedResolvers)
 			{
 				pair.Value.IsActive = false;
@@ -61,9 +61,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			Resolver = resolver;
 		}
-		
+
 		public bool IsActive;
-		public HashSet<string> DependencyTypes = new HashSet<string>();
+		public List<string> DependencyTypes = new List<string>();
 		public IDependencyResolver Resolver;
 	}
 }

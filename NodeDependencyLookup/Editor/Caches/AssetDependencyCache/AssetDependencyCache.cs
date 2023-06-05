@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.Profiling;
-using UnityEngine.U2D;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -118,7 +117,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !Application.isPlaying && !EditorApplication.isCompiling;
 		}
 
-		private HashSet<string> GetChangedAssetIdsForResolvers(List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
+		private HashSet<string> FindDependenciesForChangedFilesForResolvers(List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
 		{
 			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
@@ -164,16 +163,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (resolversToExecute.Count > 0)
 				{
-					j++;
+					list.Remove(guid);
 					FindDependenciesForResolvers(resolversToExecute, result, path, list);
 				}
-
-				/*if (j % 3000 == 0)
-				{
-					Resources.UnloadUnusedAssets();
-					EditorUtility.UnloadUnusedAssetsImmediate();
-					GC.Collect();
-				}*/
 			}
 
 			_fileToAssetNodes = list.Values.ToArray();
@@ -183,12 +175,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list)
 		{
-			HashSet<string> assetIds = new HashSet<string>();
-			NodeDependencyLookupUtility.AddAssetsToList(assetIds, path);
+			List<AssetListEntry> entries = new List<AssetListEntry>();
+			NodeDependencyLookupUtility.AddAssetsToList(entries, path);
+			ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
 
-			foreach (string assetId in assetIds)
+			foreach (AssetListEntry entry in entries)
 			{
-				ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext(assetId, resolvers);
+				searchContext.AssetId = entry.AssetId;
+				searchContext.Asset = entry.Asset;
+				searchContext.SetResolvers(resolvers);
 				_hierarchyTraverser.Search(searchContext);
 
 				foreach (IAssetDependencyResolver resolver in resolvers)
@@ -196,7 +191,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					GetDependenciesForResolver(searchContext, resolver, list);
 				}
 
-				result.Add(assetId);
+				result.Add(entry.AssetId);
 			}
 		}
 
@@ -246,8 +241,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.Initialize(this);
 			}
 
-			HashSet<string> changedAssets = GetChangedAssetIdsForResolvers(resolvers, pathes, timestamps, ref _fileToAssetNodes);
-			hasChanges |= changedAssets.Count > 0;
+			HashSet<string> changedAssetIds = FindDependenciesForChangedFilesForResolvers(resolvers, pathes, timestamps, ref _fileToAssetNodes);
+			hasChanges |= changedAssetIds.Count > 0;
 
 			return hasChanges;
 		}

@@ -325,17 +325,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public void GetNameAndType(string id, out string name, out string type)
+        public Node CreateNode(string id, string type, bool update)
         {
-            type = "GameObject";
+            string concreteType = "GameObject";
+            string name = _hashToGameObject.ContainsKey(id) ? _hashToGameObject[id].name : id;
 
-            if (!_hashToGameObject.ContainsKey(id))
-            {
-                name = id;
-                return;
-            }
-
-            name = _hashToGameObject[id].name;
+            return new Node(id, type, name, concreteType, 0);
         }
 
         public long GetChangedTimeStamp(string id)
@@ -343,7 +338,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return -1;
         }
 
-        public void InitNameAndTypeInformation()
+        public void InitNodeDataInformation()
         {
             BuildHashToGameObjectMapping();
         }

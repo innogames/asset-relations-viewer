@@ -1141,20 +1141,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             ChangeSelection(_selectedNodeId, _selectedNodeType);
         }
 
-        private void CalculateAllNodeSizes(Node rootNode)
-        {
-            //HashSet<Node> nodes = NodeDependencyLookupUtility.CalculateAllReachableNodes(rootNode, _nodeSizesReachedNodes);
-            List<Node> allNodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
-            NodeDependencyLookupUtility.CalculateAllNodeNameAndTypeInformation(allNodes, _nodeDependencyLookupContext);
-
-            if (_displayData.ShowAdditionalInformation && !_skipNodeSizeUpdate)
-            {
-                HashSet<Node> nodes =
-                    NodeDependencyLookupUtility.CalculateAllReachableNodes(rootNode, _nodeSizesReachedNodes);
-                NodeDependencyLookupUtility.CalculateAllNodeSizes(nodes.ToList(), _nodeDependencyLookupContext);
-            }
-        }
-
         private void PrepareDrawTree(Node rootNode)
         {
             _visibleNodes.Clear();
@@ -1166,10 +1152,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorUtility.DisplayProgressBar("Building dependency tree", "Updating tree", 0.0f);
 
                 _nodeDisplayOptions.ConnectionTypesToDisplay = GetConnectionTypesToDisplay();
-
-                Profiler.BeginSample("CalculateAllNodeSizes");
-                CalculateAllNodeSizes(rootNode);
-                Profiler.EndSample();
 
                 Profiler.BeginSample("BuildNodeStructure");
                 BuildNodeStructure(rootNode);

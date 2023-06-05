@@ -32,9 +32,9 @@ namespace Assets.Package.Editor.DependencyResolvers
 
 		public DependencyType GetDependencyType(string typeId)
 		{
-			if (_lookup.ContainsKey(typeId))
+			if (_lookup.TryGetValue(typeId, out DependencyType type))
 			{
-				return _lookup[typeId];
+				return type;
 			}
 
 			Debug.LogError($"No DependencyType found with typeId {typeId}");

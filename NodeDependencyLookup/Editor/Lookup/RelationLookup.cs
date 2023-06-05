@@ -11,9 +11,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
 
-			public void Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate)
+			public void Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
 			{
-				_lookup = RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary, fastUpdate);
+				_lookup = RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary, fastUpdate, updateData);
 			}
 
 			public Node GetNode(string id, string type)
@@ -64,7 +64,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			public static Dictionary<string, Node> CreateRelationMapping(NodeDependencyLookupContext stateContext,
 				List<CreatedDependencyCache> dependencyCaches,
-				Dictionary<string, Node> nodeDictionary, bool isFastUpdate)
+				Dictionary<string, Node> nodeDictionary, bool isFastUpdate, bool updateNodeData)
 			{
 				List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
 
@@ -83,7 +83,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				// Init Name and Type information for node handlers
 				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
 				{
-					pair.Value.InitNameAndTypeInformation();
+					pair.Value.InitNodeDataInformation();
 				}
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
@@ -98,43 +98,54 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					string cacheName = cache.GetType().Name;
 
 					// create dependency structure here
-					foreach (var resolvedNode in resolvedNodes)
+					foreach (IDependencyMappingNode resolvedNode in resolvedNodes)
 					{
-						Node node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary, stateContext);
+						if (k % 2000 == 0)
+						{
+							EditorUtility.DisplayProgressBar("RelationLookup", $"Building relation lookup for {cacheName}", (float)k / resolvedNodes.Count);
+						}
+
+						Node node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary, stateContext, updateNodeData);
 
 						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(node.Id);
 
 						foreach (Dependency dependency in dependenciesForId)
 						{
-							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary, stateContext);
+							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary, stateContext, updateNodeData);
 							bool isHardConnection = stateContext.DependencyTypeLookup.GetDependencyType(dependency.DependencyType).IsHardConnection(node, dependencyNode);
 							Connection connection = new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments, isHardConnection);
 							node.Dependencies.Add(connection);
-						}
-
-						if (k % 2000 == 0)
-						{
-							EditorUtility.DisplayProgressBar("RelationLookup", $"Building relation lookup for {cacheName}", (float)k / resolvedNodes.Count);
 						}
 
 						k++;
 					}
 				}
 
+				int j = 0;
+
 				// create reference structure here
 				foreach (var pair in nodeDictionary)
 				{
+					if (j % 2000 == 0)
+					{
+						EditorUtility.DisplayProgressBar("RelationLookup", $"Building reference structure", (float)j / nodeDictionary.Count);
+					}
+
 					Node referencerNode = pair.Value;
 
 					foreach (Connection connection in referencerNode.Dependencies)
 					{
 						connection.Node.Referencers.Add(new Connection(referencerNode, connection.DependencyType, connection.PathSegments, connection.IsHardDependency));
 					}
+
+					j++;
 				}
 
-				// Save nodehandler lookup caches
+				NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext);
+
 				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
 				{
+					EditorUtility.DisplayProgressBar("RelationLookup", $"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
 					pair.Value.SaveCaches();
 				}
 
@@ -144,22 +155,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			private static Node GetOrCreateNode(string id, string type, string key,
-				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context)
+				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context, bool updateData)
 			{
-				if (!nodeDictionary.ContainsKey(key))
+				if (nodeDictionary.TryGetValue(key, out Node outNode))
 				{
-					Node node = new Node(id, type);
-
-					if (string.IsNullOrEmpty(node.Name))
-					{
-						INodeHandler nodeHandler = context.NodeHandlerLookup[node.Type];
-						nodeHandler.GetNameAndType(node.Id, out node.Name, out node.ConcreteType);
-					}
-
-					nodeDictionary.Add(key, node);
+					return outNode;
 				}
 
-				return nodeDictionary[key];
+				INodeHandler nodeHandler = context.NodeHandlerLookup[type];
+				Node node = nodeHandler.CreateNode(id, type, updateData);
+
+				nodeDictionary.Add(key, node);
+
+				return node;
 			}
 		}
 	}

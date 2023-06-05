@@ -15,10 +15,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		bool IsNodePackedToApp(Node node, bool alwaysExcluded = false);
 		// Returns if a node it just used within the editor. For assets this would be case if its in an editor folder
 		bool IsNodeEditorOnly(string id, string type);
-		// Returns if the assets contributes to the overall tree size (size of all dependencies together)
-		void GetNameAndType(string id, out string name, out string type);
+		Node CreateNode(string id, string type, bool update);
 		long GetChangedTimeStamp(string id);
-		void InitNameAndTypeInformation();
+		void InitNodeDataInformation();
 		void SaveCaches();
 	}
 }

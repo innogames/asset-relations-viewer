@@ -46,7 +46,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				while (_stack.Count > 0)
 				{
 					VisualizationNodeData visualizationNodeData = _stack.Pop();
-					visualizationNodeData.HierarchySize = NodeDependencyLookupUtility.GetTreeSize(visualizationNodeData.Node, _context, flattedHierarchy);
+					if (visualizationNodeData != null)
+					{
+						visualizationNodeData.HierarchySize = NodeDependencyLookupUtility.GetTreeSize(visualizationNodeData.Node, _context, flattedHierarchy);
+					}
 				}
 
 				Thread.Sleep(5);

@@ -9,16 +9,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public class ResolverDependencySearchContext
 	{
+		public Object Asset;
 		public string AssetId = string.Empty;
 		public List<IAssetDependencyResolver> Resolvers;
-		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies;
+		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies = new Dictionary<IAssetDependencyResolver, List<Dependency>>();
 
-		public ResolverDependencySearchContext(string assetId, List<IAssetDependencyResolver> resolvers)
+		public void SetResolvers(List<IAssetDependencyResolver> resolvers)
 		{
-			AssetId = assetId;
 			Resolvers = resolvers;
-			ResolverDependencies = new Dictionary<IAssetDependencyResolver, List<Dependency>>();
-
+			ResolverDependencies.Clear();
 			foreach (IAssetDependencyResolver resolver in resolvers)
 			{
 				ResolverDependencies.Add(resolver, new List<Dependency>());
@@ -62,14 +61,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Search(ResolverDependencySearchContext searchContext)
 		{
-			Object asset = NodeDependencyLookupUtility.GetAssetById(searchContext.AssetId);
-
-			if (asset == null)
+			if (searchContext.Asset == null)
 			{
 				return;
 			}
 
-			Traverse(searchContext, asset, new Stack<PathSegment>());
+			Traverse(searchContext, searchContext.Asset, new Stack<PathSegment>());
 		}
 
 		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj, bool onlyOverriden, Stack<PathSegment> stack)
