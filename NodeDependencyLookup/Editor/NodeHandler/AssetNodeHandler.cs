@@ -145,11 +145,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (string.IsNullOrEmpty(path))
-			{
-				return null;
-			}
-
 			bool wasCached = _cachedNodeDataLookup.TryGetValue(id, out SerializedNodeData cachedValue);
 			long timeStamp = 0;
 			bool timeStampChanged = false;
@@ -162,6 +157,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 				else
 				{
+					if (string.IsNullOrEmpty(path))
+					{
+						return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType, 0);
+					}
+
 					timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(path);
 					cachedTimeStamps.Add(guid, timeStamp);
 				}
