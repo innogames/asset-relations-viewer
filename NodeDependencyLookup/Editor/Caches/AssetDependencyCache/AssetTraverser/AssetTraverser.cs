@@ -30,6 +30,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
+			if (obj is Texture)
+			{
+				return;
+			}
+
 			if (obj is GameObject gameObject)
 			{
 				TraverseGameObject(searchContext, gameObject, null, stack);
