@@ -231,33 +231,30 @@ In the following example we find out which asset have a dependency on the BasePr
 NodeDependencyLookupContext context = new NodeDependencyLookupContext();
 ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
 
-resolverList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(true, true, true);
-resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, true, true);
+// If we want to update the cache before we try to find references
+bool shouldUpdate = false;
+
+resolverList.Add<AssetDependencyCache, ObjectSerializedDependencyResolver>(true, shouldUpdate, shouldUpdate);
+resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, shouldUpdate, shouldUpdate);
 
 NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
 
 // Get guid for BaseProductions prefab
-string[] assetGuids = AssetDatabase.FindAssets("t:prefab BaseProductions");
+string[] assetGuids = AssetDatabase.FindAssets("t:prefab PrefabInstance 1");
 
-// Nodehandlers to get further information about nodes like the name, type, size, etc.
-AssetNodeHandler assetNodeHandler = new AssetNodeHandler();
+// Get the node for the files guid
+Node fileNode = context.RelationsLookup.GetNode(assetGuids[0], FileNodeType.Name);
 
-// Get the node for the file
-Node node = context.RelationsLookup.GetNode(assetGuids[0], FileNodeType.Name);
-
-// Iterate over all referencers of the file (assets)
-foreach (Connection referencer in node.Referencers)
+// Iterate over all references of the filenode to find the assetnode referencing it
+foreach (Connection referencer in fileNode.Referencers)
 {
 	if (referencer.Node.Type == AssetNodeType.Name)
 	{
-		// Get name and type of asset
-		assetNodeHandler.GetNameAndType(referencer.Node.Id, out string nodeName, out string nodeType);
-		
+		// Find out who is referencing the assetnode
 		foreach (Connection assetreferencer in referencer.Node.Referencers)
 		{
-			assetNodeHandler.GetNameAndType(assetreferencer.Node.Id, out string refNodeName, out string refNodeType);
-			
-			Debug.LogWarning($"[{nodeType}]{nodeName} is directly referenced by [{refNodeType}]{refNodeName}");
+			Debug.LogWarning($"[{referencer.Node.ConcreteType}]{referencer.Node.Name} " +
+							 $"is directly referenced by [{assetreferencer.Node.ConcreteType}]{assetreferencer.Node.Name}");
 		}
 	}
 }
