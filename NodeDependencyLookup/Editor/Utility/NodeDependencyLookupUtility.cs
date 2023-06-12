@@ -192,7 +192,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return 0;
         }
 
-        private static string GetLibraryFullPath(string guid)
+        public static string GetLibraryFullPath(string guid)
         {
             if (String.IsNullOrEmpty(guid))
             {
