@@ -102,6 +102,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             List<AssetListEntry> entries = new List<AssetListEntry>();
             NodeDependencyLookupUtility.AddAssetsToList(entries, path);
 
+            // Delete to avoid piling up removed subassets from file
+            fileToAssetMappingDictionary.Remove(AssetDatabase.AssetPathToGUID(path));
+
             foreach (AssetListEntry entry in entries)
             {
                 GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, resolver, fileToAssetMappingDictionary);
