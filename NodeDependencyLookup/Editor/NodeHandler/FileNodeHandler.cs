@@ -45,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             Assembly unityAssembly = Assembly.Load("UnityEditor.dll");
             Type textureUtilType = unityAssembly.GetType("UnityEditor.TextureUtil");
-            getStorageMemorySizeMethod = textureUtilType.GetMethod("GetStorageMemorySize", BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public);
+            getStorageMemorySizeMethod = textureUtilType.GetMethod("GetStorageMemorySizeLong", BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public);
 
             Type audioUtilType = unityAssembly.GetType("UnityEditor.AudioImporter");
             getAudioSizeMethod = audioUtilType.GetMethod("get_compSize", BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
@@ -119,7 +119,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                     foreach (Texture2D previewTexture in previewTextures)
                     {
-                        size += (int)getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture });;
+                        size += Convert.ToInt32(getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture }));
                     }
                 }
             }
