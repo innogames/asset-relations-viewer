@@ -181,11 +181,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return path.Contains("/Editor/");
         }
 
-        public Node CreateNode(string id, string type, bool update)
+        public Node CreateNode(string id, string type, bool update, out bool wasCached)
         {
             string name = AssetDatabase.GUIDToAssetPath(id);
             string concreteType = "File";
 
+            wasCached = false;
             return new Node(id, type, name, concreteType, 0);
         }
 

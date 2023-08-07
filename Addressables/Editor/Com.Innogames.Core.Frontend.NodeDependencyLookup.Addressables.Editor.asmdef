@@ -1,0 +1,29 @@
+{
+    "name": "Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables",
+    "rootNamespace": "",
+    "references": [
+        "Com.Innogames.Core.Frontend.AssetRelationsViewer.Editor",
+        "Unity.Addressables.Editor",
+        "Unity.Addressables",
+        "Com.Innogames.Core.Frontend.NodeDependencyLookup.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ARV_ADDRESSABLES"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.addressables",
+            "expression": "",
+            "define": "ARV_ADDRESSABLES"
+        }
+    ],
+    "noEngineReferences": false
+}

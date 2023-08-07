@@ -42,7 +42,7 @@ Plugin to display dependencies between assets, files, assetgroups, etc. in a tre
 
 ## Installation
 
-#### For Unity 2018.3 or later (Using Unity Package Manager)
+#### For Unity 2019.3 or later (Using Unity Package Manager)
 
 Find the manifest.json file in the packages folder of your project and edit it to look like this:
 ```js
@@ -98,7 +98,6 @@ Menu items sorted from left to right
 **Highlight packaged assets**: Adds green highlight to nodes which are going to be packed into the app (Are actually used by the game) <br/>
 **Merge Relations**: If a node has the same asset as a dependency multiple times, the same dependency is just shown once <br/>
 
-
 #### Node
 
 ![](Docs~/Images/arv_node.png)
@@ -148,19 +147,43 @@ Note: If the opened scene/prefab changed after opening the AssetRelationViewer t
 Dependencies between AssemblyDefinitions to other AssemblyDefinitions as well as AssemblyDefinitionReferences to AssemblyDefinitions
 ![](Docs~/Images/arv_assemblydefintion_to_assemblydefinition_dependencies.png)
 
+### Asset->Asset by AssetReference
+
+In addressables a different Object can be referenced by a so called AssetReference instead of UnityEngine.Object <br/>
+To display these references this node type needs to be enabled. <br/>
+
+![](Docs~/Images/arv_assetreferences.png)
+
+### AddressableAssetGroup->Asset
+
+AddressableAssetGroups of the Addressable system contain a list of assets. <br/>
+By enabling this dependency type these assets can be viewed as a dependency. <br/>
+
+![](Docs~/Images/arv_addressableassetgroup.png)
+
+### Asset->AddressableAssetGroup
+
+Used to display the dependecy of an asset to the AddressableAssetGroup it is part of. <br/>
+This is basically the opposite direction of the <b>AddressableAssetGroup->Asset</b> dependency. <br/>
+This can be used to display birectional dependencies between assets and AddressableAssetGroups when also the <b>AddressableAssetGroup->Asset</b> is enabled. <br/>
+
+#### Note
+Having both <b>AddressableAssetGroup->Asset</b> and <b>Asset->AddressableAssetGroup</b> enabled at the same time can lead to very large dependency trees if AssetBundles have a lot of dependencies to other AssetBundles. <br/>
+Before enabling both the <b>NodeDepth:</b> should be reduced to something like 4. Otherwise generating the tree structure can take very long.
+
+![](Docs~/Images/arv_bidirectional_assetgroup_dependencies.png)
+
 ## Caching
 Most dependency types are cached to only update the dependencies again if the file itself got changed. <br/> 
 This greatly reduces the startup time of the AssetRelationsViewer since for large projects finding all Asset->Asset dependencies can take several minutes.
 If a file needs to be updated is currently determinined by the timestamp of the file but could be changed to in addition also take a file hash into account.
 
 ### Location
-The caches are stored in PROJECT_ROOT/NodeDependencyCache. <br/> 
+The caches are stored in PROJECT_ROOT/Library/NodeDependencyCache/ <br/> 
 Dependending on the projectsize these files can be several several megabytes in size. <br/> 
-The NodeDependencyCache folder should be added to .gitignore and not be checked in into the git repository.
 
 ### Clearing the cache
 The cache files can either be deleted manually or inside Unity under the Window/Node Dependency Cache/Clear Cache Files menu item.
-
 
 <br><br><br><br>
 # Node search and filter
@@ -269,12 +292,6 @@ For this script to work in your own project the name and type of the asset in As
 # Addons
 Support to display different connection and node types can be added by addons.
 
-## Addressable system
-An addon is available to add support for showing addressables and also addressable groups from Unitys Addressables system. <br/>
-The Package is called asset-relations-viewer-addressables. <br/>
-It can be found at https://github.com/innogames/asset-relations-viewer-addressables <br/>
-
 ## Writing own addons to support custom connection- and nodetypes
 Own addons can be also added so custom dependencies with any nodetype and dependency type can be added to be viewed inside the Asset Relations Viewer. <br/>
-For seing how to add own addons, please have a look at the Addressable sytem addon source code. <br/>
-
+For an example how to create addons please have a look at the addressables implementation.

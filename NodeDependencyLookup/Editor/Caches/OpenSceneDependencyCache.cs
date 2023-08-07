@@ -40,14 +40,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static GameObject[] GetRootGameObjects()
         {
-#if UNITY_2018_3_OR_NEWER
             PrefabStage currentPrefabStage = PrefabStageUtility.GetCurrentPrefabStage();
 
             if (currentPrefabStage != null)
             {
                 return new[] {currentPrefabStage.prefabContentsRoot};
             }
-#endif
 
             List<GameObject> rootGameObjects = new List<GameObject>();
 
@@ -325,11 +323,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public Node CreateNode(string id, string type, bool update)
+        public Node CreateNode(string id, string type, bool update, out bool wasCached)
         {
             string concreteType = "GameObject";
             string name = _hashToGameObject.ContainsKey(id) ? _hashToGameObject[id].name : id;
 
+            wasCached = false;
             return new Node(id, type, name, concreteType, 0);
         }
 

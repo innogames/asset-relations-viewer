@@ -1,4 +1,5 @@
 **2.0.0**
+- Unity Addressables are now supported in the base package, the additional repo is not required anymore
 - Removed IsExisting info from nodes since caches now need to delete nodes if they are saved but not existing anymore on update from their node list
 - Added use of Span from Unity 2021 onwards where previously as lot of garbage was created due to strings
 - Node name, type, concretetype and name information is now directly stored inside the Node class itself
@@ -9,8 +10,9 @@
 - AssetRelationsViewer can now be opened without updating or loading any caches
 - Node Search calculation is now done in seperate thread
 - API changes to INodeHandler and IAssetDependencyResolver to simplify implementations
-- Sizes of FileNodes and AssetNodes are now cached
+- Sizes of FileNodes and AssetNodes are now cached for faster loading
 - Several performance improvements to speed up RelationLookup creation
+- Removed support for Unity 2018 and below
 
 **1.5.1**
 - Increase serialize version of AssetToFileDependencyCache because of dependency order change

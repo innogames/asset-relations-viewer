@@ -79,7 +79,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
 
-#if UNITY_2018_3_OR_NEWER
 			PrefabAssetType prefabAssetType = PrefabUtility.GetPrefabAssetType(go);
 
 			if ((prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant) &&
@@ -104,23 +103,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					currentPrefab = prefabObj;
 				}
 			}
-#endif
-
-#if !UNITY_2018_3_OR_NEWER
-			PrefabType prefabType = PrefabUtility.GetPrefabType(go);
-
-			if (prefabType == PrefabType.PrefabInstance)
-			{
-				onlyOverriden = true;
-				var prefabObj = PrefabUtility.GetPrefabParent(go);
-
-				if(prefabObj != currentPrefab)
-				{
-					TraversePrefab(id, prefabAssetType, go, stack);
-					currentPrefab = prefabObj;
-				}
-			}
-#endif
 
 			Dictionary<string, int> componentToCount = new Dictionary<string, int>();
 			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;

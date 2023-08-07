@@ -164,11 +164,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             //This workaround is needed because Unity 2017.1.2p4 crashes when calling ShowWindow directly
             //due to what appears to be a bug with showing a progress bar while the asset context menu is still open
-#if UNITY_2017_1_OR_NEWER
             EditorApplication.delayCall += () => { ShowWindowForAssetInternal(update, loadCaches); };
-#else
-			ShowWindowForAssetInternal();
-#endif
         }
 
         private static void ShowWindowForAssetInternal(bool update, bool loadCaches)

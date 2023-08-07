@@ -95,26 +95,31 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					cache.InitLookup();
 
 					int k = 0;
-					string cacheName = cache.GetType().Name;
 
 					// create dependency structure here
 					foreach (IDependencyMappingNode resolvedNode in resolvedNodes)
 					{
-						if (k % 2000 == 0)
-						{
-							EditorUtility.DisplayProgressBar("RelationLookup", $"Building relation lookup for {cacheName}", (float)k / resolvedNodes.Count);
-						}
-
-						Node node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary, stateContext, updateNodeData);
+						float percentageDone = (float)k / resolvedNodes.Count;
+						Node node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary, stateContext, updateNodeData, out bool nodeCached);
 
 						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(node.Id);
 
 						foreach (Dependency dependency in dependenciesForId)
 						{
-							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary, stateContext, updateNodeData);
+							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary, stateContext, updateNodeData, out bool dependencyCached);
 							bool isHardConnection = stateContext.DependencyTypeLookup.GetDependencyType(dependency.DependencyType).IsHardConnection(node, dependencyNode);
 							Connection connection = new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments, isHardConnection);
 							node.Dependencies.Add(connection);
+
+							if(!dependencyCached)
+							{
+								DisplayNodeCreationProgress(dependencyNode, percentageDone);
+							}
+						}
+
+						if(!nodeCached)
+						{
+							DisplayNodeCreationProgress(node, percentageDone);
 						}
 
 						k++;
@@ -154,16 +159,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return nodeDictionary;
 			}
 
+			private static void DisplayNodeCreationProgress(Node node, float percentage)
+			{
+				bool canceled = EditorUtility.DisplayCancelableProgressBar("Creating node data", $"[{node.ConcreteType}]{node.Name}", percentage);
+
+				if (canceled)
+				{
+					throw new DependencyUpdateAbortedException();
+				}
+			}
+
 			private static Node GetOrCreateNode(string id, string type, string key,
-				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context, bool updateData)
+				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context, bool updateData, out bool wasCached)
 			{
 				if (nodeDictionary.TryGetValue(key, out Node outNode))
 				{
+					wasCached = true;
 					return outNode;
 				}
 
 				INodeHandler nodeHandler = context.NodeHandlerLookup[type];
-				Node node = nodeHandler.CreateNode(id, type, updateData);
+				Node node = nodeHandler.CreateNode(id, type, updateData, out wasCached);
 
 				nodeDictionary.Add(key, node);
 

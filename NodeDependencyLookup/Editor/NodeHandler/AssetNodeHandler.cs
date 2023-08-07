@@ -140,12 +140,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			File.WriteAllBytes(GetCachePath(), bytes);
 		}
 
-		public Node CreateNode(string id, string type, bool update)
+		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
 			string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
-			bool wasCached = _cachedNodeDataLookup.TryGetValue(id, out SerializedNodeData cachedValue);
+			wasCached = _cachedNodeDataLookup.TryGetValue(id, out SerializedNodeData cachedValue);
 			long timeStamp = 0;
 			bool timeStampChanged = false;
 
@@ -220,7 +220,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (!string.IsNullOrEmpty(path))
 			{
 				name = path;
-				type = "Unknown";
+				type = Directory.Exists(path) ? "Folder" : "Unknown";
+				return;
 			}
 
 			name = id;

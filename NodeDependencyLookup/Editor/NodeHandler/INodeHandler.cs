@@ -15,7 +15,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		bool IsNodePackedToApp(Node node, bool alwaysExcluded = false);
 		// Returns if a node it just used within the editor. For assets this would be case if its in an editor folder
 		bool IsNodeEditorOnly(string id, string type);
-		Node CreateNode(string id, string type, bool update);
+		Node CreateNode(string id, string type, bool update, out bool wasCached);
 		long GetChangedTimeStamp(string id);
 		void InitNodeDataInformation();
 		void SaveCaches();
