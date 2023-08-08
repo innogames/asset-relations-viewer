@@ -306,7 +306,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             if (stateContext.NodeHandlerLookup.TryGetValue(node.Type, out INodeHandler nodeHandler))
             {
-                return nodeHandler.GetOwnFileSize(node, stateContext);
+                nodeHandler.CalculateOwnFileSize(node, stateContext);
+                return node.OwnSize;
             }
 
             return new Node.NodeSize();

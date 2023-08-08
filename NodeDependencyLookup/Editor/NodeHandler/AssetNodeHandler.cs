@@ -16,7 +16,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public string Id;
 		public string Name;
 		public string Type;
-		public int Size;
 		public long TimeStamp;
 	}
 
@@ -34,7 +33,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return AssetNodeType.Name;
 		}
 
-		public Node.NodeSize GetOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
 		{
 			foreach (Connection dependency in node.Dependencies)
 			{
@@ -43,11 +42,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					Node.NodeSize ownNodeSize = NodeDependencyLookupUtility.GetNodeSize(dependency.Node, stateContext);
 					ownNodeSize.ContributesToTreeSize = false;
 
-					return ownNodeSize;
+					node.OwnSize = ownNodeSize;
+					return;
 				}
 			}
 
-			return new Node.NodeSize{Size = 0, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize{Size = 0, ContributesToTreeSize = false};
 		}
 
 		public bool IsNodePackedToApp(Node node, bool alwaysExcluded = false)
@@ -111,7 +111,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				string name = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 				long timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
-				_cachedNodeDataLookup.Add(id, new SerializedNodeData{Id = id, Type = type, Name = name, Size = -1, TimeStamp = timeStamp});
+				_cachedNodeDataLookup.Add(id, new SerializedNodeData{Id = id, Type = type, Name = name, TimeStamp = timeStamp});
 			}
 		}
 
@@ -179,7 +179,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			GetNameAndType(guid, id, out string name, out string concreteType);
-			SerializedNodeData cachedSerializedNodeData = new SerializedNodeData{Id = id, Name = name, Type = concreteType, Size = -1, TimeStamp = timeStamp};
+			SerializedNodeData cachedSerializedNodeData = new SerializedNodeData{Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp};
 
 			if (!wasCached)
 			{

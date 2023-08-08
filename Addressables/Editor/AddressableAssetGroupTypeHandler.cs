@@ -139,7 +139,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return AddressableAssetGroupNodeType.Name;
 		}
 
-		public Node.NodeSize GetOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
 		{
 			HashSet<Node> addedNodes = new HashSet<Node>();
 			HashSet<Node> addedFiles = new HashSet<Node>();
@@ -158,7 +158,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				}
 			}
 
-			return new Node.NodeSize{Size = size, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize {Size = size, ContributesToTreeSize = false};
 		}
 
 		private void GetTreeNodes(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> addedNodes, HashSet<Node> addedFiles, int depth)

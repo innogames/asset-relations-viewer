@@ -35,7 +35,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private string spriteTypeName = typeof(Sprite).FullName;
         private string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-        private Dictionary<Node, Node.NodeSize> sizeTmpCache = new Dictionary<Node, Node.NodeSize>();
         private Dictionary<string, CachedData> cachedSizeLookup = new Dictionary<string, CachedData>();
 
         public FileNodeHandler()
@@ -56,13 +55,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return FileNodeType.Name;
         }
 
-        public Node.NodeSize GetOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
         {
-            if (sizeTmpCache.TryGetValue(node, out Node.NodeSize value))
-            {
-                return value;
-            }
-
             string id = node.Id;
             int packedAssetSize = 0;
             bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
@@ -88,8 +82,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 ContributesToTreeSize = contributesToTreeSize
             };
 
-            sizeTmpCache.Add(node, nodeSize);
-
             CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
 
             if (wasCached)
@@ -101,7 +93,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 cachedSizeLookup.Add(id, cachedData);
             }
 
-            return nodeSize;
+            node.OwnSize = nodeSize;
         }
 
         private int GetSpriteAtlasSize(Node node)
@@ -247,8 +239,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 
             File.WriteAllBytes(GetCachePath(), bytes);
-
-            sizeTmpCache.Clear();
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)
