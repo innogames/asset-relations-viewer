@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -297,20 +299,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        public static Node.NodeSize GetNodeSize(Node node, NodeDependencyLookupContext stateContext, bool forceUpdate = true)
+        private static void CalculateNodeSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
         {
-            if (!(forceUpdate || node.OwnSize.Size == -1))
-            {
-                return node.OwnSize;
-            }
-
             if (stateContext.NodeHandlerLookup.TryGetValue(node.Type, out INodeHandler nodeHandler))
             {
-                nodeHandler.CalculateOwnFileSize(node, stateContext);
-                return node.OwnSize;
+                nodeHandler.CalculateOwnFileSize(node, stateContext, step);
             }
-
-            return new Node.NodeSize();
         }
 
         public static int GetTreeSize(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> flattenedHierarchy)
@@ -613,14 +607,46 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static void CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context)
         {
+            if (nodes.Count == 0)
+            {
+                return;
+            }
+
             for (var i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
+                CalculateNodeSize(node, context, NodeSizeCalculationStep.Initial);
 
-                if (node.OwnSize.Size == -1)
+                if (i % 1000 == 0)
                 {
-                    node.OwnSize = GetNodeSize(node, context);
+                    EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}", i / (float)nodes.Count);
                 }
+            }
+
+            Node currentNode = nodes[0];
+
+            int count = 0;
+            Task compressedSizeTask = Task.Run(() =>
+            {
+                Parallel.For(0, nodes.Count,
+                    i =>
+                    {
+                        currentNode = nodes[i];
+                        CalculateNodeSize(nodes[i], context, NodeSizeCalculationStep.ParallelThreadSave);
+                        count++;
+                    });
+            });
+
+            while (!compressedSizeTask.IsCompleted)
+            {
+                EditorUtility.DisplayProgressBar("Updating all node sizes compressed", $"[{currentNode.Type}] {currentNode.Name}", count / (float)nodes.Count);
+                Thread.Sleep(100);
+            }
+
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                Node node = nodes[i];
+                CalculateNodeSize(node, context, NodeSizeCalculationStep.Final);
 
                 if (i % 1000 == 0)
                 {

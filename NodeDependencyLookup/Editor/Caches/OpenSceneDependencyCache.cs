@@ -288,9 +288,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return InSceneNodeType.Name;
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
         {
-            node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+            if (step == NodeSizeCalculationStep.Initial)
+            {
+                node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+            }
         }
 
         public bool IsNodePackedToApp(Node node, bool alwaysExcluded)
@@ -330,11 +333,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             wasCached = false;
             return new Node(id, type, name, concreteType, 0);
-        }
-
-        public long GetChangedTimeStamp(string id)
-        {
-            return -1;
         }
 
         public void InitNodeDataInformation()

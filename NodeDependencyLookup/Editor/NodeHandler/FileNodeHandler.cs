@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.U2D;
 using UnityEngine.U2D;
+using UnityEngine.UIElements;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -27,6 +30,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             public long TimeStamp;
         }
 
+        private Dictionary<Node, string> nodeToArtifactPathLookup = new Dictionary<Node, string>();
+
         private MethodInfo getPreviewTextureMethod;
         private MethodInfo getAudioSizeMethod;
         private MethodInfo getStorageMemorySizeMethod;
@@ -35,7 +40,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         private string spriteTypeName = typeof(Sprite).FullName;
         private string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-        private Dictionary<string, CachedData> cachedSizeLookup = new Dictionary<string, CachedData>();
+        private ConcurrentDictionary<string, CachedData> cachedSizeLookup = new ConcurrentDictionary<string, CachedData>();
 
         public FileNodeHandler()
         {
@@ -55,45 +60,82 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return FileNodeType.Name;
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        private static long? GetCompressedSize(string path)
         {
-            string id = node.Id;
-            int packedAssetSize = 0;
-            bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
-            bool timeStampChanged = !wasCached || cachedValue.TimeStamp != node.ChangedTimeStamp;
-
-            if (wasCached && !timeStampChanged)
+            if (string.IsNullOrEmpty(path))
             {
-                packedAssetSize = cachedValue.Size;
-            }
-            else
-            {
-                packedAssetSize = NodeDependencyLookupUtility.GetPackedAssetSize(id);
+                return 0;
             }
 
-            bool isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
-            bool contributesToTreeSize = !isSpriteOfSpriteAtlas;
-
-            int size = packedAssetSize + GetSpriteAtlasSize(node) + GetAudioClipSize(node);
-
-            Node.NodeSize nodeSize = new Node.NodeSize
+            using (MemoryStream memoryStream = new MemoryStream())
             {
-                Size = size,
-                ContributesToTreeSize = contributesToTreeSize
-            };
+                FileInfo fileInfo = new FileInfo(path);
+                if (!fileInfo.Exists)
+                {
+                    return null;
+                }
 
-            CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
+                using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
 
-            if (wasCached)
-            {
-                cachedSizeLookup[id] = cachedData;
+                using (FileStream originalFileStream = fileInfo.OpenRead())
+                {
+                    originalFileStream.CopyTo(compressionStream);
+                }
+
+                return memoryStream.Position;
             }
-            else
+        }
+
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
+        {
+            if (step == NodeSizeCalculationStep.Initial)
             {
-                cachedSizeLookup.Add(id, cachedData);
+                bool isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
+                bool contributesToTreeSize = !isSpriteOfSpriteAtlas;
+
+                int size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
+
+                string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
+                nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
+
+                node.OwnSize.Size = size;
+                node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
             }
 
-            node.OwnSize = nodeSize;
+            if (step == NodeSizeCalculationStep.ParallelThreadSave)
+            {
+                string id = node.Id;
+                int packedAssetSize = 0;
+                bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
+                bool timeStampChanged = !wasCached || cachedValue.TimeStamp != node.ChangedTimeStamp;
+
+                if (wasCached && !timeStampChanged)
+                {
+                    packedAssetSize = cachedValue.Size;
+                }
+                else
+                {
+                    long? compressedSize = GetCompressedSize(nodeToArtifactPathLookup[node]);
+
+                    if (compressedSize != null)
+                    {
+                        packedAssetSize = (int)compressedSize.Value;
+                    }
+                }
+
+                CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
+
+                if (wasCached)
+                {
+                    cachedSizeLookup[id] = cachedData;
+                }
+                else
+                {
+                    cachedSizeLookup.TryAdd(id, cachedData);
+                }
+
+                node.OwnSize.Size += packedAssetSize;
+            }
         }
 
         private int GetSpriteAtlasSize(Node node)
@@ -182,11 +224,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return new Node(id, type, name, concreteType, 0);
         }
 
-        public long GetChangedTimeStamp(string id)
-        {
-            return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
-        }
-
         private string GetCachePath()
         {
             string version = "2.0";
@@ -213,7 +250,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 long size = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
                 long timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
-                cachedSizeLookup.Add(id, new CachedData{Id = id, Size = (int)size, TimeStamp = timeStamp});
+                cachedSizeLookup.TryAdd(id, new CachedData{Id = id, Size = (int)size, TimeStamp = timeStamp});
             }
         }
 

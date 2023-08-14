@@ -33,13 +33,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return AssetNodeType.Name;
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
 		{
+			if (step != NodeSizeCalculationStep.Final)
+			{
+				return;
+			}
+
 			foreach (Connection dependency in node.Dependencies)
 			{
 				if (dependency.DependencyType == AssetToFileDependency.Name)
 				{
-					Node.NodeSize ownNodeSize = NodeDependencyLookupUtility.GetNodeSize(dependency.Node, stateContext);
+					Node.NodeSize ownNodeSize = dependency.Node.OwnSize;
 					ownNodeSize.ContributesToTreeSize = false;
 
 					node.OwnSize = ownNodeSize;
@@ -65,11 +70,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			string path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(id));
 			return path.Contains("/Editor/");
-		}
-
-		public long GetChangedTimeStamp(string id)
-		{
-			return NodeDependencyLookupUtility.GetTimeStampForFileId(id);
 		}
 
 		public void InitNodeDataInformation()

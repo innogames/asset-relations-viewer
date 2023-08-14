@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private FileToAssetNode[] _fileToAssetNodes = new FileToAssetNode[0];
 		private Dictionary<string, AssetNode> _assetNodesDict = new Dictionary<string, AssetNode>();
 
-		public AssetSerializedPropertyTraverser _hierarchyTraverser = new AssetSerializedPropertyTraverser();
+		private AssetSerializedPropertyTraverser _hierarchyTraverser = new AssetSerializedPropertyTraverser();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
@@ -121,19 +121,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
-			string progressBarTitle = $"AssetDependencyCache";
 
 			List<IAssetDependencyResolver> resolversToExecute = new List<IAssetDependencyResolver>();
 
-			float lastDisplayedPercentage = 0;
-
-			for (int i = 0, j = 0; i < pathes.Length; ++i)
+			for (int i = 0; i < pathes.Length; ++i)
 			{
-				if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, $"Finding Dependencies {pathes[i]}", (float)i / pathes.Length))
-				{
-					throw new DependencyUpdateAbortedException();
-				}
-
 				string path = pathes[i];
 				string guid = AssetDatabase.AssetPathToGUID(path);
 
@@ -164,7 +156,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (resolversToExecute.Count > 0)
 				{
 					list.Remove(guid);
-					FindDependenciesForResolvers(resolversToExecute, result, path, list);
+					FindDependenciesForResolvers(resolversToExecute, result, path, list, (float)i / pathes.Length);
 				}
 			}
 
@@ -173,14 +165,37 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return result;
 		}
 
-		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list)
+		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list, float progress)
 		{
+			string progressBarTitle = $"AssetDependencyCache";
+
 			List<AssetListEntry> entries = new List<AssetListEntry>();
 			NodeDependencyLookupUtility.AddAssetsToList(entries, path);
 			ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
 
-			foreach (AssetListEntry entry in entries)
+			for (var i = 0; i < entries.Count; i++)
 			{
+				AssetListEntry entry = entries[i];
+
+				if (i % 10 == 0)
+				{
+					string info = "";
+
+					if (entries.Count < 50)
+					{
+						info = path;
+					}
+					else
+					{
+						info = $"[{i+1}/{entries.Count}] {path}";
+					}
+
+					if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, info, progress))
+					{
+						throw new DependencyUpdateAbortedException();
+					}
+				}
+
 				searchContext.AssetId = entry.AssetId;
 				searchContext.Asset = entry.Asset;
 				searchContext.SetResolvers(resolvers);

@@ -139,8 +139,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return AddressableAssetGroupNodeType.Name;
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
 		{
+			if (step != NodeSizeCalculationStep.Final)
+			{
+				return;
+			}
+
 			HashSet<Node> addedNodes = new HashSet<Node>();
 			HashSet<Node> addedFiles = new HashSet<Node>();
 
@@ -150,7 +155,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			foreach (Node addedNode in addedFiles)
 			{
-				Node.NodeSize ownNodeSize = NodeDependencyLookupUtility.GetNodeSize(addedNode, stateContext, false);
+				Node.NodeSize ownNodeSize = addedNode.OwnSize;
 
 				if (ownNodeSize.ContributesToTreeSize && addedNode != node)
 				{
@@ -220,11 +225,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			wasCached = false;
 			return new Node(id, type, name, concreteType, 0);
-		}
-
-		public long GetChangedTimeStamp(string id)
-		{
-			return -1;
 		}
 
 		public void InitNodeDataInformation()

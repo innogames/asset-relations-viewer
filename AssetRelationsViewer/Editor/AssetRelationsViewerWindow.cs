@@ -173,8 +173,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             window.OnAssetSelectionChanged();
         }
 
-        [MenuItem("Window/Asset Relations Viewer/Open")]
-        public static AssetRelationsViewerWindow ShowWindow(bool update, bool loadCaches)
+        private static AssetRelationsViewerWindow ShowWindow(bool update, bool loadCaches)
         {
             AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
 
