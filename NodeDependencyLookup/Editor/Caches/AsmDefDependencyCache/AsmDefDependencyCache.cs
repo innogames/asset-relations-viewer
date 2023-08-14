@@ -115,6 +115,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
                     }
 
                     TextAsset refAsmDef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
+
+                    if (refAsmDef == null)
+                    {
+                        Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
+                        continue;
+                    }
+
                     string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(refAsmDef);
                     string componentName = "Ref " + g++;
                     
@@ -144,8 +151,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
                     continue;
                 }
 
-                TextAsset refAsmDef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
-                string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(refAsmDef);
+                TextAsset asmRef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
+
+                if (asmRef == null)
+                {
+                    Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
+                    continue;
+                }
+
+                string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmRef);
                 string componentName = "Ref";
                 
                 node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name, new []{new PathSegment(componentName, PathSegmentType.Property), }));
