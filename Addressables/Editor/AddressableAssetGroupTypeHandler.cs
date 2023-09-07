@@ -154,7 +154,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			HashSet<Node> addedNodes = new HashSet<Node>();
 			HashSet<Node> addedFiles = new HashSet<Node>();
 
-			GetTreeNodes(node, context, addedNodes, addedFiles, 0);
+			GetTreeNodes(node, node, context, addedNodes, addedFiles, 0);
 
 			int size = 0;
 
@@ -172,7 +172,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			node.OwnSize = new Node.NodeSize {Size = size, ContributesToTreeSize = false};
 		}
 
-		private void GetTreeNodes(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> addedNodes, HashSet<Node> addedFiles, int depth)
+		private void GetTreeNodes(Node node, Node rootGroupNode, NodeDependencyLookupContext stateContext, HashSet<Node> addedNodes, HashSet<Node> addedFiles, int depth)
 		{
 			if (addedNodes.Contains(node))
 			{
@@ -185,7 +185,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			{
 				foreach (Connection referencerConnection in node.Referencers)
 				{
-					if (referencerConnection.Node.Type == AddressableAssetGroupNodeType.Name)
+					if (referencerConnection.Node.Type == AddressableAssetGroupNodeType.Name && referencerConnection.Node != rootGroupNode)
 					{
 						return;
 					}
@@ -200,6 +200,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			foreach (Connection dependency in node.Dependencies)
 			{
+				if (dependency.Node.Name.Contains("Bold.otf"))
+				{
+					Debug.Log("test");
+				}
+
 				if (!stateContext.DependencyTypeLookup.GetDependencyType(dependency.DependencyType).IsHard)
 				{
 					continue;
@@ -209,7 +214,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 				if (dependencyNodeType == AssetNodeType.Name || dependencyNodeType == FileNodeType.Name)
 				{
-					GetTreeNodes(dependency.Node, stateContext, addedNodes, addedFiles, depth + 1);
+					GetTreeNodes(dependency.Node, rootGroupNode, stateContext, addedNodes, addedFiles, depth + 1);
 				}
 			}
 		}
