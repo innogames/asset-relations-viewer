@@ -139,22 +139,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return AddressableAssetGroupNodeType.Name;
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
+		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
 		{
-			if (step != NodeSizeCalculationStep.Final)
-			{
-				return;
-			}
+			// nothing to do
+		}
 
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		{
+			// nothing to do
+		}
+
+		public void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes)
+		{
 			HashSet<Node> addedNodes = new HashSet<Node>();
 			HashSet<Node> addedFiles = new HashSet<Node>();
 
-			GetTreeNodes(node, stateContext, addedNodes, addedFiles, 0);
+			GetTreeNodes(node, context, addedNodes, addedFiles, 0);
 
 			int size = 0;
 
 			foreach (Node addedNode in addedFiles)
 			{
+				NodeDependencyLookupUtility.UpdateOwnFileSizeDependenciesForNode(addedNode, context, calculatedNodes);
 				Node.NodeSize ownNodeSize = addedNode.OwnSize;
 
 				if (ownNodeSize.ContributesToTreeSize && addedNode != node)
@@ -227,16 +233,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return new Node(id, type, name, concreteType, 0);
 		}
 
-		public void InitNodeDataInformation()
+		public void InitNodeCreation()
 		{
+			// nothing to do
 		}
 
 		public void SaveCaches()
 		{
+			// nothing to do
 		}
 
 		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)
 		{
+			// nothing to do
 		}
 	}
 }

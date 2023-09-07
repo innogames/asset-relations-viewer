@@ -89,8 +89,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
         private readonly HashSet<Node> _nodeSizesReachedNodes = new HashSet<Node>();
 
-        private bool _skipNodeSizeUpdate;
-
         private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 
         private ViewAreaData _viewAreaData = new ViewAreaData();
@@ -131,8 +129,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             new Dictionary<string, NodeFilterData>();
 
         private List<NodeFilterData> _nodeSearchList = new List<NodeFilterData>();
-        private bool _nodeSearchListUpdated = false;
-        private bool _nodeSearchDirty = true;
 
         private bool _canUnloadCaches = false;
         private bool _isInitialized = false;
@@ -298,20 +294,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 _nodeFilterDataLookup.Clear();
                 _nodeSizesReachedNodes.Clear();
             }
-
-            _nodeSearchDirty = true;
         }
 
         private void PrepareNodeSearch()
         {
-            _nodeSearchListUpdated = false;
-
             Task.Run(() =>
             {
                 BuildNodeSearchLookup();
                 FilterNodeList();
-                _nodeSearchDirty = false;
-                _nodeSearchListUpdated = true;
             });
         }
 
@@ -1170,7 +1160,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                     Profiler.BeginSample("RefreshNodeVisualizationData");
                     RefreshNodeVisualizationData();
                     Profiler.EndSample();
-                    _skipNodeSizeUpdate = false;
                     _visualizationDirty = false;
                 }
 

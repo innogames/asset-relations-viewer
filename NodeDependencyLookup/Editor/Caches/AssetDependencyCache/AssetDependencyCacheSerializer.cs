@@ -10,13 +10,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class AssetDependencyCacheSerializer
 	{
-		public const string EOF = "EndOfSerializedAssetDependencyCache";
+		private const string EOF = "EndOfSerializedAssetDependencyCache";
 
 		public static byte[] Serialize(FileToAssetNode[] fileToAssetNodes)
 		{
 			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
 			int offset = 0;
-			
+
 			CacheSerializerUtils.EncodeLong(fileToAssetNodes.Length, ref bytes, ref offset);
 
 			foreach (FileToAssetNode fileToAssetNode in fileToAssetNodes)
@@ -30,14 +30,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					CacheSerializerUtils.EncodeString(resolverTimeStamp.ResolverId, ref bytes, ref offset);
 					CacheSerializerUtils.EncodeLong(resolverTimeStamp.TimeStamp, ref bytes, ref offset);
 				}
-				
+
 				CacheSerializerUtils.EncodeShort((short)fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
 
 				for (int j = 0; j < fileToAssetNode.AssetNodes.Count; ++j)
 				{
 					AssetNode assetNode = fileToAssetNode.AssetNodes[j];
 					CacheSerializerUtils.EncodeString(assetNode.Id, ref bytes, ref offset);
-					
+
 					CacheSerializerUtils.EncodeShort((short)assetNode.ResolverDatas.Count, ref bytes, ref offset);
 
 					for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
@@ -51,17 +51,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 			}
-			
+
 			CacheSerializerUtils.EncodeString(EOF, ref bytes, ref offset);
 
 			return bytes;
 		}
-		
+
 		public static FileToAssetNode[] Deserialize(byte[] bytes)
 		{
 			int offset = 0;
 			int numFileToAssetNodes = (int)CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
-			
+
 			FileToAssetNode[] fileToAssetNodes = new FileToAssetNode[numFileToAssetNodes];
 
 			for (int n = 0; n < numFileToAssetNodes; ++n)
@@ -90,7 +90,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					for (int j = 0; j < numResolverDatas; ++j)
 					{
 						AssetNode.ResolverData data = new AssetNode.ResolverData();
-						
+
 						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 						data.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
 						assetNode.ResolverDatas.Add(data);
@@ -98,10 +98,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					fileAssetNode.AssetNodes.Add(assetNode);
 				}
-				
+
 				fileToAssetNodes[n] = fileAssetNode;
 			}
-			
+
 			string eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 			if (!eof.Equals(EOF))
 			{

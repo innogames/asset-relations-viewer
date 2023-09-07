@@ -9,7 +9,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEditor.U2D;
 using UnityEngine.U2D;
-using UnityEngine.UIElements;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -60,6 +59,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return FileNodeType.Name;
         }
 
+
         private static long? GetCompressedSize(string path)
         {
             if (string.IsNullOrEmpty(path))
@@ -86,56 +86,58 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
+        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
         {
-            if (step == NodeSizeCalculationStep.Initial)
+            bool isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
+            bool contributesToTreeSize = !isSpriteOfSpriteAtlas;
+
+            int size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
+
+            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
+            nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
+
+            node.OwnSize.Size = size;
+            node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
+        }
+
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        {
+            string id = node.Id;
+            int packedAssetSize = 0;
+            bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
+            bool timeStampChanged = !wasCached || cachedValue.TimeStamp != node.ChangedTimeStamp;
+
+            if (wasCached && !timeStampChanged)
             {
-                bool isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
-                bool contributesToTreeSize = !isSpriteOfSpriteAtlas;
+                packedAssetSize = cachedValue.Size;
+            }
+            else
+            {
+                long? compressedSize = GetCompressedSize(nodeToArtifactPathLookup[node]);
 
-                int size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
-
-                string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
-                nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
-
-                node.OwnSize.Size = size;
-                node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
+                if (compressedSize != null)
+                {
+                    packedAssetSize = (int)compressedSize.Value;
+                }
             }
 
-            if (step == NodeSizeCalculationStep.ParallelThreadSave)
+            CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
+
+            if (wasCached)
             {
-                string id = node.Id;
-                int packedAssetSize = 0;
-                bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
-                bool timeStampChanged = !wasCached || cachedValue.TimeStamp != node.ChangedTimeStamp;
-
-                if (wasCached && !timeStampChanged)
-                {
-                    packedAssetSize = cachedValue.Size;
-                }
-                else
-                {
-                    long? compressedSize = GetCompressedSize(nodeToArtifactPathLookup[node]);
-
-                    if (compressedSize != null)
-                    {
-                        packedAssetSize = (int)compressedSize.Value;
-                    }
-                }
-
-                CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
-
-                if (wasCached)
-                {
-                    cachedSizeLookup[id] = cachedData;
-                }
-                else
-                {
-                    cachedSizeLookup.TryAdd(id, cachedData);
-                }
-
-                node.OwnSize.Size += packedAssetSize;
+                cachedSizeLookup[id] = cachedData;
             }
+            else
+            {
+                cachedSizeLookup.TryAdd(id, cachedData);
+            }
+
+            node.OwnSize.Size += packedAssetSize;
+        }
+
+        public void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes)
+        {
+            // nothing to do
         }
 
         private int GetSpriteAtlasSize(Node node)
@@ -231,7 +233,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH, $"FileNodeHandlerCache_{buildTarget}_{version}.cache");
         }
 
-        public void InitNodeDataInformation()
+        public void InitNodeCreation()
         {
             cachedSizeLookup.Clear();
 

@@ -288,12 +288,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return InSceneNodeType.Name;
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
+        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
         {
-            if (step == NodeSizeCalculationStep.Initial)
-            {
-                node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
-            }
+            node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+        }
+
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        {
+            // nothing to do
+        }
+
+        public void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes)
+        {
+            // nothing to do
         }
 
         public bool IsNodePackedToApp(Node node, bool alwaysExcluded)
@@ -335,7 +342,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return new Node(id, type, name, concreteType, 0);
         }
 
-        public void InitNodeDataInformation()
+        public void InitNodeCreation()
         {
             BuildHashToGameObjectMapping();
         }

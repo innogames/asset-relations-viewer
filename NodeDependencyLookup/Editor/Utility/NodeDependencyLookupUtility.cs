@@ -299,20 +299,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return false;
         }
 
-        private static void CalculateNodeSize(Node node, NodeDependencyLookupContext stateContext, NodeSizeCalculationStep step)
+        private static INodeHandler GetNodeHandler(Node node, NodeDependencyLookupContext context)
         {
-            if (stateContext.NodeHandlerLookup.TryGetValue(node.Type, out INodeHandler nodeHandler))
-            {
-                nodeHandler.CalculateOwnFileSize(node, stateContext, step);
-            }
+            return context.NodeHandlerLookup[node.Type];
         }
 
-        public static int GetTreeSize(Node node, NodeDependencyLookupContext stateContext, HashSet<Node> flattenedHierarchy)
+        public static void UpdateOwnFileSizeDependenciesForNode(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes)
+        {
+            if (calculatedNodes.Contains(node))
+            {
+                return;
+            }
+
+            calculatedNodes.Add(node);
+            GetNodeHandler(node, context).CalculateOwnFileDependencies(node, context, calculatedNodes);
+        }
+
+        public static int GetTreeSize(Node node, NodeDependencyLookupContext context, HashSet<Node> flattenedHierarchy)
         {
             int size = 0;
             flattenedHierarchy.Clear();
 
-            TraverseHardDependencyNodesRecNoFlattened(node, stateContext, flattenedHierarchy);
+            TraverseHardDependencyNodesRecNoFlattened(node, context, flattenedHierarchy);
 
             foreach (Node traversedNode in flattenedHierarchy)
             {
@@ -325,7 +333,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return size;
         }
 
-        public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext stateContext,
+        public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext context,
             HashSet<Node> traversedNodes)
         {
             if (node == null)
@@ -344,7 +352,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 if (connection.IsHardDependency)
                 {
-                    TraverseHardDependencyNodesRecNoFlattened(connection.Node, stateContext, traversedNodes);
+                    TraverseHardDependencyNodesRecNoFlattened(connection.Node, context, traversedNodes);
                 }
             }
         }
@@ -615,7 +623,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             for (var i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
-                CalculateNodeSize(node, context, NodeSizeCalculationStep.Initial);
+
+                GetNodeHandler(node, context).InitializeOwnFileSize(node, context);
 
                 if (i % 1000 == 0)
                 {
@@ -632,7 +641,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     i =>
                     {
                         currentNode = nodes[i];
-                        CalculateNodeSize(nodes[i], context, NodeSizeCalculationStep.ParallelThreadSave);
+                        GetNodeHandler(nodes[i], context).CalculateOwnFileSize(nodes[i], context);
                         count++;
                     });
             });
@@ -643,10 +652,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 Thread.Sleep(100);
             }
 
+            HashSet<Node> calculatedNodes = new HashSet<Node>();
+
             for (var i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
-                CalculateNodeSize(node, context, NodeSizeCalculationStep.Final);
+                UpdateOwnFileSizeDependenciesForNode(node, context, calculatedNodes);
 
                 if (i % 1000 == 0)
                 {

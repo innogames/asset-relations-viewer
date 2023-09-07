@@ -83,7 +83,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				// Init Name and Type information for node handlers
 				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
 				{
-					pair.Value.InitNodeDataInformation();
+					pair.Value.InitNodeCreation();
 				}
 
 				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
