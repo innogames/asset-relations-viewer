@@ -200,11 +200,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			foreach (Connection dependency in node.Dependencies)
 			{
-				if (dependency.Node.Name.Contains("Bold.otf"))
-				{
-					Debug.Log("test");
-				}
-
 				if (!stateContext.DependencyTypeLookup.GetDependencyType(dependency.DependencyType).IsHard)
 				{
 					continue;
