@@ -10,10 +10,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             return $"ARV_{Application.dataPath}_{key}";
         }
-        
-        public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null, int width = 180)
+
+        public static void TogglePref(PrefValue<bool> pref, string label, Action<bool> onChange = null)
         {
-            pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref, GUILayout.Width(width)), onChange);
+            pref.DirtyOnChange(EditorGUILayout.ToggleLeft(label, pref), onChange);
         }
 
         public static void IntSliderPref(PrefValue<int> pref, string label, Action<int> onChange = null)

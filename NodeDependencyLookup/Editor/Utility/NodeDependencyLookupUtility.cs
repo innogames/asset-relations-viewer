@@ -18,7 +18,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     public class AssetListEntry
     {
         public string AssetId;
-        public UnityEngine.Object Asset;
+        public Object Asset;
     }
     /// <summary>
     /// Contains utility functions that are needed by the AssetRelationsWindow but should be independent from the class so they can be used from other places
@@ -131,7 +131,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                 if (cache.CanUpdate())
                 {
-                    bool hasChanges = cache.Update(resolverUsageDefinitionList, updateInfo.Update);
+                    bool hasChanges = cache.Update(stateContext.CacheUpdateSettings, resolverUsageDefinitionList, updateInfo.Update);
 
                     if (hasChanges && updateInfo.Save)
                     {

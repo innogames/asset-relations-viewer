@@ -52,7 +52,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         // Don't include any dependencies to UnityEngine internal scripts
         private HashSet<string> ExcludedDependencies = new HashSet<string>(new []{"UnityEngine.UI.dll", "UnityEngine.dll"});
 
-        private Dictionary<object, string> cachedAssetAsDependencyData = new Dictionary<object, string>();
+        private Dictionary<string, string> cachedAssetAsDependencyData = new Dictionary<string, string>();
 
         public void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
         {
@@ -125,15 +125,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type)
         {
-            if (type != SerializedPropertyType.ObjectReference || obj == null)
+            if (type != SerializedPropertyType.ObjectReference || obj == null || !(obj is Object value))
             {
                 return null;
             }
 
-            if(!cachedAssetAsDependencyData.TryGetValue(obj, out string assetId))
+            string id = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+
+            if(!cachedAssetAsDependencyData.TryGetValue(id, out string assetId))
             {
                 assetId = GetAssetPathForAsset(sourceAssetId, obj);
-                cachedAssetAsDependencyData.Add(obj, assetId);
+                cachedAssetAsDependencyData.Add(id, assetId);
             }
 
             if (assetId == null || ExcludedProperties.Contains(propertyPath))

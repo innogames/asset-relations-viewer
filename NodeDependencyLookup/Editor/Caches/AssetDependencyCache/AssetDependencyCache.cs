@@ -117,7 +117,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !Application.isPlaying && !EditorApplication.isCompiling;
 		}
 
-		private HashSet<string> FindDependenciesForChangedFilesForResolvers(List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
+		private HashSet<string> FindDependenciesForChangedFilesForResolvers(CacheUpdateSettings settings, List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
 		{
 			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
@@ -158,6 +158,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					list.Remove(guid);
 					FindDependenciesForResolvers(resolversToExecute, result, path, list, (float)i / pathes.Length);
 				}
+
+				if (settings.ShouldUnloadUnusedAssets && i % settings.UnloadUnusedAssetsInterval == 0)
+				{
+					Resources.UnloadUnusedAssets();
+					EditorUtility.UnloadUnusedAssetsImmediate(true);
+					GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
+				}
+			}
+
+			GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
+
+			if (settings.ShouldUnloadUnusedAssets)
+			{
+				Resources.UnloadUnusedAssets();
+				EditorUtility.UnloadUnusedAssetsImmediate(true);
 			}
 
 			_fileToAssetNodes = list.Values.ToArray();
@@ -165,13 +180,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return result;
 		}
 
+		private List<AssetListEntry> entries = new List<AssetListEntry>();
+		private ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
+
 		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list, float progress)
 		{
 			string progressBarTitle = $"AssetDependencyCache";
 
-			List<AssetListEntry> entries = new List<AssetListEntry>();
+			entries.Clear();
 			NodeDependencyLookupUtility.AddAssetsToList(entries, path);
-			ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
 
 			for (var i = 0; i < entries.Count; i++)
 			{
@@ -210,7 +227,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
+		public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+			bool shouldUpdate)
 		{
 			if (!shouldUpdate)
 			{
@@ -230,10 +248,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 
 			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
-			return GetDependenciesForAssets(pathes, _createdDependencyCache);
+			return GetDependenciesForAssets(cacheUpdateSettings, pathes, _createdDependencyCache);
 		}
 
-		private bool GetDependenciesForAssets(string[] pathes, CreatedDependencyCache createdDependencyCache)
+		private bool GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] pathes, CreatedDependencyCache createdDependencyCache)
 		{
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
 
@@ -256,7 +274,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.Initialize(this);
 			}
 
-			HashSet<string> changedAssetIds = FindDependenciesForChangedFilesForResolvers(resolvers, pathes, timestamps, ref _fileToAssetNodes);
+			HashSet<string> changedAssetIds = FindDependenciesForChangedFilesForResolvers(cacheUpdateSettings, resolvers, pathes, timestamps, ref _fileToAssetNodes);
 			hasChanges |= changedAssetIds.Count > 0;
 
 			return hasChanges;

@@ -41,7 +41,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return !Application.isPlaying;
 		}
 
-		public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
+		public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+			bool shouldUpdate)
 		{
 			if(!shouldUpdate && Nodes.Length > 0)
 			{
@@ -57,7 +58,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 
 			CacheUpdateInfo resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			RelationLookup.RelationsLookup assetToFileLookup = RelationLookup.GetAssetToFileLookup(resolverUpdateInfo);
+			RelationLookup.RelationsLookup assetToFileLookup = RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo);
 
 			Lookup.Clear();
 

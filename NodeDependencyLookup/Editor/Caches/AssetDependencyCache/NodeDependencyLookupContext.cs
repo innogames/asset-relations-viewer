@@ -19,18 +19,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public DependencyTypeLookup DependencyTypeLookup;
 		public Dictionary<string, CreatedDependencyCache> CreatedCaches = new Dictionary<string, CreatedDependencyCache>();
 
-		public static NodeDependencyLookupContext GetStateContextForName(string name)
-		{
-			if(!m_stateContexts.ContainsKey(name))
-				m_stateContexts.Add(name, new NodeDependencyLookupContext());
+		public CacheUpdateSettings CacheUpdateSettings;
 
-			return m_stateContexts[name];
+		public NodeDependencyLookupContext(CacheUpdateSettings settings)
+		{
+			CacheUpdateSettings = settings;
+			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 		}
 
-		public NodeDependencyLookupContext()
+		public NodeDependencyLookupContext() : this(new CacheUpdateSettings {ShouldUnloadUnusedAssets = true})
 		{
-			NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
-			//Reset();
 		}
 
 		public static void ResetContexts()

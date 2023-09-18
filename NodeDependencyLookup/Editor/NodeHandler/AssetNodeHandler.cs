@@ -26,7 +26,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup = new Dictionary<string, SerializedNodeData>();
 		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>();
-		private Dictionary<string, Object> idToAssetLookup = new Dictionary<string, Object>();
 
 		public string GetHandledNodeType()
 		{
@@ -86,7 +85,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void SaveCaches()
 		{
 			SaveNodeDataCache();
-			idToAssetLookup.Clear();
 			cachedTimeStamps.Clear();
 		}
 
@@ -199,17 +197,38 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new Node(id, type, name, concreteType, timeStamp);
 		}
 
+		private struct NameAndType
+		{
+			public string Name;
+			public string Type;
+		}
+
+		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
+		private Dictionary<string, Object> idToAssetLookup = new Dictionary<string, Object>();
+
 		private void GetNameAndType(string guid, string id, out string name, out string type)
 		{
+			idToAssetLookup.Clear();
 			string path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (!idToAssetLookup.ContainsKey(id))
+			if (!nameAndTypeMapping.ContainsKey(id))
 			{
 				NodeDependencyLookupUtility.AddAllAssetsOfId(id, idToAssetLookup);
+
+				foreach (KeyValuePair<string,Object> pair in idToAssetLookup)
+				{
+					GetNameAndTypeForAsset(pair.Value, pair.Key, path, out name, out type);
+					nameAndTypeMapping.Add(pair.Key, new NameAndType{Name = name, Type = type});
+				}
 			}
 
-			idToAssetLookup.TryGetValue(id, out Object asset);
+			NameAndType nameAndType = nameAndTypeMapping[id];
+			name = nameAndType.Name;
+			type = nameAndType.Type;
+		}
 
+		private void GetNameAndTypeForAsset(Object asset, string id, string path, out string name, out string type)
+		{
 			if (asset != null)
 			{
 				name = $"{asset.name}";

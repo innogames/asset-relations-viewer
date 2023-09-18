@@ -57,7 +57,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return rootGameObjects.ToArray();
         }
 
-        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
+        public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+            bool shouldUpdate)
         {
             Lookup.Clear();
 

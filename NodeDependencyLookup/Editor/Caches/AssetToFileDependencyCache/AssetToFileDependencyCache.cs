@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -40,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        private HashSet<string> FindDependenciesInChangedAssets(string[] pathes, IAssetToFileDependencyResolver resolver, long[] timestamps, ref FileToAssetsMapping[] fileToAssetMappings)
+        private HashSet<string> FindDependenciesInChangedAssets(CacheUpdateSettings settings, string[] pathes, IAssetToFileDependencyResolver resolver, long[] timestamps, ref FileToAssetsMapping[] fileToAssetMappings)
         {
             HashSet<string> changedAssetIds = new HashSet<string>();
             Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetMappings);
@@ -86,10 +87,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     FindDependenciesForAssets(changedAssetIds, resolver, path, fileToAssetMappingDictionary);
                 }
 
-                /*if (j % 3000 == 0)
+                if (settings.ShouldUnloadUnusedAssets && i % settings.UnloadUnusedAssetsInterval == 0)
                 {
-                    EditorUtility.UnloadUnusedAssetsImmediate();
-                }*/
+                    Resources.UnloadUnusedAssets();
+                    EditorUtility.UnloadUnusedAssetsImmediate(true);
+                }
+
+                if (i % 10000 == 0)
+                {
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
+                }
             }
 
             fileToAssetMappings = fileToAssetMappingDictionary.Values.ToArray();
@@ -117,17 +124,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return true;
         }
 
-        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
+        public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+            bool shouldUpdate)
         {
             if (!shouldUpdate)
             {
                 return false;
             }
 
-            return  GetDependenciesForAssets(ref _fileToAssetsMappings, _createdDependencyCache);
+            return GetDependenciesForAssets(cacheUpdateSettings, ref _fileToAssetsMappings, _createdDependencyCache);
         }
 
-        private bool GetDependenciesForAssets(ref FileToAssetsMapping[] fileToAssetsMappings,
+        private bool GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, ref FileToAssetsMapping[] fileToAssetsMappings,
             CreatedDependencyCache createdDependencyCache)
         {
             string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
@@ -146,14 +154,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 IAssetToFileDependencyResolver resolver = (IAssetToFileDependencyResolver) resolverUsage.Resolver;
                 resolver.Initialize(this);
 
-                HashSet<string> changedAssetIds = FindDependenciesInChangedAssets(pathes, resolver, timestamps, ref fileToAssetsMappings);
+                HashSet<string> changedAssetIds = FindDependenciesInChangedAssets(cacheUpdateSettings, pathes, resolver, timestamps, ref fileToAssetsMappings);
                 hasChanges |= changedAssetIds.Count > 0;
+            }
+
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Default, true, false);
+
+            if (cacheUpdateSettings.ShouldUnloadUnusedAssets)
+            {
+                Resources.UnloadUnusedAssets();
+                EditorUtility.UnloadUnusedAssetsImmediate(true);
             }
 
             return hasChanges;
         }
 
-        private void GetDependenciesForAssetInResolver(string assetId, UnityEngine.Object asset, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
+        private void GetDependenciesForAssetInResolver(string assetId, Object asset, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
         {
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 

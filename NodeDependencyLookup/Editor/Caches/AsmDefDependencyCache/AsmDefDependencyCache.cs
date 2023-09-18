@@ -42,7 +42,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
             return true;
         }
 
-        public bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate)
+        public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+            bool shouldUpdate)
         {
             _lookup.Clear();
 

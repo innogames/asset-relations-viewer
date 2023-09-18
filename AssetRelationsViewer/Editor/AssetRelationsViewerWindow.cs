@@ -42,6 +42,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
         }
 
+        private class CacheUpgradeSettingsOptions
+        {
+            public PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("UnloadUnusedAssets", false);
+            public PrefValueInt UnloadUnusedAssetsInterval = new PrefValueInt("UnloadUnusedAssetsInterval", 10000, 1000, 100000);
+        }
+
         private class UndoStep
         {
             public string Id;
@@ -98,6 +104,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private bool _selectionDirty = true;
 
         private NodeDisplayOptions _nodeDisplayOptions;
+        private CacheUpgradeSettingsOptions _cacheUpgradeSettingsOptions;
 
         private List<CacheState> _cacheStates = new List<CacheState>();
         private List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
@@ -137,6 +144,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private PrefValueBool _filterFoldout;
         private PrefValueBool _infoFoldout;
         private PrefValueBool _miscFoldout;
+        private PrefValueBool _cacheUpgradeOptionsFoldout;
 
         [MenuItem("Assets/Asset Relations Viewer/Open", false, 0)]
         public static void ShowWindowForAsset()
@@ -245,9 +253,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             FirstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V2.0");
             _displayData = new NodeDisplayData();
             _nodeDisplayOptions = new NodeDisplayOptions();
+            _cacheUpgradeSettingsOptions = new CacheUpgradeSettingsOptions();
             _filterFoldout = new PrefValueBool("FilterFoldout", true);
             _infoFoldout = new PrefValueBool("InfoFoldout", true);
             _miscFoldout = new PrefValueBool("MiscFoldout", true);
+            _cacheUpgradeOptionsFoldout = new PrefValueBool("CacheUpgradeOptionsFoldout", true);
 
             HandleFirstStartup();
 
@@ -284,6 +294,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             bool partialUpdate = true, bool fastUpdate = false)
         {
             _nodeDependencyLookupContext.Reset();
+            _nodeDependencyLookupContext.CacheUpdateSettings = new CacheUpdateSettings
+            {
+                ShouldUnloadUnusedAssets = _cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
+                UnloadUnusedAssetsInterval = _cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
+            };
+
             NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext,
                 resolverUsageDefinitionList, partialUpdate, fastUpdate);
 
@@ -545,10 +561,26 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             EditorUtility.ClearProgressBar();
         }
 
+        private void DisplayUpgradeSettingsOptions()
+        {
+            EditorGUILayout.BeginVertical("Box", GUILayout.Width(200));
+            _cacheUpgradeOptionsFoldout.SetValue(EditorGUILayout.Foldout(_cacheUpgradeOptionsFoldout, "Cache Upgrade Settings"));
+
+            if (_cacheUpgradeOptionsFoldout)
+            {
+                EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets, "Unload Unused Assets");
+                EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval, "Unload Interval");
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
         private void DisplayNodeDisplayOptions()
         {
-            EditorGUILayout.BeginVertical("Box", GUILayout.Width(220), GUILayout.Height(170));
+            EditorGUILayout.BeginVertical("Box", GUILayout.Width(250), GUILayout.Height(170));
             _displayOptionsScrollPosition = EditorGUILayout.BeginScrollView(_displayOptionsScrollPosition);
+
+            DisplayUpgradeSettingsOptions();
 
             EditorGUILayout.BeginVertical("Box");
             _filterFoldout.SetValue(EditorGUILayout.Foldout(_filterFoldout, "Filter Options"));

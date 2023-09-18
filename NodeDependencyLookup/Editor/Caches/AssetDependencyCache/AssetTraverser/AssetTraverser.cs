@@ -104,7 +104,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			Dictionary<string, int> componentToCount = new Dictionary<string, int>();
 			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;
 
 			foreach (Component component in go.GetComponents<Component>())
@@ -122,15 +121,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					componentOverriden &= !isAddedComponent;
 				}
 
-				string componentName = component.GetType().Name;
-
-				if (!componentToCount.ContainsKey(componentName))
-				{
-					componentToCount.Add(componentName, 1);
-				}
-
-				int sameComponentCount = componentToCount[componentName]++;
-				string segmentName = sameComponentCount > 1 ? $"{componentName}_{sameComponentCount}" : componentName;
+				string segmentName = component.GetType().Name;
 
 				stack.Push(new PathSegment(segmentName, PathSegmentType.Component));
 				TraverseObject(searchContext, component, componentOverriden, stack);

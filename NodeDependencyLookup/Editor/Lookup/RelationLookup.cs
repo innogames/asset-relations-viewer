@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -37,9 +38,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public static RelationsLookup GetAssetToFileLookup(CacheUpdateInfo updateInfo)
+		public static RelationsLookup GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo)
 		{
-			NodeDependencyLookupContext context = new NodeDependencyLookupContext();
+			NodeDependencyLookupContext context = new NodeDependencyLookupContext(cacheUpdateSettings);
 			ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
 			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update, updateInfo.Save);
 			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
@@ -67,6 +68,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				Dictionary<string, Node> nodeDictionary, bool isFastUpdate, bool updateNodeData)
 			{
 				List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
+				CacheUpdateSettings cacheUpdateSettings = stateContext.CacheUpdateSettings;
 
 				if (isFastUpdate)
 				{
@@ -123,6 +125,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						}
 
 						k++;
+
+						if (cacheUpdateSettings.ShouldUnloadUnusedAssets && k % (cacheUpdateSettings.UnloadUnusedAssetsInterval) == 0)
+						{
+							EditorUtility.UnloadUnusedAssetsImmediate(true);
+							GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
+						}
 					}
 				}
 

@@ -22,7 +22,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
 		bool CanUpdate();
-		bool Update(ResolverUsageDefinitionList resolverUsages, bool shouldUpdate);
+		bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+			bool shouldUpdate);
 		void AddExistingNodes(List<IDependencyMappingNode> nodes);
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);
