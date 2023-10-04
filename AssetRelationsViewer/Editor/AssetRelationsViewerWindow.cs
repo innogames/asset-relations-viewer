@@ -28,24 +28,24 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     {
         private class NodeDisplayOptions
         {
-            public PrefValueInt MaxDepth = new PrefValueInt("MaxDepth", 64, 0, 64);
-            public PrefValueBool ShowNodesOnce = new PrefValueBool("ShowNodesOnce", false);
-            public PrefValueBool ShowHierarchyOnce = new PrefValueBool("ShowHierarchyOnce", false);
-            public PrefValueBool DrawReferencerNodes = new PrefValueBool("DrawReferencerNodes", true);
-            public PrefValueBool ShowPropertyPathes = new PrefValueBool("ShowPropertyPathes", true);
-            public PrefValueBool AlignNodes = new PrefValueBool("AlignNodes", true);
-            public PrefValueBool HideFilteredNodes = new PrefValueBool("HideFilteredNodes", true);
-            public PrefValueBool MergeRelations = new PrefValueBool("MergeRelations", true);
-            public PrefValueBool SortBySize = new PrefValueBool("SortBySize", false);
-            public PrefValueBool OnlyHardDependencies = new PrefValueBool("OnlyHardDependencies", false);
+            public PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 64, 0, 64);
+            public PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
+            public PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
+            public PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
+            public PrefValueBool ShowPropertyPathes = new PrefValueBool("ARV_ShowPropertyPathes", true);
+            public PrefValueBool AlignNodes = new PrefValueBool("ARV_AlignNodes", true);
+            public PrefValueBool HideFilteredNodes = new PrefValueBool("ARV_HideFilteredNodes", true);
+            public PrefValueBool MergeRelations = new PrefValueBool("ARV_MergeRelations", true);
+            public PrefValueBool SortBySize = new PrefValueBool("ARV_SortBySize", false);
+            public PrefValueBool OnlyHardDependencies = new PrefValueBool("ARV_OnlyHardDependencies", false);
 
             public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
         }
 
         private class CacheUpgradeSettingsOptions
         {
-            public PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("UnloadUnusedAssets", false);
-            public PrefValueInt UnloadUnusedAssetsInterval = new PrefValueInt("UnloadUnusedAssetsInterval", 10000, 1000, 100000);
+            public PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("ARV_UnloadUnusedAssets", false);
+            public PrefValueInt UnloadUnusedAssetsInterval = new PrefValueInt("ARV_UnloadUnusedAssetsInterval", 10000, 1000, 100000);
         }
 
         private class UndoStep
@@ -254,10 +254,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _displayData = new NodeDisplayData();
             _nodeDisplayOptions = new NodeDisplayOptions();
             _cacheUpgradeSettingsOptions = new CacheUpgradeSettingsOptions();
-            _filterFoldout = new PrefValueBool("FilterFoldout", true);
-            _infoFoldout = new PrefValueBool("InfoFoldout", true);
-            _miscFoldout = new PrefValueBool("MiscFoldout", true);
-            _cacheUpgradeOptionsFoldout = new PrefValueBool("CacheUpgradeOptionsFoldout", true);
+            _filterFoldout = new PrefValueBool("ARV_FilterFoldout", true);
+            _infoFoldout = new PrefValueBool("ARV_InfoFoldout", true);
+            _miscFoldout = new PrefValueBool("ARV_MiscFoldout", true);
+            _cacheUpgradeOptionsFoldout = new PrefValueBool("ARV_CacheUpgradeOptionsFoldout", true);
 
             HandleFirstStartup();
 
