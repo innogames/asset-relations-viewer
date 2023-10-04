@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -40,16 +41,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		private class ReflectionStackItem
 		{
-			public string fieldName;
-			public int arrayIndex;
 			public FieldInfo fieldInfo;
 			public object value;
 			public Type type;
 		}
 
+		private HashSet<Type> excludedTypes = new HashSet<Type>
+		{
+			typeof(Transform),
+			typeof(RectTransform),
+			typeof(CanvasRenderer),
+			typeof(TextAsset),
+			typeof(AudioClip),
+		};
+
 		private const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
 		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
 		private Dictionary<Type, bool> isReflectableCache = new Dictionary<Type, bool>();
+		private PropertyInfo unsafeModeMethod = null;
 
 		public void Initialize()
 		{
@@ -57,6 +66,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				ReflectionStack[i] = new ReflectionStackItem();
 			}
+
+			Type type = typeof(SerializedProperty);
+			unsafeModeMethod = type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
 		}
 
 		public void Search(ResolverDependencySearchContext searchContext)
@@ -77,10 +89,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
+			Type objType = obj.GetType();
+
+			if(excludedTypes.Contains(objType))
+			{
+				return;
+			}
+
 			SerializedObject serializedObject = new SerializedObject(obj);
 			SerializedProperty property = serializedObject.GetIterator();
-
-			Type objType = obj.GetType();
 
 			if (!isReflectableCache.TryGetValue(objType, out bool isReflectable))
 			{
@@ -92,8 +109,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			rootItem.value = obj;
 			rootItem.type = objType;
 
-			Type type = typeof(SerializedProperty);
-			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+			unsafeModeMethod.SetValue(property, true);
 			property.Next(true);
 
 			SerializedPropertyType propertyType;
@@ -143,6 +159,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			serializedObject.Dispose();
 		}
 
+		private void StringToStackallocSpan(ref string value, ref Span<char> span)
+		{
+			for (var i = 0; i < value.Length; i++)
+			{
+				span[i] = value[i];
+			}
+		}
+
 		private int UpdateStack(string path, ReflectionStackItem[] stack)
 		{
 			int subIndex = 0;
@@ -165,11 +189,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return -1;
 
 			ref ReflectionStackItem item = ref stack[stackPos];
+			int arrayIndex = -1;
 
+#if UNITY_2021_3_OR_NEWER
+			Span<char> spath = stackalloc char[path.Length];
+			StringToStackallocSpan(ref path, ref spath);
+			Span<char> elementName = spath.Slice(subIndex, spath.Length - subIndex);
+			int arrayStartIndex = elementName.LastIndexOf('[');
+
+			if (arrayStartIndex != -1)
+			{
+				int arrayEndIndex = elementName.LastIndexOf(']');
+				int length = arrayEndIndex - arrayStartIndex - 1;
+				Span<char> index = elementName.Slice(arrayStartIndex + 1, length);
+				arrayIndex = int.Parse(index);
+				elementName = elementName.Slice(0, arrayStartIndex);
+			}
+
+			item.fieldInfo = parent.type.GetField(elementName.ToString(), Flags);
+#else
 			string elementName = path.Substring(subIndex);
-			item.fieldName = elementName;
 			item.arrayIndex = -1;
-
 			int arrayStartIndex = elementName.LastIndexOf('[');
 
 			if (arrayStartIndex != -1)
@@ -177,11 +217,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				int arrayEndIndex = elementName.LastIndexOf(']');
 				int length = arrayEndIndex - arrayStartIndex - 1;
 				string index = elementName.Substring(arrayStartIndex + 1, length);
-				item.arrayIndex = System.Convert.ToInt32(index);
-				item.fieldName = elementName.Substring(0, arrayStartIndex);
+				arrayIndex = System.Convert.ToInt32(index);
+				elementName = elementName.Substring(0, arrayStartIndex);
 			}
 
-			item.fieldInfo = parent.type.GetField( item.fieldName , Flags);
+			item.fieldInfo = parent.type.GetField(elementName , Flags);
+#endif
 
 			if (item.fieldInfo == null || parent.value == null)
 				return -1;
@@ -195,7 +236,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			item.type = itemType;
 
-			if (item.value != null && item.arrayIndex != -1)
+			if (item.value != null && arrayIndex != -1)
 			{
 				IList genericList = item.value as IList;
 
@@ -205,7 +246,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				item.type = genericList.GetType().IsGenericType ? item.type.GetGenericArguments()[0] : item.type.GetElementType();
-				item.value = genericList[item.arrayIndex];
+				item.value = genericList[arrayIndex];
 			}
 
 			return tokenCount + 1;
@@ -227,8 +268,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		private void TraverseProperty(ResolverDependencySearchContext searchContext, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
+		private bool TraverseProperty(ResolverDependencySearchContext searchContext, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
+			bool dependenciesAdded = false;
+
 			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
 			{
 				AssetDependencyResolverResult result = resolver.GetDependency(searchContext.AssetId, obj, propertyPath, type);
@@ -241,7 +284,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
 				searchContext.AddDependency(resolver, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
+
+				dependenciesAdded = true;
 			}
+
+			return dependenciesAdded;
 		}
 	}
 }
