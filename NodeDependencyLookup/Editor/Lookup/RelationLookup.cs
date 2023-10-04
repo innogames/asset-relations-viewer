@@ -98,6 +98,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					int k = 0;
 
+					CacheUpdateResourcesCleaner cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
+
 					// create dependency structure here
 					foreach (IDependencyMappingNode resolvedNode in resolvedNodes)
 					{
@@ -124,13 +126,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 							DisplayNodeCreationProgress(node, percentageDone);
 						}
 
-						k++;
-
-						if (cacheUpdateSettings.ShouldUnloadUnusedAssets && k % (cacheUpdateSettings.UnloadUnusedAssetsInterval) == 0)
-						{
-							EditorUtility.UnloadUnusedAssetsImmediate(true);
-							GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
-						}
+						cacheUpdateResourcesCleaner.Clean(cacheUpdateSettings, k++);
 					}
 				}
 

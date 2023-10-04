@@ -278,6 +278,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 
             File.WriteAllBytes(GetCachePath(), bytes);
+
+            cachedSizeLookup.Clear();
+            nodeToArtifactPathLookup.Clear();
         }
 
         public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext)

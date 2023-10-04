@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.Profiling;
+using Debug = UnityEngine.Debug;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -124,6 +125,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			List<IAssetDependencyResolver> resolversToExecute = new List<IAssetDependencyResolver>();
 
+			CacheUpdateResourcesCleaner cleaner = new CacheUpdateResourcesCleaner();
+
 			for (int i = 0; i < pathes.Length; ++i)
 			{
 				string path = pathes[i];
@@ -159,21 +162,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					FindDependenciesForResolvers(resolversToExecute, result, path, list, (float)i / pathes.Length);
 				}
 
-				if (settings.ShouldUnloadUnusedAssets && i % settings.UnloadUnusedAssetsInterval == 0)
-				{
-					Resources.UnloadUnusedAssets();
-					EditorUtility.UnloadUnusedAssetsImmediate(true);
-					GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
-				}
+				cleaner.Clean(settings, i);
 			}
 
-			GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
-
-			if (settings.ShouldUnloadUnusedAssets)
-			{
-				Resources.UnloadUnusedAssets();
-				EditorUtility.UnloadUnusedAssetsImmediate(true);
-			}
+			CacheUpdateResourcesCleaner.ForceClean(settings);
 
 			_fileToAssetNodes = list.Values.ToArray();
 

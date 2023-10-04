@@ -48,6 +48,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             float lastDisplayedPercentage = 0;
 
+            CacheUpdateResourcesCleaner cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
+
             for (int i = 0, j = 0; i < pathes.Length; ++i)
             {
                 float progressPercentage = (float) i / pathes.Length;
@@ -81,21 +83,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     changed = true;
                 }
 
+                cacheUpdateResourcesCleaner.Clean(settings, j);
+
                 if (changed)
                 {
                     j++;
                     FindDependenciesForAssets(changedAssetIds, resolver, path, fileToAssetMappingDictionary);
-                }
-
-                if (settings.ShouldUnloadUnusedAssets && i % settings.UnloadUnusedAssetsInterval == 0)
-                {
-                    Resources.UnloadUnusedAssets();
-                    EditorUtility.UnloadUnusedAssetsImmediate(true);
-                }
-
-                if (i % 10000 == 0)
-                {
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, false);
                 }
             }
 
@@ -158,13 +151,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 hasChanges |= changedAssetIds.Count > 0;
             }
 
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Default, true, false);
+            GC.Collect(GC.MaxGeneration);
 
-            if (cacheUpdateSettings.ShouldUnloadUnusedAssets)
-            {
-                Resources.UnloadUnusedAssets();
-                EditorUtility.UnloadUnusedAssetsImmediate(true);
-            }
+            CacheUpdateResourcesCleaner.ForceClean(cacheUpdateSettings);
 
             return hasChanges;
         }
