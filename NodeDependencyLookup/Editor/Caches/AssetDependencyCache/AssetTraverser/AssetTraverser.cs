@@ -37,7 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (obj is GameObject gameObject)
 			{
-				TraverseGameObject(searchContext, gameObject, null, stack);
+				TraverseGameObject(searchContext, gameObject, null, new List<AddedComponent>(), stack);
 			}
 			else if (obj is SceneAsset sceneAsset)
 			{
@@ -61,11 +61,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
 			TraverseObject(searchContext, sceneAsset, false, stack);
+			List<AddedComponent> addedComponents = new List<AddedComponent>();
 
 			foreach (GameObject go in scene.GetRootGameObjects())
 			{
 				stack.Push(new PathSegment(go.name, PathSegmentType.GameObject));
-				TraverseGameObject(searchContext, go, null, stack);
+				TraverseGameObject(searchContext, go, null, addedComponents, stack);
 				stack.Pop();
 			}
 
@@ -74,7 +75,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #pragma warning restore 618
 		}
 
-		private void TraverseGameObject(ResolverDependencySearchContext searchContext, GameObject go, Object currentPrefab, Stack<PathSegment> stack)
+		private void TraverseGameObject(ResolverDependencySearchContext searchContext, GameObject go, Object currentPrefab, List<AddedComponent> prefabAddedComponents, Stack<PathSegment> stack)
 		{
 			bool isPrefabInstance = false;
 			bool onlyOverriden = false;
@@ -101,10 +102,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 
 					currentPrefab = prefabObj;
+
+					if (isPrefabInstance)
+					{
+						prefabAddedComponents = PrefabUtility.GetAddedComponents(go);
+						List<AddedGameObject> addedGameObjects = PrefabUtility.GetAddedGameObjects(go);
+						PropertyModification[] propertyModifications = PrefabUtility.GetPropertyModifications(go);
+
+						if (propertyModifications.All(modification => modification.target is Transform || modification.propertyPath == "m_Name") &&
+						    prefabAddedComponents.Count == 0 && addedGameObjects.Count == 0)
+						{
+							return;
+						}
+					}
 				}
 			}
-
-			List<AddedComponent> addedComponents = isPrefabInstance ? PrefabUtility.GetAddedComponents(go) : null;
 
 			foreach (Component component in go.GetComponents<Component>())
 			{
@@ -117,7 +129,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (isPrefabInstance)
 				{
-					bool isAddedComponent = addedComponents.Any(addedComponent => addedComponent.instanceComponent == component);
+					bool isAddedComponent = prefabAddedComponents.Any(addedComponent => addedComponent.instanceComponent == component);
 					componentOverriden &= !isAddedComponent;
 				}
 
@@ -133,7 +145,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				GameObject child = go.transform.GetChild(i).gameObject;
 
 				stack.Push(new PathSegment(child.name, PathSegmentType.GameObject));
-				TraverseGameObject(searchContext, child, currentPrefab, stack);
+				TraverseGameObject(searchContext, child, currentPrefab, prefabAddedComponents, stack);
 				stack.Pop();
 			}
 		}
