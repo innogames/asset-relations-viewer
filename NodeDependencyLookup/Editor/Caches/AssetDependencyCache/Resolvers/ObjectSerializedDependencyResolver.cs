@@ -170,12 +170,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			_inValidGuids.Clear();
 
-			string[] filters =
+			string[] invalidAssetFilter =
 			{
 				"t:Script",
+				"t:TextAsset"
 			};
 
-			foreach (string filter in filters)
+			foreach (string filter in invalidAssetFilter)
 			{
 				foreach (string guid in AssetDatabase.FindAssets(filter))
 				{
