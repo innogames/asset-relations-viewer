@@ -88,6 +88,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate = false, bool isFastUpdate = false,
             string fileDirectory = null)
         {
+            NodeDependencySearchState.IsRunning = true;
+
+            try
+            {
+                LoadDependenciesForCachesInternal(stateContext, resolverUsageDefinitionList, isPartialUpdate, isFastUpdate, fileDirectory);
+            }
+            finally
+            {
+                NodeDependencySearchState.IsRunning = false;
+            }
+        }
+
+        private static void LoadDependenciesForCachesInternal(NodeDependencyLookupContext stateContext, ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate, bool isFastUpdate, string fileDirectory)
+        {
             if (string.IsNullOrEmpty(fileDirectory))
             {
                 fileDirectory = DEFAULT_CACHE_PATH;
