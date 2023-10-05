@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -97,9 +98,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return changedAssetIds;
         }
 
+        private List<AssetListEntry> entries = new List<AssetListEntry>();
+
         private void FindDependenciesForAssets(HashSet<string> changedAssetIds, IAssetToFileDependencyResolver resolver, string path, Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
         {
-            List<AssetListEntry> entries = new List<AssetListEntry>();
+            entries.Clear();
             NodeDependencyLookupUtility.AddAssetsToList(entries, path);
 
             // Delete to avoid piling up removed subassets from file
@@ -107,6 +110,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             foreach (AssetListEntry entry in entries)
             {
+                Profiler.BeginSample("InstanceId");
+                int instanceID = entry.Asset.GetInstanceID();
+                Object instanceIDToObject = Resources.InstanceIDToObject(instanceID);
+                Profiler.EndSample();
+
                 GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, resolver, fileToAssetMappingDictionary);
                 changedAssetIds.Add(entry.AssetId);
             }
@@ -132,7 +140,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             CreatedDependencyCache createdDependencyCache)
         {
             string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+            Profiler.BeginSample("TimeStamps");
             long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
+            Profiler.EndSample();
             NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref fileToAssetsMappings);
 
             bool hasChanges = false;

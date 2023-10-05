@@ -145,11 +145,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                 if (cache.CanUpdate())
                 {
+                    Profiler.BeginSample($"Update cache: {cacheUsage.Cache.GetType().Name}");
                     bool hasChanges = cache.Update(stateContext.CacheUpdateSettings, resolverUsageDefinitionList, updateInfo.Update);
+                    Profiler.EndSample();
 
                     if (hasChanges && updateInfo.Save)
                     {
+                        Profiler.BeginSample($"Save cache: {cacheUsage.Cache.GetType().Name}");
                         cache.Save(fileDirectory);
+                        Profiler.EndSample();
                     }
                 }
                 else
@@ -478,8 +482,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
         {
+            Profiler.BeginSample($"AddAssetsToList Load {path}");
             Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             Object[] allAssets = LoadAllAssetsAtPath(path);
+            Profiler.EndSample();
+
+            Profiler.BeginSample($"AddAssetsToList Load {path}");
+            mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
+            allAssets = LoadAllAssetsAtPath(path);
+            Profiler.EndSample();
 
             for (var i = 0; i < allAssets.Length; i++)
             {

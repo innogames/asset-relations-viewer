@@ -127,7 +127,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			CacheUpdateResourcesCleaner cleaner = new CacheUpdateResourcesCleaner();
 
-			for (int i = 0; i < pathes.Length; ++i)
+			for (int i = 0, k = 0; i < pathes.Length; ++i)
 			{
 				string path = pathes[i];
 				string guid = AssetDatabase.AssetPathToGUID(path);
@@ -156,13 +156,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 
+				cleaner.Clean(settings, k);
+
 				if (resolversToExecute.Count > 0)
 				{
+					k++;
 					list.Remove(guid);
 					FindDependenciesForResolvers(resolversToExecute, result, path, list, (float)i / pathes.Length);
 				}
-
-				cleaner.Clean(settings, i);
 			}
 
 			CacheUpdateResourcesCleaner.ForceClean(settings);
@@ -235,7 +236,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
+			Profiler.BeginSample("SpriteAtlasUtility.PackAllAtlases");
 			SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
+			Profiler.EndSample();
 
 			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 
@@ -245,7 +248,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] pathes, CreatedDependencyCache createdDependencyCache)
 		{
+			Profiler.BeginSample("TimeStamps");
 			long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
+			Profiler.EndSample();
 
 			_hierarchyTraverser.Initialize();
 			bool hasChanges = false;

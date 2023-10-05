@@ -97,6 +97,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					cache.InitLookup();
 
 					int k = 0;
+					int c = 0;
 
 					CacheUpdateResourcesCleaner cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
 
@@ -123,10 +124,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 						if(!nodeCached)
 						{
+							c++;
 							DisplayNodeCreationProgress(node, percentageDone);
 						}
 
-						cacheUpdateResourcesCleaner.Clean(cacheUpdateSettings, k++);
+						cacheUpdateResourcesCleaner.Clean(cacheUpdateSettings, c);
+
+						k++;
 					}
 				}
 
