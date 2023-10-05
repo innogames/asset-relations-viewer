@@ -54,10 +54,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             long[] timestamps = new long[pathes.Length];
 
-            for (int i = 0; i < pathes.Length; ++i)
+            Parallel.For(0, pathes.Length, index =>
             {
-                timestamps[i] = GetTimeStampForPath(pathes[i]);
-            }
+                timestamps[index] = GetTimeStampForPath(pathes[index]);
+            });
 
             return timestamps;
         }
