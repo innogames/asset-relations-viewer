@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -25,7 +26,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class AssetNodeHandler : INodeHandler
 	{
 		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup = new Dictionary<string, SerializedNodeData>();
-		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>();
+		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
 
 		public string GetHandledNodeType()
 		{
@@ -126,22 +127,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			int offset = 0;
-			byte[] bytes = new byte[512 * 1024];
-
-			CacheSerializerUtils.EncodeLong(_cachedNodeDataLookup.Count, ref bytes, ref offset);
-
-			foreach (var pair in _cachedNodeDataLookup)
+			Task.Run(() =>
 			{
-				CacheSerializerUtils.EncodeString(pair.Value.Id, ref bytes, ref offset);
-				CacheSerializerUtils.EncodeString(pair.Value.Type, ref bytes, ref offset);
-				CacheSerializerUtils.EncodeString(pair.Value.Name, ref bytes, ref offset);
-				CacheSerializerUtils.EncodeLong(pair.Value.TimeStamp, ref bytes, ref offset);
+				int offset = 0;
+				byte[] bytes = new byte[512 * 1024];
 
-				bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
-			}
+				CacheSerializerUtils.EncodeLong(_cachedNodeDataLookup.Count, ref bytes, ref offset);
 
-			File.WriteAllBytes(GetCachePath(), bytes);
+				foreach (var pair in _cachedNodeDataLookup)
+				{
+					CacheSerializerUtils.EncodeString(pair.Value.Id, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeString(pair.Value.Type, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeString(pair.Value.Name, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeLong(pair.Value.TimeStamp, ref bytes, ref offset);
+
+					bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
+				}
+
+				File.WriteAllBytes(GetCachePath(), bytes);
+			});
 		}
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
@@ -197,14 +201,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new Node(id, type, name, concreteType);
 		}
 
-		private struct NameAndType
+		private class NameAndType
 		{
 			public string Name;
 			public string Type;
 		}
 
 		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
-		private List<AssetListEntry> assetList = new List<AssetListEntry>();
+		private List<AssetListEntry> assetList = new List<AssetListEntry>(1024);
 
 		private void GetNameAndType(string guid, string id, out string name, out string type)
 		{
@@ -236,7 +240,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (asset != null)
 			{
-				name = $"{asset.name}";
+				name = asset.name;
 
 				if (string.IsNullOrEmpty(name))
 				{
