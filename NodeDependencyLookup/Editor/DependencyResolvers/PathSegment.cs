@@ -20,7 +20,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// It just has the name and which type it is
 	/// </summary>
 	[Serializable]
-	public struct PathSegment
+	public class PathSegment
 	{
 		public PathSegment(string name, PathSegmentType type)
 		{

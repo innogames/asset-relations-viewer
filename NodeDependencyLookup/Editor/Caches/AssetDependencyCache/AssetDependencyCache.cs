@@ -122,6 +122,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
+			list.EnsureCapacity(pathes.Length);
 
 			List<IAssetDependencyResolver> resolversToExecute = new List<IAssetDependencyResolver>();
 
@@ -288,9 +289,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			FileToAssetNode fileToAssetNode = resultList[fileId];
-			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
+			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
 
-			assetNode.GetResolverData(resolverId).Dependencies = searchContext.ResolverDependencies[resolver];
+			if (dependencies.Count > 0)
+			{
+				AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
+				assetNode.GetResolverData(resolverId).Dependencies = dependencies;
+			}
 
 			fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp = timeStamp;
 		}

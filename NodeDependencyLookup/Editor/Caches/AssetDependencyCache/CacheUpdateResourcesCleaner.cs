@@ -22,13 +22,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         public static void ForceClean(CacheUpdateSettings settings)
         {
-            GC.Collect(GC.MaxGeneration);
-
             if (settings.ShouldUnloadUnusedAssets)
             {
-                Resources.UnloadUnusedAssets();
                 EditorUtility.UnloadUnusedAssetsImmediate(true);
             }
+
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
         }
     }
 }

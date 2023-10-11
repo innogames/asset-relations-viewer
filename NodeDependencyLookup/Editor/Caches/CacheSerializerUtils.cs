@@ -38,7 +38,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             return result;
         }
-        
+
         public static byte[] EnsureSize(byte[] array, int offset)
         {
             if (offset + ARRAY_SIZE_OFFSET / 2 > array.Length)
@@ -47,7 +47,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 Array.Copy(array, newArray, offset);
                 return newArray;
             }
-			
+
             return array;
         }
 
@@ -55,23 +55,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             char[] charArray = value.ToCharArray();
             EncodeShort((short)charArray.Length, ref bytes, ref offset);
-				
+
             for (var c = 0; c < charArray.Length; c++)
             {
                 bytes[offset++] = (byte) charArray[c];
             }
         }
-		
+
         public static string DecodeString(ref byte[] bytes, ref int offset)
         {
             int length = DecodeShort(ref bytes, ref offset);
-            
+
 #if UNITY_2021_1_OR_NEWER
                 Span<char> charArray = stackalloc char[length];
 #else
                 char[] charArray = new char[length];
 #endif
-			
+
             for (var c = 0; c < length; c++)
             {
                 charArray[c] = (char)bytes[offset++];
@@ -92,7 +92,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 EncodeShort((short)pathSegment.Type, ref bytes, ref offset);
             }
         }
-        
+
         public static PathSegment[] DecodePathSegments(ref byte[] bytes, ref int offset)
         {
             int pathLength = DecodeShort(ref bytes, ref offset);
@@ -100,17 +100,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             for (var p = 0; p < pathLength; p++)
             {
-                PathSegment pathSegment = new PathSegment();
-
-                pathSegment.Name = DecodeString(ref bytes, ref offset);
-                pathSegment.Type = (PathSegmentType)DecodeShort(ref bytes, ref offset);
-
-                pathSegments[p] = pathSegment;
-            }
+				pathSegments[p] = new PathSegment(DecodeString(ref bytes, ref offset), (PathSegmentType)DecodeShort(ref bytes, ref offset));
+			}
 
             return pathSegments;
         }
-        
+
         public static void EncodeDependencies(List<Dependency> dependencies, ref byte[] bytes, ref int offset)
         {
             EncodeShort((short)dependencies.Count, ref bytes, ref offset);
@@ -127,7 +122,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 bytes = EnsureSize(bytes, offset);
             }
         }
-        
+
         public static List<Dependency> DecodeDependencies(ref byte[] bytes, ref int offset)
         {
             int numDependencies = DecodeShort(ref bytes, ref offset);
@@ -139,13 +134,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 string connectionType = DecodeString(ref bytes, ref offset);
                 string nodeType = DecodeString(ref bytes, ref offset);
                 PathSegment[] pathSegments = DecodePathSegments(ref bytes, ref offset);
-							
+
                 dependencies.Add(new Dependency(id, connectionType, nodeType, pathSegments));
             }
 
             return dependencies;
         }
-        
+
         public static Dictionary<string, GenericDependencyMappingNode> GenerateIdLookup(
 			GenericDependencyMappingNode[] nodes)
 		{
@@ -166,10 +161,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				return new GenericDependencyMappingNode[0];
 			}
-			
+
 			byte[] bytes = File.ReadAllBytes(path);
 			int offset = 0;
-			
+
 			long count = DecodeLong(ref bytes, ref offset);
 
 			GenericDependencyMappingNode[] nodes = new GenericDependencyMappingNode[count];
@@ -190,9 +185,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			byte[] bytes = new byte[ARRAY_SIZE_OFFSET];
 			int offset = 0;
-			
+
 			EncodeLong(nodes.Length, ref bytes, ref offset);
-			
+
 			foreach (GenericDependencyMappingNode node in nodes)
 			{
 				EncodeString(node.Id, ref bytes, ref offset);
@@ -208,7 +203,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				Directory.CreateDirectory(directory);
 			}
-			
+
 			File.WriteAllBytes(path, bytes);
 		}
     }
