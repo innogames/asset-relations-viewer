@@ -71,6 +71,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			unsafeModeMethod = type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
 		}
 
+		private Stack<PathSegment> tmpStack = new Stack<PathSegment>();
+
 		public void Search(ResolverDependencySearchContext searchContext)
 		{
 			if (searchContext.Asset == null)
@@ -78,7 +80,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			Traverse(searchContext, searchContext.Asset, new Stack<PathSegment>());
+			tmpStack.Clear();
+			Traverse(searchContext, searchContext.Asset, tmpStack);
 		}
 
 		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj, bool onlyOverriden, Stack<PathSegment> stack)
@@ -105,6 +108,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				isReflectableCache[objType] = isReflectable;
 			}
 
+			_reflectionCache.GetOrAddTypeEntryForType(objType);
 			ReflectionStackItem rootItem = ReflectionStack[0];
 			rootItem.value = obj;
 			rootItem.type = objType;
@@ -166,6 +170,50 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
+		private class ReflectionCache
+		{
+			public class TypeEntry
+			{
+				public Type Type;
+				public Dictionary<string, FieldInfo> FieldLookup = new Dictionary<string, FieldInfo>();
+				public bool IsGenericListType;
+				public Type GenericListType;
+				public Type ListElementType;
+			}
+
+			private Dictionary<Type, TypeEntry> typeEntryLookup = new Dictionary<Type, TypeEntry>();
+
+			public TypeEntry GetOrAddTypeEntryForType(Type type)
+			{
+				TypeEntry typeEntry;
+
+				if (!typeEntryLookup.TryGetValue(type, out typeEntry))
+				{
+					typeEntry = new TypeEntry();
+					FieldInfo[] fieldInfos = type.GetFields(Flags);
+
+					foreach (FieldInfo fieldInfo in fieldInfos)
+					{
+						typeEntry.FieldLookup.Add(fieldInfo.Name, fieldInfo);
+					}
+
+					Type[] genericArguments = type.GetGenericArguments();
+					if (genericArguments.Length > 0)
+					{
+						typeEntry.GenericListType = genericArguments[0];
+					}
+
+					typeEntry.ListElementType = type.GetElementType();
+
+					typeEntryLookup.Add(type, typeEntry);
+				}
+
+				return typeEntry;
+			}
+		}
+
+		private ReflectionCache _reflectionCache = new ReflectionCache();
+
 		private int UpdateStack(string path, ReflectionStackItem[] stack)
 		{
 			int subIndex = 0;
@@ -185,7 +233,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			ref ReflectionStackItem parent = ref stack[stackPos - 1];
 
 			if (parent.type == null)
+			{
 				return -1;
+			}
 
 			ref ReflectionStackItem item = ref stack[stackPos];
 			int arrayIndex = -1;
@@ -205,7 +255,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				elementName = elementName.Slice(0, arrayStartIndex);
 			}
 
-			item.fieldInfo = parent.type.GetField(elementName.ToString(), Flags);
+			ReflectionCache.TypeEntry parentTypeEntry = _reflectionCache.GetOrAddTypeEntryForType(parent.type);
+
+			if(!parentTypeEntry.FieldLookup.TryGetValue(elementName.ToString(), out item.fieldInfo))
+			{
+				return -1;
+			}
 #else
 			string elementName = path.Substring(subIndex);
 			item.arrayIndex = -1;
@@ -224,14 +279,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #endif
 
 			if (item.fieldInfo == null || parent.value == null)
+			{
 				return -1;
+			}
 
 			item.value = item.fieldInfo.GetValue(parent.value);
 
 			if (item.value == null)
+			{
 				return -1;
+			}
 
 			Type itemType = item.value.GetType();
+			ReflectionCache.TypeEntry typeEntry = _reflectionCache.GetOrAddTypeEntryForType(itemType);
 
 			item.type = itemType;
 
@@ -244,7 +304,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					return -1;
 				}
 
-				item.type = genericList.GetType().IsGenericType ? item.type.GetGenericArguments()[0] : item.type.GetElementType();
+				item.type = genericList.GetType().IsGenericType ? typeEntry.GenericListType : typeEntry.ListElementType;
 				item.value = genericList[arrayIndex];
 			}
 
