@@ -127,25 +127,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			Task.Run(() =>
+			string cachePath = GetCachePath();
+
+			int offset = 0;
+			byte[] bytes = new byte[512 * 1024];
+
+			CacheSerializerUtils.EncodeLong(_cachedNodeDataLookup.Count, ref bytes, ref offset);
+
+			foreach (var pair in _cachedNodeDataLookup)
 			{
-				int offset = 0;
-				byte[] bytes = new byte[512 * 1024];
+				CacheSerializerUtils.EncodeString(pair.Value.Id, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeString(pair.Value.Type, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeString(pair.Value.Name, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeLong(pair.Value.TimeStamp, ref bytes, ref offset);
 
-				CacheSerializerUtils.EncodeLong(_cachedNodeDataLookup.Count, ref bytes, ref offset);
+				bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
+			}
 
-				foreach (var pair in _cachedNodeDataLookup)
-				{
-					CacheSerializerUtils.EncodeString(pair.Value.Id, ref bytes, ref offset);
-					CacheSerializerUtils.EncodeString(pair.Value.Type, ref bytes, ref offset);
-					CacheSerializerUtils.EncodeString(pair.Value.Name, ref bytes, ref offset);
-					CacheSerializerUtils.EncodeLong(pair.Value.TimeStamp, ref bytes, ref offset);
-
-					bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
-				}
-
-				File.WriteAllBytes(GetCachePath(), bytes);
-			});
+			File.WriteAllBytes(cachePath, bytes);
 		}
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
