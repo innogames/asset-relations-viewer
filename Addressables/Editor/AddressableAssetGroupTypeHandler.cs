@@ -230,7 +230,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			string concreteType = "AddressableAssetGroupBundle";
 
 			wasCached = false;
-			return new Node(id, type, name, concreteType, 0);
+			return new Node(id, type, name, concreteType);
 		}
 
 		public void InitNodeCreation()

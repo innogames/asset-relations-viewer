@@ -105,7 +105,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string id = node.Id;
             int packedAssetSize = 0;
             bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
-            bool timeStampChanged = !wasCached || cachedValue.TimeStamp != node.ChangedTimeStamp;
+            long timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(node.Name);
+            bool timeStampChanged = !wasCached || cachedValue.TimeStamp != timeStamp;
 
             if (wasCached && !timeStampChanged)
             {
@@ -121,7 +122,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 }
             }
 
-            CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = node.ChangedTimeStamp};
+            CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = timeStamp};
 
             if (wasCached)
             {
@@ -223,7 +224,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string concreteType = "File";
 
             wasCached = false;
-            return new Node(id, type, name, concreteType, 0);
+            return new Node(id, type, name, concreteType);
         }
 
         private string GetCachePath()

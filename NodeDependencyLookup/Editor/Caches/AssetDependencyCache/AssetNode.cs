@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public string ResolverId;
 			public long TimeStamp;
 		}
-		
+
 		public string FileId;
 		public List<AssetNode> AssetNodes;
 
@@ -32,7 +32,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			AssetNodes.Add(newAssetNode);
 			return newAssetNode;
 		}
-		
+
 		public ResolverTimeStamp GetResolverTimeStamp(string id)
 		{
 			foreach (ResolverTimeStamp resolverTimeStamp in ResolverTimeStamps)
@@ -49,7 +49,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return newTimestamp;
 		}
 	}
-	
+
 	/**
 	 * Stores a relation and contains a list of dependency nodes and a list of referencer nodes
 	 */
@@ -63,12 +63,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private string AssetId;
 		private string KeyId;
-		
+
 		public string Id => AssetId;
 		public string Type => AssetNodeType.Name;
 		public string Key => KeyId;
 
-		public List<ResolverData> ResolverDatas = new List<ResolverData>();
+		public List<ResolverData> ResolverDatas = new List<ResolverData>(2);
 
 		public AssetNode(string assetId)
 		{

@@ -18,7 +18,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly List<Connection> Dependencies = new List<Connection>();
 		public readonly List<Connection> Referencers = new List<Connection>();
 
-		public readonly long ChangedTimeStamp;
 		public readonly string Id;
 		public readonly string Type;
 		public readonly string Key;
@@ -28,13 +27,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public NodeSize OwnSize = new NodeSize{Size = -1};
 
-		public Node(string id, string type, string name, string concreteType, long changedTimeStamp)
+		public Node(string id, string type, string name, string concreteType)
 		{
 			Id = id;
 			Type = type;
 			Name = name;
 			ConcreteType = concreteType;
-			ChangedTimeStamp = changedTimeStamp;
 			Key = NodeDependencyLookupUtility.GetNodeKey(id, type);
 		}
 

@@ -39,7 +39,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void Reset()
 		{
 			RelationsLookup = new RelationLookup.RelationsLookup();
-			//NodeHandlerLookup = NodeDependencyLookupUtility.BuildNodeHandlerLookup();
 			DependencyTypeLookup = null;
 		}
 

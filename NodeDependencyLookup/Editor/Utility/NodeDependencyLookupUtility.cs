@@ -415,33 +415,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return null;
         }
 
-        public static void AddAllAssetsOfId(string id, Dictionary<string, Object> list)
-        {
-            string guid = GetGuidFromAssetId(id);
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            Object[] assetsAtPath = LoadAllAssetsAtPath(path);
-
-            foreach (Object asset in assetsAtPath)
-            {
-                if (asset == null)
-                {
-                    continue;
-                }
-
-                string assetId = GetAssetIdForAsset(asset);
-
-                if (!list.ContainsKey(assetId))
-                {
-                    list.Add(assetId, asset);
-                }
-            }
-
-            if (!list.ContainsKey(id))
-            {
-                list.Add(id, null);
-            }
-        }
-
         public static Object GetMainAssetById(string id)
         {
             string guid = GetGuidFromAssetId(id);
@@ -485,11 +458,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             Profiler.BeginSample($"AddAssetsToList Load {path}");
             Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             Object[] allAssets = LoadAllAssetsAtPath(path);
-            Profiler.EndSample();
-
-            Profiler.BeginSample($"AddAssetsToList Load {path}");
-            mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
-            allAssets = LoadAllAssetsAtPath(path);
             Profiler.EndSample();
 
             for (var i = 0; i < allAssets.Length; i++)
@@ -605,37 +573,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 
             return RelationType.DEPENDENCY;
-        }
-
-        public static void GetAllReachableNodes(Node node, HashSet<Node> reachedNodes, HashSet<Node> newNodes, RelationType relationType)
-        {
-            if (reachedNodes.Contains(node))
-            {
-                return;
-            }
-
-            reachedNodes.Add(node);
-            newNodes.Add(node);
-
-            foreach (Connection connection in node.GetRelations(relationType))
-            {
-                GetAllReachableNodes(connection.Node, reachedNodes, newNodes, relationType);
-            }
-        }
-
-        public static HashSet<Node> CalculateAllReachableNodes(Node rootNode, HashSet<Node> reachedNodes)
-        {
-            HashSet<Node> newNodes = new HashSet<Node>();
-            HashSet<Node> referencerNodes = new HashSet<Node>();
-
-            GetAllReachableNodes(rootNode, referencerNodes, referencerNodes, RelationType.REFERENCER);
-
-            foreach (Node referencerNode in referencerNodes)
-            {
-                GetAllReachableNodes(referencerNode, reachedNodes, newNodes, RelationType.DEPENDENCY);
-            }
-
-            return newNodes;
         }
 
         public static void CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context)

@@ -163,7 +163,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					if (string.IsNullOrEmpty(path))
 					{
-						return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType, 0);
+						return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType);
 					}
 
 					timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(path);
@@ -179,7 +179,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (wasCached && !timeStampChanged)
 			{
-				return new Node(id, type, cachedValue.Name, cachedValue.Type, cachedValue.TimeStamp);
+				return new Node(id, type, cachedValue.Name, cachedValue.Type);
 			}
 
 			GetNameAndType(guid, id, out string name, out string concreteType);
@@ -194,7 +194,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				_cachedNodeDataLookup[id] = cachedSerializedNodeData;
 			}
 
-			return new Node(id, type, name, concreteType, timeStamp);
+			return new Node(id, type, name, concreteType);
 		}
 
 		private struct NameAndType
@@ -204,27 +204,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
-		private Dictionary<string, Object> idToAssetLookup = new Dictionary<string, Object>();
+		private List<AssetListEntry> assetList = new List<AssetListEntry>();
 
 		private void GetNameAndType(string guid, string id, out string name, out string type)
 		{
-			idToAssetLookup.Clear();
+			assetList.Clear();
 			string path = AssetDatabase.GUIDToAssetPath(guid);
+
+			name = "Unknown";
+			type = "Unknown";
 
 			if (!nameAndTypeMapping.ContainsKey(id))
 			{
-				NodeDependencyLookupUtility.AddAllAssetsOfId(id, idToAssetLookup);
+				NodeDependencyLookupUtility.AddAssetsToList(assetList, path);
 
-				foreach (KeyValuePair<string,Object> pair in idToAssetLookup)
+				foreach (AssetListEntry entry in assetList)
 				{
-					GetNameAndTypeForAsset(pair.Value, pair.Key, path, out name, out type);
-					nameAndTypeMapping.Add(pair.Key, new NameAndType{Name = name, Type = type});
+					GetNameAndTypeForAsset(entry.Asset, entry.AssetId, path, out name, out type);
+					nameAndTypeMapping.Add(entry.AssetId, new NameAndType{Name = name, Type = type});
 				}
 			}
 
-			NameAndType nameAndType = nameAndTypeMapping[id];
-			name = nameAndType.Name;
-			type = nameAndType.Type;
+			if (nameAndTypeMapping.TryGetValue(id, out NameAndType value))
+			{
+				name = value.Name;
+				type = value.Type;
+			}
 		}
 
 		private void GetNameAndTypeForAsset(Object asset, string id, string path, out string name, out string type)

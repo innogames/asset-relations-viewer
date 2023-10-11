@@ -162,7 +162,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					k++;
 					list.Remove(guid);
-					FindDependenciesForResolvers(resolversToExecute, result, path, list, (float)i / pathes.Length);
+					FindDependenciesForResolvers(resolversToExecute, result, path, timestamps[i], list, (float)i / pathes.Length);
 				}
 			}
 
@@ -176,7 +176,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private List<AssetListEntry> entries = new List<AssetListEntry>();
 		private ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
 
-		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, Dictionary<string, FileToAssetNode> list, float progress)
+		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, long timeStamp, Dictionary<string, FileToAssetNode> list, float progress)
 		{
 			string progressBarTitle = $"AssetDependencyCache";
 
@@ -213,7 +213,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				foreach (IAssetDependencyResolver resolver in resolvers)
 				{
-					GetDependenciesForResolver(searchContext, resolver, list);
+					GetDependenciesForResolver(searchContext, timeStamp, resolver, list);
 				}
 
 				result.Add(entry.AssetId);
@@ -277,7 +277,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return hasChanges;
 		}
 
-		private void GetDependenciesForResolver(ResolverDependencySearchContext searchContext, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
+		private void GetDependenciesForResolver(ResolverDependencySearchContext searchContext, long timeStamp, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)
 		{
 			string resolverId = resolver.GetId();
 			string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId);
@@ -290,14 +290,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			FileToAssetNode fileToAssetNode = resultList[fileId];
 			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 
-			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
+			assetNode.GetResolverData(resolverId).Dependencies = searchContext.ResolverDependencies[resolver];
 
-			AssetNode.ResolverData resolverData = assetNode.GetResolverData(resolverId);
-
-			resolverData.Dependencies = dependencies;
-
-			fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp =
-				NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
+			fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp = timeStamp;
 		}
 	}
 }

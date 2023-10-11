@@ -144,7 +144,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 
 					int stackIndex = propertyType == SerializedPropertyType.Generic ? UpdateStack(modifiedPath, ReflectionStack) : -1;
-
 					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : (propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null);
 
 					if (generic == null)

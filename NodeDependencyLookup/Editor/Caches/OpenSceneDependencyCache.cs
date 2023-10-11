@@ -340,7 +340,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             string name = _hashToGameObject.ContainsKey(id) ? _hashToGameObject[id].name : id;
 
             wasCached = false;
-            return new Node(id, type, name, concreteType, 0);
+            return new Node(id, type, name, concreteType);
         }
 
         public void InitNodeCreation()

@@ -27,6 +27,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private bool _isLoaded;
 
+        private List<AssetListEntry> tmpEntries = new List<AssetListEntry>();
+
         public void ClearFile(string directory)
         {
             string path = Path.Combine(directory, FileName);
@@ -89,7 +91,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 if (changed)
                 {
                     j++;
-                    FindDependenciesForAssets(changedAssetIds, resolver, path, fileToAssetMappingDictionary);
+                    FindDependenciesForAsset(changedAssetIds, resolver, path, timestamps[i], fileToAssetMappingDictionary);
                 }
             }
 
@@ -98,24 +100,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return changedAssetIds;
         }
 
-        private List<AssetListEntry> entries = new List<AssetListEntry>();
-
-        private void FindDependenciesForAssets(HashSet<string> changedAssetIds, IAssetToFileDependencyResolver resolver, string path, Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
+        private void FindDependenciesForAsset(HashSet<string> changedAssetIds, IAssetToFileDependencyResolver resolver, string path, long timeStamp, Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
         {
-            entries.Clear();
-            NodeDependencyLookupUtility.AddAssetsToList(entries, path);
+            tmpEntries.Clear();
+            NodeDependencyLookupUtility.AddAssetsToList(tmpEntries, path);
 
             // Delete to avoid piling up removed subassets from file
             fileToAssetMappingDictionary.Remove(AssetDatabase.AssetPathToGUID(path));
 
-            foreach (AssetListEntry entry in entries)
+            foreach (AssetListEntry entry in tmpEntries)
             {
-                Profiler.BeginSample("InstanceId");
-                int instanceID = entry.Asset.GetInstanceID();
-                Object instanceIDToObject = Resources.InstanceIDToObject(instanceID);
-                Profiler.EndSample();
-
-                GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, resolver, fileToAssetMappingDictionary);
+                GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, timeStamp, resolver, fileToAssetMappingDictionary);
                 changedAssetIds.Add(entry.AssetId);
             }
         }
@@ -161,14 +156,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 hasChanges |= changedAssetIds.Count > 0;
             }
 
-            GC.Collect(GC.MaxGeneration);
-
             CacheUpdateResourcesCleaner.ForceClean(cacheUpdateSettings);
 
             return hasChanges;
         }
 
-        private void GetDependenciesForAssetInResolver(string assetId, Object asset, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
+        private void GetDependenciesForAssetInResolver(string assetId, Object asset, long timeStamp, IAssetToFileDependencyResolver resolver, Dictionary<string, FileToAssetsMapping> resultList)
         {
             string fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
@@ -182,8 +175,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             genericDependencyMappingNode.Dependencies.Clear();
             resolver.GetDependenciesForAsset(assetId, genericDependencyMappingNode.Dependencies);
-
-            fileToAssetsMapping.Timestamp = NodeDependencyLookupUtility.GetTimeStampForFileId(fileId);
+            fileToAssetsMapping.Timestamp = timeStamp;
         }
 
         public void AddExistingNodes(List<IDependencyMappingNode> nodes)
