@@ -638,14 +638,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             _cacheStates.Clear();
 
+            Profiler.BeginSample("Find Caches");
             List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
+            Profiler.EndSample();
 
             foreach (Type type in types)
             {
                 IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
                 CacheState cacheState = new CacheState(cache);
 
+                Profiler.BeginSample("Find Resolvers");
                 List<Type> resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
+                Profiler.EndSample();
 
                 foreach (Type rtype in resolverTypes)
                 {

@@ -289,12 +289,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return InSceneNodeType.Name;
         }
 
-        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
         {
             node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
         {
             // nothing to do
         }

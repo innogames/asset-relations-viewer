@@ -11,10 +11,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		string GetHandledNodeType();
 
 		/// Initialized the filesize calculation of the node. Since the <see cref="CalculateOwnFileSize"/> function is running on multiple threads do calls to Unity functions here.
-		void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context);
+		void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData);
 
 		/// Updates the filesize of the node. This is running in parallel on multiple threads
-		void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context);
+		void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData);
 
 		/// After <see cref="CalculateOwnFileSize"/> has been run do any node dependency related filesize calculations here
 		void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes);

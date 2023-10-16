@@ -25,20 +25,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public class AssetNodeHandler : INodeHandler
 	{
+		private class NameAndType
+		{
+			public string Name;
+			public string Type;
+		}
+
 		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup = new Dictionary<string, SerializedNodeData>();
 		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
+		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
+		private List<AssetListEntry> assetList = new List<AssetListEntry>(1024);
 
 		public string GetHandledNodeType()
 		{
 			return AssetNodeType.Name;
 		}
 
-		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context)
+		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
 		{
 			// nothing to do
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
 		{
 			// nothing to do
 		}
@@ -158,17 +166,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (update)
 			{
-				if (cachedTimeStamps.TryGetValue(guid, out long value))
+				if (string.IsNullOrEmpty(path))
 				{
-					timeStamp = value;
+					return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType);
 				}
-				else
-				{
-					if (string.IsNullOrEmpty(path))
-					{
-						return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType);
-					}
 
+				if (!cachedTimeStamps.TryGetValue(guid, out timeStamp))
+				{
 					timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(path);
 					cachedTimeStamps.Add(guid, timeStamp);
 				}
@@ -185,7 +189,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return new Node(id, type, cachedValue.Name, cachedValue.Type);
 			}
 
-			GetNameAndType(guid, id, out string name, out string concreteType);
+			GetNameAndType(path, id, out string name, out string concreteType);
 			SerializedNodeData cachedSerializedNodeData = new SerializedNodeData{Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp};
 
 			if (!wasCached)
@@ -200,22 +204,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new Node(id, type, name, concreteType);
 		}
 
-		private class NameAndType
-		{
-			public string Name;
-			public string Type;
-		}
-
-		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
-		private List<AssetListEntry> assetList = new List<AssetListEntry>(1024);
-
-		private void GetNameAndType(string guid, string id, out string name, out string type)
+		private void GetNameAndType(string path, string id, out string name, out string type)
 		{
 			assetList.Clear();
-			string path = AssetDatabase.GUIDToAssetPath(guid);
-
-			name = "Unknown";
-			type = "Unknown";
+			name = NodeDependencyCacheConstants.UnknownNodeType;
+			type = NodeDependencyCacheConstants.UnknownNodeType;
 
 			if (!nameAndTypeMapping.ContainsKey(id))
 			{

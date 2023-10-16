@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -154,12 +153,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					j++;
 				}
 
-				NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext);
+				NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext, updateNodeData);
 
-				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+				if (updateNodeData)
 				{
-					EditorUtility.DisplayProgressBar("RelationLookup", $"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
-					pair.Value.SaveCaches();
+					foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+					{
+						EditorUtility.DisplayProgressBar("RelationLookup", $"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
+						pair.Value.SaveCaches();
+					}
 				}
 
 				EditorUtility.ClearProgressBar();

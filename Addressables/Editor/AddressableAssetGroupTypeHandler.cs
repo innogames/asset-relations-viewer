@@ -139,12 +139,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return AddressableAssetGroupNodeType.Name;
 		}
 
-		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
 			// nothing to do
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
 			// nothing to do
 		}

@@ -575,7 +575,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return RelationType.DEPENDENCY;
         }
 
-        public static void CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context)
+        public static void CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context, bool updateNodeData = true)
         {
             if (nodes.Count == 0)
             {
@@ -586,7 +586,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             {
                 Node node = nodes[i];
 
-                GetNodeHandler(node, context).InitializeOwnFileSize(node, context);
+                GetNodeHandler(node, context).InitializeOwnFileSize(node, context, updateNodeData);
 
                 if (i % 1000 == 0)
                 {
@@ -603,7 +603,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     i =>
                     {
                         currentNode = nodes[i];
-                        GetNodeHandler(nodes[i], context).CalculateOwnFileSize(nodes[i], context);
+                        GetNodeHandler(nodes[i], context).CalculateOwnFileSize(nodes[i], context, updateNodeData);
                         count++;
                     });
             });

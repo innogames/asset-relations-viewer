@@ -135,6 +135,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             CreatedDependencyCache createdDependencyCache)
         {
             string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+            EditorUtility.DisplayProgressBar("AssetToFileDependencyCache", "Checking file timestamps", 0);
             Profiler.BeginSample("TimeStamps");
             long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
             Profiler.EndSample();
@@ -155,8 +156,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 HashSet<string> changedAssetIds = FindDependenciesInChangedAssets(cacheUpdateSettings, pathes, resolver, timestamps, ref fileToAssetsMappings);
                 hasChanges |= changedAssetIds.Count > 0;
             }
-
-            CacheUpdateResourcesCleaner.ForceClean(cacheUpdateSettings);
 
             return hasChanges;
         }

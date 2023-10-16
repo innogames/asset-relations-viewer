@@ -86,7 +86,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
         {
             bool isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
             bool contributesToTreeSize = !isSpriteOfSpriteAtlas;
@@ -100,13 +100,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
         }
 
-        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext)
+        public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
         {
             string id = node.Id;
             int packedAssetSize = 0;
             bool wasCached = cachedSizeLookup.TryGetValue(id, out CachedData cachedValue);
-            long timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(node.Name);
-            bool timeStampChanged = !wasCached || cachedValue.TimeStamp != timeStamp;
+
+            long timeStamp = 0;
+            bool timeStampChanged = false;
+
+            if (updateNodeData)
+            {
+                timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(node.Name);
+                timeStampChanged = (!wasCached || cachedValue.TimeStamp != timeStamp) && updateNodeData;
+            }
 
             if (wasCached && !timeStampChanged)
             {
@@ -124,13 +131,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             CachedData cachedData = new CachedData{Id = id, Size = packedAssetSize, TimeStamp = timeStamp};
 
-            if (wasCached)
+            if (updateNodeData)
             {
-                cachedSizeLookup[id] = cachedData;
-            }
-            else
-            {
-                cachedSizeLookup.TryAdd(id, cachedData);
+                if (wasCached)
+                {
+                    cachedSizeLookup[id] = cachedData;
+                }
+                else
+                {
+                    cachedSizeLookup.TryAdd(id, cachedData);
+                }
             }
 
             node.OwnSize.Size += packedAssetSize;
