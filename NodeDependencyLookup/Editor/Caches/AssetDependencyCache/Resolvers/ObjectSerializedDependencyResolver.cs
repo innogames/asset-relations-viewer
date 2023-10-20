@@ -79,11 +79,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        private string GetAssetPathForAsset(string sourceAssetId, object obj)
+        private string GetAssetPathForAsset(string sourceAssetId, Object value)
         {
-            Object value = obj as Object;
-
-            if (value == null)
+	        if (value == null)
                 return null;
 
             string assetPath = AssetDatabase.GetAssetPath(value);
@@ -123,18 +121,26 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return null;
         }
 
-        public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type)
+        public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+	        ref string propertyPath, SerializedPropertyType type)
         {
-            if (type != SerializedPropertyType.ObjectReference || obj == null || !(obj is Object value))
+            if (type != SerializedPropertyType.ObjectReference)
             {
                 return null;
             }
 
-            string id = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+            Object asset = property.objectReferenceValue;
+
+            if (asset == null)
+            {
+	            return null;
+            }
+
+            string id = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
 
             if(!cachedAssetAsDependencyData.TryGetValue(id, out string assetId))
             {
-                assetId = GetAssetPathForAsset(sourceAssetId, obj);
+                assetId = GetAssetPathForAsset(sourceAssetId, asset);
                 cachedAssetAsDependencyData.Add(id, assetId);
             }
 

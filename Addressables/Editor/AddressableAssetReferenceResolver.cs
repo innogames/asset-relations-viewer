@@ -24,8 +24,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		private readonly HashSet<string> validGuids = new HashSet<string>();
 		private const string Id = "AddressableReferenceResolver";
 
-		private MethodInfo subObjectMethodInfo;
-
 		public bool IsGuidValid(string guid)
 		{
 			return validGuids.Contains(guid);
@@ -69,14 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public void Initialize(AssetDependencyCache cache)
 		{
-			Type assetReferenceType = typeof(AssetReference);
-			subObjectMethodInfo = assetReferenceType.GetMethod("get_SubOjbectType", BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
-
-			if (subObjectMethodInfo == null)
-			{
-				// Try version without typo
-				subObjectMethodInfo = assetReferenceType.GetMethod("get_SubObjectType", BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
-			}
+			// No implementation
 		}
 
 		public void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
@@ -89,35 +80,46 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			// No implementation
 		}
 
-		public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type)
+		public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+			ref string propertyPath, SerializedPropertyType type)
 		{
-			if (obj is AssetReference assetReference && assetReference.editorAsset != null)
+			if (!property.type.StartsWith("AssetReference", StringComparison.Ordinal))
 			{
-				Object asset = assetReference.editorAsset;
+				return null;
+			}
 
-				if (!string.IsNullOrEmpty(assetReference.SubObjectName) && subObjectMethodInfo != null)
+			SerializedProperty assetGUIDProperty = property.FindPropertyRelative("m_AssetGUID");
+
+			if (assetGUIDProperty != null && !string.IsNullOrEmpty(assetGUIDProperty.stringValue))
+			{
+				string guid = assetGUIDProperty.stringValue;
+				string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+
+				if (string.IsNullOrEmpty(assetPath))
 				{
-					Type subObjectType = subObjectMethodInfo.Invoke(assetReference, new object[] {}) as Type;
+					return null;
+				}
 
-					Object[] allAssets = null;
+				Object asset = null;
+				string subAssetName = property.FindPropertyRelative("m_SubObjectName").stringValue;
 
-					if (asset is SceneAsset)
-					{
-						allAssets = new Object[] {asset};
-					}
-					else
-					{
-						allAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GUIDToAssetPath(assetReference.AssetGUID));
-					}
+				if (!string.IsNullOrEmpty(subAssetName))
+				{
+					string subAssetType = property.FindPropertyRelative("m_SubObjectType").stringValue;
+					Object[] allAssets = AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath);
 
 					foreach (Object allAsset in allAssets)
 					{
-						if (allAsset != null && allAsset.name == assetReference.SubObjectName && (subObjectType == null || allAsset.GetType() == subObjectType))
+						if (allAsset != null && allAsset.name == subAssetName && (string.IsNullOrEmpty(subAssetType) || allAsset.GetType().Name == subAssetType))
 						{
 							asset = allAsset;
 							break;
 						}
 					}
+				}
+				else
+				{
+					asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
 				}
 
 				string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);

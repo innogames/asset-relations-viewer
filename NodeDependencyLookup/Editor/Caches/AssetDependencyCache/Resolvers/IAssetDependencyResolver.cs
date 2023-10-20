@@ -34,7 +34,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
 
 		// Returns a dependency result of the given serialized property is a UnityEngine.Object
-		public AssetDependencyResolverResult GetDependency(string sourceAssetId, object obj, string propertyPath, SerializedPropertyType type);
+		public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+			ref string propertyPath, SerializedPropertyType type);
 	}
 
 	/// <summary>
