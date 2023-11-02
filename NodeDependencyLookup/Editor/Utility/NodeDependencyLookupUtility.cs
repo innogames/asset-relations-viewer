@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -84,7 +85,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return timeStamp;
         }
 
-        public static void LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
+        public static IEnumerator LoadDependencyLookupForCaches(NodeDependencyLookupContext stateContext,
             ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate = false, bool isFastUpdate = false,
             string fileDirectory = null)
         {
@@ -92,7 +93,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
             try
             {
-                LoadDependenciesForCachesInternal(stateContext, resolverUsageDefinitionList, isPartialUpdate, isFastUpdate, fileDirectory);
+                yield return LoadDependenciesForCachesInternal(stateContext, resolverUsageDefinitionList, isPartialUpdate, isFastUpdate, fileDirectory);
             }
             finally
             {
@@ -100,7 +101,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
         }
 
-        private static void LoadDependenciesForCachesInternal(NodeDependencyLookupContext stateContext, ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate, bool isFastUpdate, string fileDirectory)
+        private static IEnumerator LoadDependenciesForCachesInternal(NodeDependencyLookupContext stateContext, ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate, bool isFastUpdate, string fileDirectory)
         {
             if (string.IsNullOrEmpty(fileDirectory))
             {
@@ -145,15 +146,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
                 if (cache.CanUpdate())
                 {
-                    Profiler.BeginSample($"Update cache: {cacheUsage.Cache.GetType().Name}");
-                    bool hasChanges = cache.Update(stateContext.CacheUpdateSettings, resolverUsageDefinitionList, updateInfo.Update);
-                    Profiler.EndSample();
+                    //Profiler.BeginSample($"Update cache: {cacheUsage.Cache.GetType().Name}");
+                    yield return cache.Update(stateContext.CacheUpdateSettings, resolverUsageDefinitionList, updateInfo.Update);
+                    //Profiler.EndSample();
 
-                    if (hasChanges && updateInfo.Save)
+                    if (updateInfo.Save)
                     {
                         Profiler.BeginSample($"Save cache: {cacheUsage.Cache.GetType().Name}");
                         cache.Save(fileDirectory);
                         Profiler.EndSample();
+                        yield return null;
                     }
                 }
                 else
@@ -163,9 +165,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             }
 
             RelationLookup.RelationsLookup lookup = new RelationLookup.RelationsLookup();
-            Profiler.BeginSample("BuildLookup");
-            lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
-            Profiler.EndSample();
+            //Profiler.BeginSample("BuildLookup");
+            yield return lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
+            //Profiler.EndSample();
 
             stateContext.RelationsLookup = lookup;
         }
@@ -575,11 +577,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return RelationType.DEPENDENCY;
         }
 
-        public static void CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context, bool updateNodeData = true)
+        public static IEnumerator CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context, bool updateNodeData = true)
         {
             if (nodes.Count == 0)
             {
-                return;
+                yield break;
             }
 
             for (var i = 0; i < nodes.Count; i++)
@@ -593,6 +595,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}", i / (float)nodes.Count);
                 }
             }
+
+            yield return null;
 
             Node currentNode = nodes[0];
 
@@ -613,6 +617,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 EditorUtility.DisplayProgressBar("Updating all node sizes compressed", $"[{currentNode.Type}] {currentNode.Name}", count / (float)nodes.Count);
                 Thread.Sleep(100);
             }
+
+            yield return null;
 
             HashSet<Node> calculatedNodes = new HashSet<Node>();
 

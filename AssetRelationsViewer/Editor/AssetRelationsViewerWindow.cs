@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -293,6 +295,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void LoadDependencyCache(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
+            EditorCoroutineUtility.StartCoroutineOwnerless(LoadDependencyCacheEnumerator(resolverUsageDefinitionList, update, partialUpdate, fastUpdate));
+        }
+
+        private IEnumerator LoadDependencyCacheEnumerator(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update, bool partialUpdate, bool fastUpdate)
+        {
             _nodeDependencyLookupContext.Reset();
             _nodeDependencyLookupContext.CacheUpdateSettings = new CacheUpdateSettings
             {
@@ -300,7 +307,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 UnloadUnusedAssetsInterval = _cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
             };
 
-            NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext,
+            yield return NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext,
                 resolverUsageDefinitionList, partialUpdate, fastUpdate);
 
             SetHandlerContext();
@@ -1157,8 +1164,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
+            EditorCoroutineUtility.StartCoroutineOwnerless(ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate));
+        }
+
+        private IEnumerator ReloadContextEnumerator(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
+            bool partialUpdate = true, bool fastUpdate = false)
+        {
             Refresh();
-            LoadDependencyCache(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate);
+            yield return LoadDependencyCacheEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate);
             ChangeSelection(_selectedNodeId, _selectedNodeType);
         }
 

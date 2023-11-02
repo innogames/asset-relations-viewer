@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -118,9 +119,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !Application.isPlaying && !EditorApplication.isCompiling;
 		}
 
-		private HashSet<string> FindDependenciesForChangedFilesForResolvers(CacheUpdateSettings settings, List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, ref FileToAssetNode[] fileToAssetNodes)
+		private IEnumerator FindDependenciesForChangedFilesForResolvers(CacheUpdateSettings settings, List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, FileToAssetNode[] fileToAssetNodes)
 		{
-			HashSet<string> result = new HashSet<string>();
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
 			list.EnsureCapacity(pathes.Length);
 
@@ -163,19 +163,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					k++;
 					list.Remove(guid);
-					FindDependenciesForResolvers(resolversToExecute, result, path, timestamps[i], list, (float)i / pathes.Length);
+					FindDependenciesForResolvers(resolversToExecute, path, timestamps[i], list, (float)i / pathes.Length);
+				}
+
+				if (k % 100 == 0)
+				{
+					yield return null;
 				}
 			}
 
 			_fileToAssetNodes = list.Values.ToArray();
 
-			return result;
+			yield return null;
 		}
 
 		private List<AssetListEntry> entries = new List<AssetListEntry>();
 		private ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
 
-		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, HashSet<string> result, string path, long timeStamp, Dictionary<string, FileToAssetNode> list, float progress)
+		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, string path, long timeStamp, Dictionary<string, FileToAssetNode> list, float progress)
 		{
 			string progressBarTitle = $"AssetDependencyCache";
 
@@ -214,17 +219,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					GetDependenciesForResolver(searchContext, timeStamp, resolver, list);
 				}
-
-				result.Add(entry.AssetId);
 			}
 		}
 
-		public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
 			if (!shouldUpdate)
 			{
-				return false;
+				yield break;
 			}
 
 			foreach (CreatedResolver resolverUsage in _createdDependencyCache.ResolverUsages)
@@ -242,10 +245,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
 
 			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
-			return GetDependenciesForAssets(cacheUpdateSettings, pathes, _createdDependencyCache);
+			yield return GetDependenciesForAssets(cacheUpdateSettings, pathes, _createdDependencyCache);
 		}
 
-		private bool GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] pathes, CreatedDependencyCache createdDependencyCache)
+		private IEnumerator GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] pathes, CreatedDependencyCache createdDependencyCache)
 		{
 			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Checking file timestamps", 0);
 			Profiler.BeginSample("TimeStamps");
@@ -271,10 +274,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.Initialize(this);
 			}
 
-			HashSet<string> changedAssetIds = FindDependenciesForChangedFilesForResolvers(cacheUpdateSettings, resolvers, pathes, timestamps, ref _fileToAssetNodes);
-			hasChanges |= changedAssetIds.Count > 0;
-
-			return hasChanges;
+			yield return FindDependenciesForChangedFilesForResolvers(cacheUpdateSettings, resolvers, pathes, timestamps, _fileToAssetNodes);
 		}
 
 		private void GetDependenciesForResolver(ResolverDependencySearchContext searchContext, long timeStamp, IAssetDependencyResolver resolver, Dictionary<string, FileToAssetNode> resultList)

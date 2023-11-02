@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -41,12 +42,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return !Application.isPlaying;
 		}
 
-		public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
 			if(!shouldUpdate && Nodes.Length > 0)
 			{
-				return false;
+				yield break;
 			}
 
 			AddressableAssetSettings settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
@@ -54,7 +55,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			if (settings == null)
 			{
 				Debug.LogWarning("Could not find UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings. Please add Addressable Settings if you use the AddressableGroup -> Asset resolver");
-				return false;
+				yield break;
 			}
 
 			CacheUpdateInfo resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
@@ -99,7 +100,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 
 			Nodes = nodes.ToArray();
-			return true;
 		}
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
