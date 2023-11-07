@@ -289,10 +289,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			FileToAssetNode fileToAssetNode = resultList[fileId];
 			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
+			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 
 			if (dependencies.Count > 0)
 			{
-				AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 				assetNode.GetResolverData(resolverId).Dependencies = dependencies;
 			}
 
