@@ -24,7 +24,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
         {
             if (settings.ShouldUnloadUnusedAssets)
             {
-                Resources.UnloadUnusedAssets();
                 EditorUtility.UnloadUnusedAssetsImmediate(true);
             }
 

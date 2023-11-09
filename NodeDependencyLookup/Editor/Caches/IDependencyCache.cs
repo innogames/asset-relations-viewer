@@ -20,7 +20,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public interface IDependencyCache
 	{
-		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
 		bool CanUpdate();
 		IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,

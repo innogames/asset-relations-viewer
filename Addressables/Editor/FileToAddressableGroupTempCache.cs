@@ -53,7 +53,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 
 			CacheUpdateInfo resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			RelationLookup.RelationsLookup assetToFileLookup = RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo);
+			RelationLookup.RelationsLookup assetToFileLookup = new RelationLookup.RelationsLookup();
+			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo, assetToFileLookup);
 
 			Lookup.Clear();
 			Nodes = new GenericDependencyMappingNode[0];

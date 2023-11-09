@@ -39,14 +39,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public static RelationsLookup GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo)
+		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo, RelationsLookup relationsLookup)
 		{
 			NodeDependencyLookupContext context = new NodeDependencyLookupContext(cacheUpdateSettings);
 			ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
 			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update, updateInfo.Save);
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
-
-			return context.RelationsLookup;
+			yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(context, resolverList);
 		}
 
 		// Builds bidirectional relations between nodes based on their dependencies
@@ -133,7 +131,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 						k++;
 
-						if (k % 200 == 0)
+						if (k % 500 == 0)
 						{
 							yield return null;
 						}

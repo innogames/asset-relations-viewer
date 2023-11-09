@@ -45,9 +45,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             _createdDependencyCache = createdDependencyCache;
         }
 
-        private IEnumerator FindDependenciesInChangedAssets(CacheUpdateSettings settings, string[] pathes, IAssetToFileDependencyResolver resolver, long[] timestamps, FileToAssetsMapping[] fileToAssetMappings)
+        private IEnumerator FindDependenciesInChangedAssets(CacheUpdateSettings settings, string[] pathes, IAssetToFileDependencyResolver resolver, long[] timestamps)
         {
-            Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetMappings);
+            Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary = RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetsMappings);
 
             float lastDisplayedPercentage = 0;
 
@@ -94,13 +94,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                     FindDependenciesForAsset(resolver, path, timestamps[i], fileToAssetMappingDictionary);
                 }
 
-                if (j % 500 == 0)
+                if (j % 2000 == 0)
                 {
                     yield return null;
                 }
             }
 
-            fileToAssetMappings = fileToAssetMappingDictionary.Values.ToArray();
+            _fileToAssetsMappings = fileToAssetMappingDictionary.Values.ToArray();
         }
 
         private void FindDependenciesForAsset(IAssetToFileDependencyResolver resolver, string path, long timeStamp, Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
@@ -130,10 +130,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 yield break;
             }
 
-            yield return GetDependenciesForAssets(cacheUpdateSettings, _fileToAssetsMappings, _createdDependencyCache);
+            yield return GetDependenciesForAssets(cacheUpdateSettings, _createdDependencyCache);
         }
 
-        private IEnumerator GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, FileToAssetsMapping[] fileToAssetsMappings,
+        private IEnumerator GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings,
             CreatedDependencyCache createdDependencyCache)
         {
             string[] pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
@@ -141,7 +141,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             Profiler.BeginSample("TimeStamps");
             long[] timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
             Profiler.EndSample();
-            NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref fileToAssetsMappings);
+            NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetsMappings);
 
             bool hasChanges = false;
 
@@ -155,7 +155,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 IAssetToFileDependencyResolver resolver = (IAssetToFileDependencyResolver) resolverUsage.Resolver;
                 resolver.Initialize(this);
 
-                yield return FindDependenciesInChangedAssets(cacheUpdateSettings, pathes, resolver, timestamps, fileToAssetsMappings);
+                yield return FindDependenciesInChangedAssets(cacheUpdateSettings, pathes, resolver, timestamps);
             }
         }
 

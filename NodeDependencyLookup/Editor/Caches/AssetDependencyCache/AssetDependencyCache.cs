@@ -166,7 +166,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					FindDependenciesForResolvers(resolversToExecute, path, timestamps[i], list, (float)i / pathes.Length);
 				}
 
-				if (k % 100 == 0)
+				if (k % 200 == 0)
 				{
 					yield return null;
 				}
@@ -288,11 +288,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			FileToAssetNode fileToAssetNode = resultList[fileId];
+
+			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
+
 			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
 
 			if (dependencies.Count > 0)
 			{
-				AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 				assetNode.GetResolverData(resolverId).Dependencies = dependencies;
 			}
 

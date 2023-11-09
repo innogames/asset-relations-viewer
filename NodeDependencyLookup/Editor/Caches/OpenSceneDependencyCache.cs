@@ -24,11 +24,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
         private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
 
-        public void ClearFile(string directory)
-        {
-            // nothing to do
-        }
-
         public void Initialize(CreatedDependencyCache createdDependencyCache)
         {
             _createdDependencyCache = createdDependencyCache;
