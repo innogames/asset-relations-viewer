@@ -768,10 +768,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _nodeSearchList.Clear();
             var nodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
 
-            for (var i = 0; i < nodes.Count; i++)
+            foreach (var node in nodes)
             {
-                var node = nodes[i];
-
                 if (!update && _nodeFilterDataLookup.TryGetValue(node.Key, out var cachedFilterData))
                 {
                     _nodeSearchList.Add(cachedFilterData);
@@ -1814,8 +1812,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 return;
 
             var tan = Math.Max(distance, 0.5f);
-
-            var centerPos = new Vector3((sX + eX) * 0.5f, (sY + eY) * 0.5f, 0);
             var startPos = new Vector3(sX, sY + 8, 0);
             var endPos = new Vector3(eX, eY + 8, 0);
             var startTan = startPos + Vector3.right * tan;

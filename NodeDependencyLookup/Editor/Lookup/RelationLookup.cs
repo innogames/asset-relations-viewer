@@ -42,13 +42,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo, RelationsLookup relationsLookup)
 		{
 			NodeDependencyLookupContext context = new NodeDependencyLookupContext(cacheUpdateSettings);
+			context.RelationsLookup = relationsLookup;
 			ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
 			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update, updateInfo.Save);
 			yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(context, resolverList);
 		}
 
 		// Builds bidirectional relations between nodes based on their dependencies
-		public class RelationLookupBuilder
+		public static class RelationLookupBuilder
 		{
 			public static Dictionary<string, T> ConvertToDictionary<T>(T[] entries) where T : IIdentifyable
 			{

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public override Texture2D ThumbNailTexture => null;
     }
 
+    [UsedImplicitly]
     public class InSceneTypeHandler : ITypeHandler
     {
         private PrefValueBool SyncPref = new PrefValueBool("InSceneTypeHandler_Sync", false);

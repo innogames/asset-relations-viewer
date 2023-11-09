@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.U2D;
@@ -20,6 +21,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
     /**
 	 * NodeHandler for files
 	 */
+    [UsedImplicitly]
     public class FileNodeHandler : INodeHandler
     {
         private class CachedData

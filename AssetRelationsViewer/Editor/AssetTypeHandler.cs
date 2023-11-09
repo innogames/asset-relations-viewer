@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+    [UsedImplicitly]
     public class AssetTypeHandler : ITypeHandler
     {
         private Object _selectedAsset;

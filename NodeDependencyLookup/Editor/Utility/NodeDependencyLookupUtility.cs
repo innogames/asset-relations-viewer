@@ -1,3 +1,5 @@
+#region
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,6 +14,8 @@ using Object = UnityEngine.Object;
 using UnityEditor.Experimental;
 #endif
 
+#endregion
+
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	public class AssetListEntry
@@ -20,11 +24,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public Object Asset;
 	}
 
-    /// <summary>
-    /// Contains utility functions that are needed by the AssetRelationsWindow but should be independent from the class so they
-    /// can be used from other places
-    /// </summary>
-    public static class NodeDependencyLookupUtility
+	/// <summary>
+	/// Contains utility functions that are needed by the AssetRelationsWindow but should be independent from the class so they
+	/// can be used from other places
+	/// </summary>
+	public static class NodeDependencyLookupUtility
 	{
 		public static readonly string DEFAULT_CACHE_PATH = Path.Combine("Library", "NodeDependencyCache");
 
@@ -46,7 +50,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var resolverUsagesLookup = createdCache.ResolverUsagesLookup;
 			return resolverUsagesLookup.TryGetValue(id, out var resolver) &&
-				resolver.DependencyTypes.Contains(connectionType);
+			       resolver.DependencyTypes.Contains(connectionType);
 		}
 
 		public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -163,10 +167,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (cache.CanUpdate())
 				{
-					//Profiler.BeginSample($"Update cache: {cacheUsage.Cache.GetType().Name}");
 					yield return cache.Update(stateContext.CacheUpdateSettings, resolverUsageDefinitionList,
 						updateInfo.Update);
-					//Profiler.EndSample();
 
 					if (updateInfo.Save)
 					{
@@ -182,12 +184,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			var lookup = new RelationLookup.RelationsLookup();
-			//Profiler.BeginSample("BuildLookup");
-			yield return lookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
-			//Profiler.EndSample();
-
-			stateContext.RelationsLookup = lookup;
+			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
 		}
 
 		public static Dictionary<string, INodeHandler> BuildNodeHandlerLookup()
@@ -215,11 +212,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return nodeHandlers;
 		}
 
-        /// <summary>
-        /// Used to get the size of an asset inside the packed build.
-        /// Currently sounds are not correct since the file isnt going to be written into the libraray in the final format.
-        /// </summary>
-        public static int GetPackedAssetSize(string assetId)
+		/// <summary>
+		/// Used to get the size of an asset inside the packed build.
+		/// Currently sounds are not correct since the file isnt going to be written into the libraray in the final format.
+		/// </summary>
+		public static int GetPackedAssetSize(string assetId)
 		{
 			var fullpath = GetLibraryFullPath(GetGuidFromAssetId(assetId));
 
@@ -289,12 +286,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return Application.dataPath + "../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
 		}
 
-        /// <summary>
-        /// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources
-        /// folder.
-        /// If the asset is just in a bundle this is currently not tracked. Trying to find a solution for this.
-        /// </summary>
-        public static bool IsNodePackedToApp(Node node, NodeDependencyLookupContext stateContext,
+		/// <summary>
+		/// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources
+		/// folder.
+		/// If the asset is just in a bundle this is currently not tracked. Trying to find a solution for this.
+		/// </summary>
+		public static bool IsNodePackedToApp(Node node, NodeDependencyLookupContext stateContext,
 			Dictionary<string, bool> checkedPackedStates)
 		{
 			if (checkedPackedStates.ContainsKey(node.Key))
@@ -455,7 +452,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static string[] GetAllAssetPathes(bool unityBuiltin)
 		{
 			var pathes = AssetDatabase.GetAllAssetPaths();
-
 			var pathList = new List<string>();
 
 			foreach (var path in pathes)

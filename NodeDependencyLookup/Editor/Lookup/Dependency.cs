@@ -6,11 +6,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class Dependency
 	{
-		public string NodeType;
-		public string Id;
-		public string Key;
-		public string DependencyType;
-		public PathSegment[] PathSegments;
+		public readonly string NodeType;
+		public readonly string Id;
+		public readonly string Key;
+		public readonly string DependencyType;
+		public readonly PathSegment[] PathSegments;
 
 		public Dependency(string id, string dependencyType, string nodeType, PathSegment[] pathSegments)
 		{
