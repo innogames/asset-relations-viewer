@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -140,15 +141,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private bool _canUnloadCaches;
         private bool _isInitialized;
+        private bool isUpdatingCache;
 
         private Vector2 _displayOptionsScrollPosition;
         private PrefValueBool _filterFoldout;
         private PrefValueBool _infoFoldout;
         private PrefValueBool _miscFoldout;
-        private PrefValueBool _cacheUpgradeOptionsFoldout;
-
-        private IEnumerator cacheUpdateEnumerator;
-        private readonly Stack<IEnumerator> coroutineStack = new(32);
 
         [MenuItem("Assets/Asset Relations Viewer/Open", false, 0)]
         public static void ShowWindowForAsset()
@@ -261,7 +259,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _filterFoldout = new PrefValueBool("ARV_FilterFoldout", true);
             _infoFoldout = new PrefValueBool("ARV_InfoFoldout", true);
             _miscFoldout = new PrefValueBool("ARV_MiscFoldout", true);
-            _cacheUpgradeOptionsFoldout = new PrefValueBool("ARV_CacheUpgradeOptionsFoldout", true);
 
             HandleFirstStartup();
 
@@ -295,44 +292,25 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void LoadDependencyCache(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
-            cacheUpdateEnumerator =
-                LoadDependencyCacheInternal(resolverUsageDefinitionList, update, partialUpdate, fastUpdate);
-            coroutineStack.Push(cacheUpdateEnumerator);
-            EditorApplication.update += IterateCoroutine;
-        }
-
-        private void IterateCoroutine()
-        {
-            try
+            if (isUpdatingCache)
             {
-                if (coroutineStack.Count == 0)
-                {
-                    EditorApplication.update -= IterateCoroutine;
-                    return;
-                }
-
-                var enumerator = coroutineStack.Peek();
-
-                if (!enumerator.MoveNext())
-                {
-                    coroutineStack.Pop();
-                }
-
-                if (enumerator.Current is IEnumerator childEnumerator)
-                {
-                    coroutineStack.Push(childEnumerator);
-                }
+                return;
             }
-            catch (Exception e)
-            {
-                EditorApplication.update -= IterateCoroutine;
-                throw e;
-            }
+
+            var coroutine = new EditorCoroutineWithExceptionHandling();
+            coroutine.Start(LoadDependencyCacheInternal(resolverUsageDefinitionList, update, partialUpdate, fastUpdate),
+                exception =>
+                {
+                    isUpdatingCache = false;
+                    throw exception;
+                });
         }
 
         private IEnumerator LoadDependencyCacheInternal(ResolverUsageDefinitionList resolverUsageDefinitionList,
             bool update, bool partialUpdate, bool fastUpdate)
         {
+            isUpdatingCache = true;
+
             _nodeDependencyLookupContext.Reset();
             _nodeDependencyLookupContext.CacheUpdateSettings = new CacheUpdateSettings
             {
@@ -363,6 +341,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
 
             _isInitialized = true;
+            isUpdatingCache = false;
         }
 
         private void PrepareNodeSearch()
@@ -495,10 +474,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void OnGUI()
         {
+            var e = Event.current;
+
+            if (isUpdatingCache)
+            {
+                // Avoid interacting with gui while updating cache
+                if (e.type == EventType.MouseDown)
+                {
+                    e.Use();
+                }
+            }
+
             DrawHierarchy();
             DrawMenu();
-
-            var e = Event.current;
 
             var area = GetArea();
 
@@ -590,6 +578,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
 
             EditorGUILayout.EndHorizontal();
+
+            DisplayUpgradeSettingsOptions();
         }
 
         private void RefreshNodeStructure()
@@ -615,29 +605,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void DisplayUpgradeSettingsOptions()
         {
-            EditorGUILayout.BeginVertical("Box", GUILayout.Width(200));
-            _cacheUpgradeOptionsFoldout.SetValue(EditorGUILayout.Foldout(_cacheUpgradeOptionsFoldout,
-                "Cache Upgrade Settings"));
-
-            if (_cacheUpgradeOptionsFoldout)
-            {
-                EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.AsyncUpdate,
+            EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.AsyncUpdate,
                     "Async Update");
-                EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
-                    "Unload Unused Assets");
-                EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
-                    "Unload Interval");
-            }
-
-            EditorGUILayout.EndVertical();
+            EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
+                "Unload Unused Assets");
+            EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
+                "Unload Interval");
         }
 
         private void DisplayNodeDisplayOptions()
         {
             EditorGUILayout.BeginVertical("Box", GUILayout.Width(250), GUILayout.Height(170));
             _displayOptionsScrollPosition = EditorGUILayout.BeginScrollView(_displayOptionsScrollPosition);
-
-            DisplayUpgradeSettingsOptions();
 
             EditorGUILayout.BeginVertical("Box");
             _filterFoldout.SetValue(EditorGUILayout.Foldout(_filterFoldout, "Filter Options"));
@@ -1152,24 +1131,35 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             foreach (var cacheState in _cacheStates)
             {
-                if (cacheState.IsActive)
+                if (!cacheState.IsActive)
                 {
-                    foreach (var state in cacheState.ResolverStates)
-                    {
-                        var connectionTypes = state.Resolver.GetDependencyTypes();
+                    continue;
+                }
 
-                        foreach (var connectionType in connectionTypes)
+                foreach (var state in cacheState.ResolverStates)
+                {
+                    var connectionTypes = state.Resolver.GetDependencyTypes();
+
+                    foreach (var connectionType in connectionTypes)
+                    {
+                        if (state.ActiveConnectionTypes.Contains(connectionType))
                         {
-                            if (state.ActiveConnectionTypes.Contains(connectionType))
-                            {
-                                types.Add(connectionType);
-                            }
+                            types.Add(connectionType);
                         }
                     }
                 }
             }
 
             return types;
+        }
+
+        private void DrawUpdatingCache()
+        {
+            float width = 130;
+            var px = (position.width - width) * 0.2f;
+            var py = position.height * 0.5f;
+
+            EditorGUI.LabelField(new Rect(px, py, width, 20), "Updating Cache");
         }
 
         private void DrawNotLoadedError()
@@ -1219,11 +1209,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
-            cacheUpdateEnumerator =
-                ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate);
-            coroutineStack.Push(cacheUpdateEnumerator);
-            EditorApplication.update += IterateCoroutine;
+            if (isUpdatingCache)
+            {
+                return;
+            }
+
+            var coroutine = new EditorCoroutineWithExceptionHandling();
+            coroutine.Start(ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate),
+                exception =>
+                {
+                    isUpdatingCache = false;
+                    throw exception;
+                });
         }
+
+        private EditorCoroutineWithExceptionHandling runningCoroutine;
 
         private IEnumerator ReloadContextEnumerator(ResolverUsageDefinitionList resolverUsageDefinitionList,
             bool updateCache = true, bool partialUpdate = true, bool fastUpdate = false)
@@ -1309,6 +1309,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void DrawHierarchy()
         {
+            if (isUpdatingCache)
+            {
+                DrawUpdatingCache();
+                return;
+            }
+
             if (_nodeDependencyLookupContext == null)
             {
                 DrawNotLoadedError();
