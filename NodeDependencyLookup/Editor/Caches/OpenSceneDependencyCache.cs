@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 #if UNITY_2021_3_OR_NEWER
@@ -22,11 +23,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             new Dictionary<string, GenericDependencyMappingNode>();
 
         private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
-
-        public void ClearFile(string directory)
-        {
-            // nothing to do
-        }
 
         public void Initialize(CreatedDependencyCache createdDependencyCache)
         {
@@ -57,7 +53,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             return rootGameObjects.ToArray();
         }
 
-        public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+        public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
             bool shouldUpdate)
         {
             Lookup.Clear();
@@ -86,7 +82,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 Nodes[count++] = pair.Value;
             }
 
-            return true;
+            yield return null;
         }
 
         public struct TraverseValues

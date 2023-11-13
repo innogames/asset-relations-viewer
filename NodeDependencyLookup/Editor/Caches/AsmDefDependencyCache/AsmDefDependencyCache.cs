@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -42,7 +43,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
             return true;
         }
 
-        public bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+        public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
             bool shouldUpdate)
         {
             _lookup.Clear();
@@ -55,7 +56,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
             Nodes = nodes.ToArray();
 
-            return true;
+            yield return null;
         }
 
         private Dictionary<string, string> GenerateAsmDefFileMapping()

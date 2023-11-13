@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -11,9 +12,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
 
-			public void Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
+			public IEnumerator Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
 			{
-				_lookup = RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary, fastUpdate, updateData);
+				yield return RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary, fastUpdate, updateData);
+				_lookup = nodeDictionary;
 			}
 
 			public Node GetNode(string id, string type)
@@ -37,18 +39,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public static RelationsLookup GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo)
+		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo, RelationsLookup relationsLookup)
 		{
 			NodeDependencyLookupContext context = new NodeDependencyLookupContext(cacheUpdateSettings);
+			context.RelationsLookup = relationsLookup;
 			ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
 			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update, updateInfo.Save);
-			NodeDependencyLookupUtility.LoadDependencyLookupForCaches(context, resolverList);
-
-			return context.RelationsLookup;
+			yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(context, resolverList);
 		}
 
 		// Builds bidirectional relations between nodes based on their dependencies
-		public class RelationLookupBuilder
+		public static class RelationLookupBuilder
 		{
 			public static Dictionary<string, T> ConvertToDictionary<T>(T[] entries) where T : IIdentifyable
 			{
@@ -62,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return list;
 			}
 
-			public static Dictionary<string, Node> CreateRelationMapping(NodeDependencyLookupContext stateContext,
+			public static IEnumerator  CreateRelationMapping(NodeDependencyLookupContext stateContext,
 				List<CreatedDependencyCache> dependencyCaches,
 				Dictionary<string, Node> nodeDictionary, bool isFastUpdate, bool updateNodeData)
 			{
@@ -130,6 +131,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						cacheUpdateResourcesCleaner.Clean(cacheUpdateSettings, c);
 
 						k++;
+
+						if (k % 500 == 0)
+						{
+							yield return null;
+						}
 					}
 				}
 
@@ -151,9 +157,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 
 					j++;
+
+					if (j % 5000 == 0)
+					{
+						yield return null;
+					}
 				}
 
-				NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext, updateNodeData);
+				yield return NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext, updateNodeData);
 
 				if (updateNodeData)
 				{
@@ -165,8 +176,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				EditorUtility.ClearProgressBar();
-
-				return nodeDictionary;
 			}
 
 			private static void DisplayNodeCreationProgress(Node node, float percentage)

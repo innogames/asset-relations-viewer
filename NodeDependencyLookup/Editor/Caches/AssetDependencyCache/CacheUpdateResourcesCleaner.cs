@@ -27,7 +27,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
                 EditorUtility.UnloadUnusedAssetsImmediate(true);
             }
 
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+            GC.Collect(0, GCCollectionMode.Optimized);
         }
     }
 }

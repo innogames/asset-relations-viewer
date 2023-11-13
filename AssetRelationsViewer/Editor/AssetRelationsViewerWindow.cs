@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -22,30 +24,32 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     /// <summary>
     /// Editor window for the dependency viewer.
-    ///
     /// </summary>
     public class AssetRelationsViewerWindow : EditorWindow, INodeDisplayDataProvider, ISelectionChanger
     {
         private class NodeDisplayOptions
         {
-            public PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 64, 0, 64);
-            public PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
-            public PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
-            public PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
-            public PrefValueBool ShowPropertyPathes = new PrefValueBool("ARV_ShowPropertyPathes", true);
-            public PrefValueBool AlignNodes = new PrefValueBool("ARV_AlignNodes", true);
-            public PrefValueBool HideFilteredNodes = new PrefValueBool("ARV_HideFilteredNodes", true);
-            public PrefValueBool MergeRelations = new PrefValueBool("ARV_MergeRelations", true);
-            public PrefValueBool SortBySize = new PrefValueBool("ARV_SortBySize", false);
-            public PrefValueBool OnlyHardDependencies = new PrefValueBool("ARV_OnlyHardDependencies", false);
+            public readonly PrefValueInt MaxDepth = new("ARV_MaxDepth", 64, 0, 64);
+            public readonly PrefValueBool ShowNodesOnce = new("ARV_ShowNodesOnce", false);
+            public readonly PrefValueBool ShowHierarchyOnce = new("ARV_ShowHierarchyOnce", false);
+            public readonly PrefValueBool DrawReferencerNodes = new("ARV_DrawReferencerNodes", true);
+            public readonly PrefValueBool ShowPropertyPathes = new("ARV_ShowPropertyPathes", true);
+            public readonly PrefValueBool AlignNodes = new("ARV_AlignNodes", true);
+            public readonly PrefValueBool HideFilteredNodes = new("ARV_HideFilteredNodes", true);
+            public readonly PrefValueBool MergeRelations = new("ARV_MergeRelations", true);
+            public readonly PrefValueBool SortBySize = new("ARV_SortBySize", false);
+            public readonly PrefValueBool OnlyHardDependencies = new("ARV_OnlyHardDependencies", false);
 
-            public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
+            public HashSet<string> ConnectionTypesToDisplay = new();
         }
 
         private class CacheUpgradeSettingsOptions
         {
-            public PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("ARV_UnloadUnusedAssets", false);
-            public PrefValueInt UnloadUnusedAssetsInterval = new PrefValueInt("ARV_UnloadUnusedAssetsInterval", 10000, 1000, 100000);
+            public readonly PrefValueBool AsyncUpdate = new PrefValueBool("AsyncUpdate", false);
+            public readonly PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("ARV_UnloadUnusedAssets", false);
+
+            public readonly PrefValueInt UnloadUnusedAssetsInterval =
+                new PrefValueInt("ARV_UnloadUnusedAssetsInterval", 10000, 100, 100000);
         }
 
         private class UndoStep
@@ -57,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private class MergedNode
         {
             public Connection Target;
-            public List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
+            public readonly List<VisualizationConnection.Data> Datas = new();
         }
 
         private class NodeFilterData
@@ -74,7 +78,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         private const string OwnName = "AssetRelationsViewer";
-        private string FirstStartupPrefKey = String.Empty;
+        private string FirstStartupPrefKey = string.Empty;
 
         private NodeDisplayData _displayData;
 
@@ -82,22 +86,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private string _selectedNodeId;
         private string _selectedNodeType;
 
-        private int _maxHierarchyDepth = 256;
+        private readonly int _maxHierarchyDepth = 256;
 
-        private VisualizationNode _nodeStructure = null;
-        private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
+        private VisualizationNode _nodeStructure;
+        private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new();
 
-        private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas =
-            new Dictionary<string, VisualizationNodeData>();
+        private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new();
 
-        private readonly HashSet<string> _visibleNodes = new HashSet<string>();
-        private readonly Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
-        private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
-        private readonly HashSet<Node> _nodeSizesReachedNodes = new HashSet<Node>();
+        private readonly HashSet<string> _visibleNodes = new();
+        private readonly Dictionary<string, AssetCacheData> _cachedNodes = new();
+        private readonly Dictionary<string, bool> _cachedPackedInfo = new();
+        private readonly HashSet<Node> _nodeSizesReachedNodes = new();
 
-        private Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
+        private readonly Stack<UndoStep> _undoSteps = new();
 
-        private ViewAreaData _viewAreaData = new ViewAreaData();
+        private readonly ViewAreaData _viewAreaData = new();
 
         private bool _nodeStructureDirty = true;
         private bool _visualizationDirty = true;
@@ -106,10 +109,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private NodeDisplayOptions _nodeDisplayOptions;
         private CacheUpgradeSettingsOptions _cacheUpgradeSettingsOptions;
 
-        private List<CacheState> _cacheStates = new List<CacheState>();
-        private List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
+        private readonly List<CacheState> _cacheStates = new();
+        private readonly List<ITypeHandler> _typeHandlers = new();
 
-        private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
+        private Dictionary<string, ITypeHandler> _typeHandlerLookup = new();
 
         private Vector2 _cachesScrollPosition;
         private Vector2 _handlersScrollPosition;
@@ -117,34 +120,33 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private NodeSizeThread _nodeSizeThread;
 
         // node search and filtering
-        private string _nodeSearchString = String.Empty;
-        private string _typeSearchString = String.Empty;
+        private string _nodeSearchString = string.Empty;
+        private string _typeSearchString = string.Empty;
         private string[] _nodeSearchTokens = new string[0];
         private string[] _typeSearchTokens = new string[0];
 
-        private string _nodeFilterString = String.Empty;
-        private string _typeFilterString = String.Empty;
+        private string _nodeFilterString = string.Empty;
+        private string _typeFilterString = string.Empty;
         private string[] _nodeFilterTokens = new string[0];
         private string[] _typeFilterTokens = new string[0];
 
-        private readonly List<Node> filteredNodes = new List<Node>();
+        private readonly List<Node> filteredNodes = new();
         private string[] _filteredNodeNames = new string[0];
 
-        private int _selectedSearchNodeIndex = 0;
+        private int _selectedSearchNodeIndex;
 
-        private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup =
-            new Dictionary<string, NodeFilterData>();
+        private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup = new();
 
-        private List<NodeFilterData> _nodeSearchList = new List<NodeFilterData>();
+        private readonly List<NodeFilterData> _nodeSearchList = new();
 
-        private bool _canUnloadCaches = false;
-        private bool _isInitialized = false;
+        private bool _canUnloadCaches;
+        private bool _isInitialized;
+        private bool isUpdatingCache;
 
         private Vector2 _displayOptionsScrollPosition;
         private PrefValueBool _filterFoldout;
         private PrefValueBool _infoFoldout;
         private PrefValueBool _miscFoldout;
-        private PrefValueBool _cacheUpgradeOptionsFoldout;
 
         [MenuItem("Assets/Asset Relations Viewer/Open", false, 0)]
         public static void ShowWindowForAsset()
@@ -173,13 +175,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private static void ShowWindowForAssetInternal(bool update, bool loadCaches)
         {
-            AssetRelationsViewerWindow window = ShowWindow(update, loadCaches);
+            var window = ShowWindow(update, loadCaches);
             window.OnAssetSelectionChanged();
         }
 
         private static AssetRelationsViewerWindow ShowWindow(bool update, bool loadCaches)
         {
-            AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
+            var window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
 
             window.Initialize(update, loadCaches);
             return window;
@@ -195,7 +197,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public void RefreshContext(Type cacheType, Type resolverType, List<string> activeConnectionTypes,
             bool fastUpdate = false)
         {
-            ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+            var resolverUsageDefinitionList = new ResolverUsageDefinitionList();
             resolverUsageDefinitionList.Add(cacheType, resolverType, true, true, true, activeConnectionTypes);
 
             ReloadContext(resolverUsageDefinitionList, true, true, fastUpdate);
@@ -203,7 +205,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public bool IsCacheAndResolverTypeActive(Type cacheType, Type resolverType)
         {
-            foreach (CacheState cacheState in _cacheStates)
+            foreach (var cacheState in _cacheStates)
             {
                 if (cacheState.Cache.GetType() != cacheType)
                 {
@@ -215,7 +217,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                     return false;
                 }
 
-                foreach (ResolverState resolverState in cacheState.ResolverStates)
+                foreach (var resolverState in cacheState.ResolverStates)
                 {
                     if (resolverState.Resolver.GetType() == resolverType && resolverState.IsActive)
                     {
@@ -229,9 +231,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public bool IsCacheAndResolverTypeLoaded(Type cacheType, Type resolverType)
         {
-            Dictionary<string, CreatedDependencyCache> caches = _nodeDependencyLookupContext.CreatedCaches;
+            var caches = _nodeDependencyLookupContext.CreatedCaches;
 
-            if (caches.TryGetValue(cacheType.FullName, out CreatedDependencyCache cache))
+            if (caches.TryGetValue(cacheType.FullName, out var cache))
             {
                 return cache.CreatedResolvers.ContainsKey(resolverType.FullName);
             }
@@ -257,7 +259,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _filterFoldout = new PrefValueBool("ARV_FilterFoldout", true);
             _infoFoldout = new PrefValueBool("ARV_InfoFoldout", true);
             _miscFoldout = new PrefValueBool("ARV_MiscFoldout", true);
-            _cacheUpgradeOptionsFoldout = new PrefValueBool("ARV_CacheUpgradeOptionsFoldout", true);
 
             HandleFirstStartup();
 
@@ -286,30 +287,61 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             {
                 LoadDependencyCache(CreateCacheUsageList(update));
             }
-
-            _isInitialized = true;
         }
 
         private void LoadDependencyCache(ResolverUsageDefinitionList resolverUsageDefinitionList, bool update = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
+            if (isUpdatingCache)
+            {
+                return;
+            }
+
+            var coroutine = new EditorCoroutineWithExceptionHandling();
+            coroutine.Start(LoadDependencyCacheInternal(resolverUsageDefinitionList, update, partialUpdate, fastUpdate),
+                exception =>
+                {
+                    isUpdatingCache = false;
+                    throw exception;
+                });
+        }
+
+        private IEnumerator LoadDependencyCacheInternal(ResolverUsageDefinitionList resolverUsageDefinitionList,
+            bool update, bool partialUpdate, bool fastUpdate)
+        {
+            isUpdatingCache = true;
+
             _nodeDependencyLookupContext.Reset();
             _nodeDependencyLookupContext.CacheUpdateSettings = new CacheUpdateSettings
             {
                 ShouldUnloadUnusedAssets = _cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
-                UnloadUnusedAssetsInterval = _cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
+                UnloadUnusedAssetsInterval = _cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval
             };
 
-            NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext,
-                resolverUsageDefinitionList, partialUpdate, fastUpdate);
+            yield return null;
+
+            if (_cacheUpgradeSettingsOptions.AsyncUpdate)
+            {
+                yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(
+                    _nodeDependencyLookupContext, resolverUsageDefinitionList, partialUpdate, fastUpdate);
+            }
+            else
+            {
+                NodeDependencyLookupUtility.LoadDependencyLookupForCaches(
+                    _nodeDependencyLookupContext, resolverUsageDefinitionList, partialUpdate, fastUpdate);
+            }
 
             SetHandlerContext();
+            PrepareNodeSearch();
 
             if (update)
             {
                 _nodeFilterDataLookup.Clear();
                 _nodeSizesReachedNodes.Clear();
             }
+
+            _isInitialized = true;
+            isUpdatingCache = false;
         }
 
         private void PrepareNodeSearch()
@@ -323,7 +355,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void SetHandlerContext()
         {
-            foreach (ITypeHandler typeHandler in _typeHandlers)
+            foreach (var typeHandler in _typeHandlers)
             {
                 typeHandler.InitContext(_nodeDependencyLookupContext, this);
             }
@@ -333,9 +365,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private Dictionary<string, ITypeHandler> BuildTypeHandlerLookup()
         {
-            Dictionary<string, ITypeHandler> result = new Dictionary<string, ITypeHandler>();
+            var result = new Dictionary<string, ITypeHandler>();
 
-            foreach (ITypeHandler typeHandler in _typeHandlers)
+            foreach (var typeHandler in _typeHandlers)
             {
                 result.Add(typeHandler.GetHandledType(), typeHandler);
             }
@@ -345,18 +377,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private ResolverUsageDefinitionList CreateCacheUsageList(bool update)
         {
-            ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+            var resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 
-            foreach (CacheState state in _cacheStates)
+            foreach (var state in _cacheStates)
             {
                 if (state.IsActive)
                 {
-                    foreach (ResolverState resolverState in state.ResolverStates)
+                    foreach (var resolverState in state.ResolverStates)
                     {
                         if (resolverState.IsActive)
                         {
-                            List<string> activeConnectionTypes =
-                                GetActiveConnectionTypesForResolverState(resolverState);
+                            var activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
                             resolverUsageDefinitionList.Add(state.Cache.GetType(), resolverState.Resolver.GetType(),
                                 true, update, update, activeConnectionTypes);
                         }
@@ -369,9 +400,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private List<string> GetActiveConnectionTypesForResolverState(ResolverState resolverState)
         {
-            List<string> activeConnectionTypes = new List<string>();
+            var activeConnectionTypes = new List<string>();
 
-            foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
+            foreach (var connectionType in resolverState.Resolver.GetDependencyTypes())
             {
                 if (resolverState.ActiveConnectionTypes.Contains(connectionType))
                 {
@@ -384,11 +415,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void HandleFirstStartup()
         {
-            bool firstStartup = EditorPrefs.GetBool(FirstStartupPrefKey, true);
+            var firstStartup = EditorPrefs.GetBool(FirstStartupPrefKey, true);
 
             if (firstStartup)
             {
-                bool setupDefaultResolvers = EditorUtility.DisplayDialog("AssetRelationsViewer first startup",
+                var setupDefaultResolvers = EditorUtility.DisplayDialog("AssetRelationsViewer first startup",
                     "This is the first startup of the AssetRelationsViewer. Do you want to setup default resolver settings and start finding asset dependencies?",
                     "Yes", "No");
 
@@ -409,8 +440,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void AddDefaultCacheActivation(IDependencyCache cache, IDependencyResolver resolver)
         {
-            CacheState cacheState = new CacheState(cache);
-            ResolverState resolverState = new ResolverState(resolver);
+            var cacheState = new CacheState(cache);
+            var resolverState = new ResolverState(resolver);
 
             cacheState.ResolverStates.Add(resolverState);
 
@@ -429,7 +460,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         public void OnAssetSelectionChanged()
         {
-            string assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
+            var assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
 
             // Make sure Selection.activeObject is an asset
             if (string.IsNullOrEmpty(assetPath))
@@ -443,12 +474,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void OnGUI()
         {
+            var e = Event.current;
+
+            if (isUpdatingCache)
+            {
+                // Avoid interacting with gui while updating cache
+                if (e.type == EventType.MouseDown)
+                {
+                    e.Use();
+                }
+            }
+
             DrawHierarchy();
             DrawMenu();
 
-            Event e = Event.current;
-
-            Rect area = GetArea();
+            var area = GetArea();
 
             if (!area.Contains(e.mousePosition) && e.type == EventType.MouseDrag)
             {
@@ -464,7 +504,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void DrawMenu()
         {
-            Rect area = GetArea();
+            var area = GetArea();
             EditorGUI.DrawRect(area, ARVStyles.TopRectColor);
 
             GUILayout.BeginArea(area);
@@ -538,6 +578,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             }
 
             EditorGUILayout.EndHorizontal();
+
+            DisplayUpgradeSettingsOptions();
         }
 
         private void RefreshNodeStructure()
@@ -563,24 +605,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void DisplayUpgradeSettingsOptions()
         {
-            EditorGUILayout.BeginVertical("Box", GUILayout.Width(200));
-            _cacheUpgradeOptionsFoldout.SetValue(EditorGUILayout.Foldout(_cacheUpgradeOptionsFoldout, "Cache Upgrade Settings"));
-
-            if (_cacheUpgradeOptionsFoldout)
-            {
-                EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets, "Unload Unused Assets");
-                EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval, "Unload Interval");
-            }
-
-            EditorGUILayout.EndVertical();
+            EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.AsyncUpdate,
+                    "Async Update");
+            EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
+                "Unload Unused Assets");
+            EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
+                "Unload Interval");
         }
 
         private void DisplayNodeDisplayOptions()
         {
             EditorGUILayout.BeginVertical("Box", GUILayout.Width(250), GUILayout.Height(170));
             _displayOptionsScrollPosition = EditorGUILayout.BeginScrollView(_displayOptionsScrollPosition);
-
-            DisplayUpgradeSettingsOptions();
 
             EditorGUILayout.BeginVertical("Box");
             _filterFoldout.SetValue(EditorGUILayout.Foldout(_filterFoldout, "Filter Options"));
@@ -598,6 +634,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorPrefUtilities.TogglePref(_nodeDisplayOptions.HideFilteredNodes, "Hide Filtered Nodes",
                     b => InvalidateNodeStructure());
             }
+
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.BeginVertical("Box");
@@ -612,6 +649,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorPrefUtilities.TogglePref(_displayData.HighlightPackagedAssets, "Highlight packaged assets",
                     b => InvalidateNodeStructure());
             }
+
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.BeginVertical("Box");
@@ -628,6 +666,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorPrefUtilities.TogglePref(_nodeDisplayOptions.SortBySize, "Sort child nodes By Size",
                     b => InvalidateNodeStructure());
             }
+
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.EndScrollView();
@@ -639,22 +678,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             _cacheStates.Clear();
 
             Profiler.BeginSample("Find Caches");
-            List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
+            var types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
             Profiler.EndSample();
 
-            foreach (Type type in types)
+            foreach (var type in types)
             {
-                IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
-                CacheState cacheState = new CacheState(cache);
+                var cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
+                var cacheState = new CacheState(cache);
 
                 Profiler.BeginSample("Find Resolvers");
-                List<Type> resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
+                var resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
                 Profiler.EndSample();
 
-                foreach (Type rtype in resolverTypes)
+                foreach (var rtype in resolverTypes)
                 {
-                    IDependencyResolver dependencyResolver =
-                        NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(rtype);
+                    var dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(rtype);
                     cacheState.ResolverStates.Add(new ResolverState(dependencyResolver));
                 }
 
@@ -668,11 +706,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             _typeHandlers.Clear();
 
-            List<Type> types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(ITypeHandler));
+            var types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(ITypeHandler));
 
-            foreach (Type type in types)
+            foreach (var type in types)
             {
-                ITypeHandler typeHandler = NodeDependencyLookupUtility.InstantiateClass<ITypeHandler>(type);
+                var typeHandler = NodeDependencyLookupUtility.InstantiateClass<ITypeHandler>(type);
                 _typeHandlers.Add(typeHandler);
             }
         }
@@ -686,7 +724,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private NodeFilterData GetOrCreateSearchDataForNode(Node node)
         {
-            if (_nodeFilterDataLookup.TryGetValue(node.Key, out NodeFilterData cachedFilterData))
+            if (_nodeFilterDataLookup.TryGetValue(node.Key, out var cachedFilterData))
             {
                 return cachedFilterData;
             }
@@ -696,7 +734,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private NodeFilterData CreateSearchDataForNode(Node node)
         {
-            NodeFilterData filterData = new NodeFilterData
+            var filterData = new NodeFilterData
                 {Node = node, Name = node.Name.ToLowerInvariant(), TypeName = node.ConcreteType.ToLowerInvariant()};
             _nodeFilterDataLookup.Add(node.Key, filterData);
 
@@ -705,21 +743,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void BuildNodeSearchLookup()
         {
-            bool update = _nodeFilterDataLookup.Count == 0;
+            var update = _nodeFilterDataLookup.Count == 0;
             _nodeSearchList.Clear();
-            List<Node> nodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
+            var nodes = _nodeDependencyLookupContext.RelationsLookup.GetAllNodes();
 
-            for (var i = 0; i < nodes.Count; i++)
+            foreach (var node in nodes)
             {
-                Node node = nodes[i];
-
-                if (!update && _nodeFilterDataLookup.TryGetValue(node.Key, out NodeFilterData cachedFilterData))
+                if (!update && _nodeFilterDataLookup.TryGetValue(node.Key, out var cachedFilterData))
                 {
                     _nodeSearchList.Add(cachedFilterData);
                     continue;
                 }
 
-                NodeFilterData filterData = CreateSearchDataForNode(node);
+                var filterData = CreateSearchDataForNode(node);
                 _nodeSearchList.Add(filterData);
             }
 
@@ -728,7 +764,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private bool IsNodeMatchingFilter(NodeFilterData filterData, string[] nameTokens, string[] typeTokens)
         {
-            foreach (string nameToken in nameTokens)
+            foreach (var nameToken in nameTokens)
             {
                 if (!filterData.Name.Contains(nameToken))
                 {
@@ -736,7 +772,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 }
             }
 
-            foreach (string typeToken in typeTokens)
+            foreach (var typeToken in typeTokens)
             {
                 if (!filterData.TypeName.Contains(typeToken))
                 {
@@ -751,9 +787,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             filteredNodes.Clear();
 
-            foreach (NodeFilterData filterData in _nodeSearchList)
+            foreach (var filterData in _nodeSearchList)
             {
-                Node node = filterData.Node;
+                var node = filterData.Node;
 
                 if (IsNodeMatchingFilter(filterData, _nodeSearchTokens, _typeSearchTokens))
                 {
@@ -770,7 +806,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             for (var i = 0; i < filteredNodes.Count; i++)
             {
-                Node filteredNode = filteredNodes[i];
+                var filteredNode = filteredNodes[i];
                 _filteredNodeNames[i] = $"[{filteredNode.ConcreteType}] {filteredNode.Name}";
             }
         }
@@ -791,20 +827,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             _handlersScrollPosition = EditorGUILayout.BeginScrollView(_handlersScrollPosition, GUILayout.Width(300));
 
-            foreach (ITypeHandler typeHandler in _typeHandlers)
+            foreach (var typeHandler in _typeHandlers)
             {
                 EditorGUILayout.BeginVertical("Box");
 
-                string handledType = typeHandler.GetHandledType();
-                string typeHandlerActiveEditorPrefKey =
-                    EditorPrefUtilities.GetProjectSpecificKey("Option_" + handledType);
-                bool isActive = EditorPrefs.GetBool(typeHandlerActiveEditorPrefKey, true);
+                var handledType = typeHandler.GetHandledType();
+                var typeHandlerActiveEditorPrefKey = EditorPrefUtilities.GetProjectSpecificKey("Option_" + handledType);
+                var isActive = EditorPrefs.GetBool(typeHandlerActiveEditorPrefKey, true);
 
-                bool newIsActive = EditorGUILayout.ToggleLeft("Options: " + handledType, isActive);
+                var newIsActive = EditorGUILayout.ToggleLeft("Options: " + handledType, isActive);
 
                 if (typeHandler.HandlesCurrentNode())
                 {
-                    Rect lastRect = GUILayoutUtility.GetLastRect();
+                    var lastRect = GUILayoutUtility.GetLastRect();
                     lastRect.height = 2;
                     EditorGUI.DrawRect(lastRect, new Color(0.3f, 0.4f, 0.9f, 0.5f));
                 }
@@ -831,9 +866,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             EditorGUILayout.LabelField("Node search:");
 
             EditorGUILayout.EndHorizontal();
-            bool changed = false;
+            var changed = false;
 
-            float origWidth = EditorGUIUtility.labelWidth;
+            var origWidth = EditorGUIUtility.labelWidth;
 
             EditorGUIUtility.labelWidth = 50;
             ChangeValue(ref _nodeSearchString, EditorGUILayout.TextField("Name:", _nodeSearchString), ref changed);
@@ -842,9 +877,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (changed)
             {
-                _nodeSearchTokens = _nodeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s))
+                _nodeSearchTokens = _nodeSearchString.ToLower()
+                    .Split(' ')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
                     .ToArray();
-                _typeSearchTokens = _typeSearchString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s))
+                _typeSearchTokens = _typeSearchString.ToLower()
+                    .Split(' ')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
                     .ToArray();
 
                 FilterNodeList();
@@ -861,7 +900,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (GUILayout.Button("Select", GUILayout.MaxWidth(50)))
             {
-                Node filteredNode = filteredNodes[_selectedSearchNodeIndex];
+                var filteredNode = filteredNodes[_selectedSearchNodeIndex];
                 ChangeSelection(filteredNode.Id, filteredNode.Type);
             }
 
@@ -871,9 +910,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void DisplayNodeFilterOptions()
         {
             EditorGUILayout.LabelField("Node hierarchy filter:");
-            float origWidth = EditorGUIUtility.labelWidth;
+            var origWidth = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 50;
-            bool changed = false;
+            var changed = false;
             ChangeValue(ref _nodeFilterString, EditorGUILayout.TextField("Name:", _nodeFilterString), ref changed);
             ChangeValue(ref _typeFilterString, EditorGUILayout.TextField("Type:", _typeFilterString), ref changed);
             EditorGUIUtility.labelWidth = origWidth;
@@ -881,9 +920,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Set as Filter", GUILayout.MaxWidth(100)))
             {
-                _nodeFilterTokens = _nodeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s))
+                _nodeFilterTokens = _nodeFilterString.ToLower()
+                    .Split(' ')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
                     .ToArray();
-                _typeFilterTokens = _typeFilterString.ToLower().Split(' ').Where(s => !string.IsNullOrWhiteSpace(s))
+                _typeFilterTokens = _typeFilterString.ToLower()
+                    .Split(' ')
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
                     .ToArray();
 
                 InvalidateNodeStructure();
@@ -924,44 +967,44 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             _cachesScrollPosition = EditorGUILayout.BeginScrollView(_cachesScrollPosition);
             EditorGUILayout.BeginVertical(GUILayout.MaxWidth(230));
-            Color origColor = GUI.contentColor;
+            var origColor = GUI.contentColor;
 
             _canUnloadCaches = false;
 
-            bool connectionTypeChanged = false;
-            bool needsCacheLoad = false;
-            bool loadedConnectionTypesChanged = false;
+            var connectionTypeChanged = false;
+            var needsCacheLoad = false;
+            var loadedConnectionTypesChanged = false;
 
-            foreach (CacheState cacheState in _cacheStates)
+            foreach (var cacheState in _cacheStates)
             {
                 GUI.contentColor = origColor;
-                Type cacheType = cacheState.Cache.GetType();
+                var cacheType = cacheState.Cache.GetType();
 
-                string cacheName = cacheType.Name;
+                var cacheName = cacheType.Name;
 
                 EditorGUILayout.BeginVertical("Box");
 
-                foreach (ResolverState resolverState in cacheState.ResolverStates)
+                foreach (var resolverState in cacheState.ResolverStates)
                 {
                     GUI.contentColor = origColor;
 
-                    IDependencyResolver resolver = resolverState.Resolver;
-                    string resolverName = resolver.GetId();
+                    var resolver = resolverState.Resolver;
+                    var resolverName = resolver.GetId();
 
-                    bool resolverIsLoaded = IsCacheAndResolverTypeLoaded(cacheType, resolver.GetType());
+                    var resolverIsLoaded = IsCacheAndResolverTypeLoaded(cacheType, resolver.GetType());
 
-                    foreach (string connectionTypeName in resolver.GetDependencyTypes())
+                    foreach (var connectionTypeName in resolver.GetDependencyTypes())
                     {
-                        bool isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
-                        DependencyType dependencyType = resolver.GetDependencyTypeForId(connectionTypeName);
+                        var isActiveAndLoaded = cacheState.IsActive && resolverState.IsActive;
+                        var dependencyType = resolver.GetDependencyTypeForId(connectionTypeName);
 
                         GUI.contentColor = dependencyType.Colour;
-                        bool isActive = resolverState.ActiveConnectionTypes.Contains(connectionTypeName);
-                        bool newIsActive = isActive;
+                        var isActive = resolverState.ActiveConnectionTypes.Contains(connectionTypeName);
+                        var newIsActive = isActive;
 
                         EditorGUILayout.BeginHorizontal();
 
-                        GUIContent label = new GUIContent
+                        var label = new GUIContent
                         {
                             text = dependencyType.Name,
                             tooltip = $"{dependencyType.Description} \n\n" +
@@ -1008,14 +1051,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
                         GUI.contentColor = origColor;
 
-                        GUIContent refreshContent =
-                            new GUIContent("R", $"Refresh dependencies for {dependencyType.Name}");
+                        var refreshContent = new GUIContent("R", $"Refresh dependencies for {dependencyType.Name}");
 
                         if (resolverIsLoaded && isActiveAndLoaded && newIsActive &&
                             GUILayout.Button(refreshContent, GUILayout.MaxWidth(20)))
                         {
-                            List<string> activeConnectionTypes =
-                                GetActiveConnectionTypesForResolverState(resolverState);
+                            var activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
                             RefreshContext(cacheType, resolverState.Resolver.GetType(), activeConnectionTypes);
                         }
 
@@ -1051,24 +1092,24 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void UpdateCacheAndResolverActivation()
         {
-            ResolverUsageDefinitionList resolverUsageDefinitionList = new ResolverUsageDefinitionList();
+            var resolverUsageDefinitionList = new ResolverUsageDefinitionList();
 
-            foreach (CacheState cacheState in _cacheStates)
+            foreach (var cacheState in _cacheStates)
             {
-                bool cacheNeedsActivation = false;
+                var cacheNeedsActivation = false;
 
-                foreach (ResolverState resolverState in cacheState.ResolverStates)
+                foreach (var resolverState in cacheState.ResolverStates)
                 {
-                    bool resolverNeedsActivation = false;
+                    var resolverNeedsActivation = false;
 
-                    foreach (string connectionType in resolverState.Resolver.GetDependencyTypes())
+                    foreach (var connectionType in resolverState.Resolver.GetDependencyTypes())
                     {
                         resolverNeedsActivation |= resolverState.ActiveConnectionTypes.Contains(connectionType);
                     }
 
                     if (!resolverState.IsActive && resolverNeedsActivation)
                     {
-                        List<string> activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
+                        var activeConnectionTypes = GetActiveConnectionTypesForResolverState(resolverState);
                         resolverUsageDefinitionList.Add(cacheState.Cache.GetType(), resolverState.Resolver.GetType(),
                             true, true, true, activeConnectionTypes);
                     }
@@ -1081,27 +1122,29 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 cacheState.SaveState();
             }
 
-            ReloadContext(resolverUsageDefinitionList, true, true);
+            ReloadContext(resolverUsageDefinitionList);
         }
 
         private HashSet<string> GetConnectionTypesToDisplay()
         {
-            HashSet<string> types = new HashSet<string>();
+            var types = new HashSet<string>();
 
-            foreach (CacheState cacheState in _cacheStates)
+            foreach (var cacheState in _cacheStates)
             {
-                if (cacheState.IsActive)
+                if (!cacheState.IsActive)
                 {
-                    foreach (ResolverState state in cacheState.ResolverStates)
-                    {
-                        string[] connectionTypes = state.Resolver.GetDependencyTypes();
+                    continue;
+                }
 
-                        foreach (string connectionType in connectionTypes)
+                foreach (var state in cacheState.ResolverStates)
+                {
+                    var connectionTypes = state.Resolver.GetDependencyTypes();
+
+                    foreach (var connectionType in connectionTypes)
+                    {
+                        if (state.ActiveConnectionTypes.Contains(connectionType))
                         {
-                            if (state.ActiveConnectionTypes.Contains(connectionType))
-                            {
-                                types.Add(connectionType);
-                            }
+                            types.Add(connectionType);
                         }
                     }
                 }
@@ -1110,11 +1153,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             return types;
         }
 
+        private void DrawUpdatingCache()
+        {
+            float width = 130;
+            var px = (position.width - width) * 0.2f;
+            var py = position.height * 0.5f;
+
+            EditorGUI.LabelField(new Rect(px, py, width, 20), "Updating Cache");
+        }
+
         private void DrawNotLoadedError()
         {
             float width = 130;
-            float px = (position.width - width) * 0.5f;
-            float py = position.height * 0.5f;
+            var px = (position.width - width) * 0.5f;
+            var py = position.height * 0.5f;
 
             EditorGUI.LabelField(new Rect(px, py, width, 20), "Cache not loaded");
 
@@ -1127,8 +1179,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void DrawNoNodeSelectedError()
         {
             float width = 130;
-            float px = (position.width - width) * 0.5f;
-            float py = position.height * 0.5f;
+            var px = (position.width - width) * 0.5f;
+            var py = position.height * 0.5f;
 
             EditorGUI.LabelField(new Rect(px, py, width, 20), "No node selected to show");
         }
@@ -1136,12 +1188,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void DrawNothingSelectedError()
         {
             float width = 1000;
-            float px = (position.width - width) * 0.5f;
-            float py = position.height * 0.5f;
+            var px = (position.width - width) * 0.5f;
+            var py = position.height * 0.5f;
 
-            EditorGUI.LabelField(new Rect(px, py, width, 400), "Please select a node to show.\n" +
-                                                               "Also make sure a resolver and a connection type is selected" +
-                                                               "in order to show a dependency tree");
+            EditorGUI.LabelField(new Rect(px, py, width, 400),
+                "Please select a node to show.\n" + "Also make sure a resolver and a connection type is selected" +
+                "in order to show a dependency tree");
 
             if (GUI.Button(new Rect(px, py + 50, 200, 30), "Refresh"))
             {
@@ -1157,8 +1209,28 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
             bool partialUpdate = true, bool fastUpdate = false)
         {
+            if (isUpdatingCache)
+            {
+                return;
+            }
+
+            var coroutine = new EditorCoroutineWithExceptionHandling();
+            coroutine.Start(ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate),
+                exception =>
+                {
+                    isUpdatingCache = false;
+                    throw exception;
+                });
+        }
+
+        private EditorCoroutineWithExceptionHandling runningCoroutine;
+
+        private IEnumerator ReloadContextEnumerator(ResolverUsageDefinitionList resolverUsageDefinitionList,
+            bool updateCache = true, bool partialUpdate = true, bool fastUpdate = false)
+        {
             Refresh();
-            LoadDependencyCache(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate);
+            yield return LoadDependencyCacheInternal(resolverUsageDefinitionList, updateCache, partialUpdate,
+                fastUpdate);
             ChangeSelection(_selectedNodeId, _selectedNodeType);
         }
 
@@ -1168,8 +1240,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodeStructureDirty || _nodeStructure == null)
             {
-                PrepareNodeSearch();
-
                 EditorUtility.DisplayProgressBar("Building dependency tree", "Updating tree", 0.0f);
 
                 _nodeDisplayOptions.ConnectionTypesToDisplay = GetConnectionTypesToDisplay();
@@ -1228,7 +1298,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (_nodeDisplayOptions.AlignNodes)
             {
-                int[] maxPositions = new int[_maxHierarchyDepth];
+                var maxPositions = new int[_maxHierarchyDepth];
                 GetNodeWidths(_nodeStructure, maxPositions, relationType, 0);
                 ApplyNodeWidths(_nodeStructure, maxPositions, relationType, 0);
             }
@@ -1239,6 +1309,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void DrawHierarchy()
         {
+            if (isUpdatingCache)
+            {
+                DrawUpdatingCache();
+                return;
+            }
+
             if (_nodeDependencyLookupContext == null)
             {
                 DrawNotLoadedError();
@@ -1251,7 +1327,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 return;
             }
 
-            Node entry = _nodeDependencyLookupContext.RelationsLookup.GetNode(_selectedNodeId, _selectedNodeType);
+            var entry = _nodeDependencyLookupContext.RelationsLookup.GetNode(_selectedNodeId, _selectedNodeType);
 
             if (entry == null)
             {
@@ -1261,7 +1337,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             PrepareDrawTree(entry);
 
-            float scrollViewStart = GetArea().height;
+            var scrollViewStart = GetArea().height;
 
             _viewAreaData.ScrollPosition = GUI.BeginScrollView(
                 new Rect(0, scrollViewStart, position.width, position.height - scrollViewStart),
@@ -1278,16 +1354,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (!_cachedVisualizationNodeDatas.ContainsKey(node.Key))
             {
-                INodeHandler nodeHandler = _nodeDependencyLookupContext.NodeHandlerLookup[node.Type];
-                ITypeHandler typeHandler = _typeHandlerLookup[node.Type];
+                var nodeHandler = _nodeDependencyLookupContext.NodeHandlerLookup[node.Type];
+                var typeHandler = _typeHandlerLookup[node.Type];
 
-                VisualizationNodeData data = typeHandler.CreateNodeCachedData(node);
+                var data = typeHandler.CreateNodeCachedData(node);
 
                 data.Node = node;
                 data.TypeHandler = typeHandler;
                 data.IsEditorAsset = nodeHandler.IsNodeEditorOnly(node.Id, node.Type);
                 data.IsPackedToApp =
-                    NodeDependencyLookupUtility.IsNodePackedToApp(node, _nodeDependencyLookupContext, _cachedPackedInfo);
+                    NodeDependencyLookupUtility.IsNodePackedToApp(node, _nodeDependencyLookupContext,
+                        _cachedPackedInfo);
 
                 _cachedVisualizationNodeDatas.Add(node.Key, data);
             }
@@ -1317,7 +1394,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         /// </summary>
         private void JumpToNode(VisualizationNodeBase node)
         {
-            Vector2 nodePos = node.GetPosition(_viewAreaData);
+            var nodePos = node.GetPosition(_viewAreaData);
             _viewAreaData.ScrollPosition.x = -_viewAreaData.Bounds.MinX - _viewAreaData.ViewArea.width / 2 + nodePos.x +
                                              node.Bounds.Width;
             _viewAreaData.ScrollPosition.y = -_viewAreaData.Bounds.MinY - _viewAreaData.ViewArea.height / 2 +
@@ -1325,8 +1402,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         /// <summary>
-        /// Called when the selection of the currently viewed asset has changed. Also makes sure it is added to the stack so you can go back to the previously selected ones
-        /// <param name="oldSelection"></param>
+        /// Called when the selection of the currently viewed asset has changed. Also makes sure it is added to the stack so you
+        /// can go back to the previously selected ones
+        /// <param name="oldSelection"> </param>
         public void ChangeSelection(string id, string type, bool addUndoStep = true)
         {
             if (id == null)
@@ -1341,7 +1419,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                     _undoSteps.Push(new UndoStep
                     {
                         Id = id,
-                        Type = type,
+                        Type = type
                     });
                 }
 
@@ -1357,7 +1435,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void SetHandlerSelection()
         {
-            foreach (ITypeHandler typeHandler in _typeHandlers)
+            foreach (var typeHandler in _typeHandlers)
             {
                 typeHandler.OnSelectAsset(_selectedNodeId, _selectedNodeType);
             }
@@ -1369,7 +1447,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void UndoSelection()
         {
             _undoSteps.Pop();
-            UndoStep undoStep = _undoSteps.Peek();
+            var undoStep = _undoSteps.Peek();
 
             ChangeSelection(undoStep.Id, undoStep.Type, false);
         }
@@ -1378,7 +1456,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             node.InvalidatePositionData();
 
-            foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
+            foreach (var childConnection in node.GetRelations(relationType))
             {
                 InvalidateNodePositionData(childConnection.VNode, relationType);
             }
@@ -1388,7 +1466,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             maxWidths[depth] = Math.Max(maxWidths[depth], node.Bounds.Width);
 
-            foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
+            foreach (var childConnection in node.GetRelations(relationType))
             {
                 GetNodeWidths(childConnection.VNode, maxWidths, relationType, depth + 1);
             }
@@ -1399,7 +1477,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             node.ExtendedNodeWidth = maxPositions[depth];
 
-            foreach (VisualizationConnection childConnection in node.GetRelations(relationType))
+            foreach (var childConnection in node.GetRelations(relationType))
             {
                 ApplyNodeWidths(childConnection.VNode, maxPositions, relationType, depth + 1);
             }
@@ -1408,20 +1486,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void DrawRelations(VisualizationNodeBase node, int depth, RelationType relationType)
         {
             Profiler.BeginSample("DrawRelations");
-            List<VisualizationConnection> visualizationConnections = node.GetRelations(relationType);
+            var visualizationConnections = node.GetRelations(relationType);
 
-            foreach (VisualizationConnection childConnection in visualizationConnections)
+            foreach (var childConnection in visualizationConnections)
             {
                 DrawConnectionForNodes(node, childConnection, relationType, false, visualizationConnections.Count);
 
-                VisualizationNodeBase childNode = childConnection.VNode;
+                var childNode = childConnection.VNode;
 
                 if (_viewAreaData.IsRectInDrawArea(childNode.TreeBounds.Rect, new Color(0.1f, 0.2f, 0.5f, 0.3f)))
                 {
                     DrawRelations(childNode, depth + 1, relationType);
 
-                    float positionOffset = childNode.GetPositionOffset(_viewAreaData);
-                    Rect r = childNode.Bounds.Rect;
+                    var positionOffset = childNode.GetPositionOffset(_viewAreaData);
+                    var r = childNode.Bounds.Rect;
                     r.Set(r.x, r.y + positionOffset, r.width, r.height);
 
                     if (_viewAreaData.IsRectInDrawArea(r, new Color(0.6f, 0.2f, 0.1f, 0.3f)))
@@ -1431,12 +1509,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 }
             }
 
-            RelationType invertedRelationType = NodeDependencyLookupUtility.InvertRelationType(relationType);
-            List<VisualizationConnection> recursiveChildConnections = node.GetRelations(invertedRelationType, false, true);
+            var invertedRelationType = NodeDependencyLookupUtility.InvertRelationType(relationType);
+            var recursiveChildConnections = node.GetRelations(invertedRelationType, false, true);
 
-            foreach (VisualizationConnection childConnection in recursiveChildConnections)
+            foreach (var childConnection in recursiveChildConnections)
             {
-                DrawConnectionForNodes(node, childConnection, invertedRelationType, true, recursiveChildConnections.Count);
+                DrawConnectionForNodes(node, childConnection, invertedRelationType, true,
+                    recursiveChildConnections.Count);
             }
 
             Profiler.EndSample();
@@ -1446,12 +1525,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             RelationType relationType, bool isRecursion, int connectionCount)
         {
             Profiler.BeginSample("DrawConnectionForNodes");
-            VisualizationNodeBase childNode = childConnection.VNode;
-            VisualizationNodeBase current = relationType == RelationType.DEPENDENCY ? node : childNode;
-            VisualizationNodeBase target = relationType == RelationType.DEPENDENCY ? childNode : node;
+            var childNode = childConnection.VNode;
+            var current = relationType == RelationType.DEPENDENCY ? node : childNode;
+            var target = relationType == RelationType.DEPENDENCY ? childNode : node;
 
-            Vector2 currentPos = current.GetPosition(_viewAreaData);
-            Vector2 targetPos = target.GetPosition(_viewAreaData);
+            var currentPos = current.GetPosition(_viewAreaData);
+            var targetPos = target.GetPosition(_viewAreaData);
 
             float distanceBlend = 1;
 
@@ -1460,7 +1539,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 distanceBlend = Mathf.Pow(1 - Mathf.Clamp01(Mathf.Abs(currentPos.y - targetPos.y) / 20000.0f), 3);
             }
 
-            float alphaAmount = (isRecursion ? 0.15f : 1.0f) * distanceBlend;
+            var alphaAmount = (isRecursion ? 0.15f : 1.0f) * distanceBlend;
 
             if (isRecursion)
             {
@@ -1479,10 +1558,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void DrawRecursionButton(VisualizationNodeBase node, VisualizationNodeBase childNode,
             RelationType relationType)
         {
-            int offset = relationType == RelationType.REFERENCER ? childNode.Bounds.Width : -16;
-            Vector2 nodePosition = childNode.GetPosition(_viewAreaData);
+            var offset = relationType == RelationType.REFERENCER ? childNode.Bounds.Width : -16;
+            var nodePosition = childNode.GetPosition(_viewAreaData);
 
-            Rect rect = new Rect(nodePosition.x + offset, nodePosition.y, 16, 16);
+            var rect = new Rect(nodePosition.x + offset, nodePosition.y, 16, 16);
 
             if (GUI.Button(rect, ">"))
             {
@@ -1492,12 +1571,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private void BuildNodeStructure(Node node)
         {
-            Connection rootConnection = new Connection(node, "Root", new PathSegment[0], true);
+            var rootConnection = new Connection(node, "Root", new PathSegment[0], true);
 
-            Node rootConnectionNode = rootConnection.Node;
+            var rootConnectionNode = rootConnection.Node;
             _nodeStructure = GetVisualizationNode(rootConnectionNode);
 
-            int iterations = 0;
+            var iterations = 0;
             CreateNodeHierarchyRec(new HashSet<string>(), new Stack<VisualizationNode>(), _nodeStructure,
                 rootConnection, 0, RelationType.DEPENDENCY, _nodeDisplayOptions, ref iterations);
 
@@ -1513,14 +1592,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private IEnumerable<MergedNode> GetMergedNodes(Node source, List<Connection> connections)
         {
-            Dictionary<string, MergedNode> result = new Dictionary<string, MergedNode>();
-            int i = 0;
-            bool mergeRelations = _nodeDisplayOptions.MergeRelations.GetValue();
+            var result = new Dictionary<string, MergedNode>();
+            var i = 0;
+            var mergeRelations = _nodeDisplayOptions.MergeRelations.GetValue();
             bool onlyHardDependencies = _nodeDisplayOptions.OnlyHardDependencies;
 
-            foreach (Connection connection in connections)
+            foreach (var connection in connections)
             {
-                string nodeKey = connection.Node.Key;
+                var nodeKey = connection.Node.Key;
 
                 if (onlyHardDependencies && !connection.IsHardDependency)
                 {
@@ -1537,8 +1616,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                     result.Add(nodeKey, new MergedNode {Target = connection});
                 }
 
-                result[nodeKey].Datas.Add(new VisualizationConnection.Data(connection.DependencyType,
-                    connection.PathSegments, connection.IsHardDependency));
+                result[nodeKey]
+                    .Datas.Add(new VisualizationConnection.Data(connection.DependencyType, connection.PathSegments,
+                        connection.IsHardDependency));
             }
 
             return result.Values;
@@ -1546,8 +1626,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private VisualizationNode HasRecursion(string key, Stack<VisualizationNode> visualizationNodeStack)
         {
-            int hash = key.GetHashCode();
-            foreach (VisualizationNode node in visualizationNodeStack)
+            var hash = key.GetHashCode();
+            foreach (var node in visualizationNodeStack)
             {
                 if (node.Hash == hash && node.Key == key)
                     return node;
@@ -1561,8 +1641,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
         {
             visualizationNode.SetKey(connection.Node.Key);
-            bool containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
-            List<Connection> connections = connection.Node.GetRelations(relationType);
+            var containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
+            var connections = connection.Node.GetRelations(relationType);
 
             addedVisualizationNodes.Add(visualizationNode.Key);
 
@@ -1570,7 +1650,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             {
                 if (connections.Count > 0)
                 {
-                    CutData cutData = visualizationNode.GetCutData(relationType, true);
+                    var cutData = visualizationNode.GetCutData(relationType, true);
                     cutData.Entries.Add(new CutData.Entry
                         {Count = connections.Count, CutReason = CutReason.DepthReached});
                 }
@@ -1584,7 +1664,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             {
                 if (connections.Count > 0)
                 {
-                    CutData cutData = visualizationNode.GetCutData(relationType, true);
+                    var cutData = visualizationNode.GetCutData(relationType, true);
                     cutData.Entries.Add(new CutData.Entry
                         {Count = connections.Count, CutReason = CutReason.HierarchyAlreadyShown});
                 }
@@ -1594,7 +1674,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (iterations > 0xFFFF)
             {
-                CutData cutData = visualizationNode.GetCutData(relationType, true);
+                var cutData = visualizationNode.GetCutData(relationType, true);
                 cutData.Entries.Add(new CutData.Entry
                     {Count = connections.Count, CutReason = CutReason.NodeLimitReached});
                 return;
@@ -1610,13 +1690,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             visualizationNodeStack.Push(visualizationNode);
 
-            IEnumerable<MergedNode> mergedNodes = GetMergedNodes(connection.Node, connections);
-            int cutConnectionCount = 0;
-            int filteredOutCount = 0;
+            var mergedNodes = GetMergedNodes(connection.Node, connections);
+            var cutConnectionCount = 0;
+            var filteredOutCount = 0;
 
-            foreach (MergedNode mergedNode in mergedNodes)
+            foreach (var mergedNode in mergedNodes)
             {
-                Node childNode = mergedNode.Target.Node;
+                var childNode = mergedNode.Target.Node;
 
                 if (addedVisualizationNodes.Contains(childNode.Key) && _nodeDisplayOptions.ShowNodesOnce)
                 {
@@ -1624,11 +1704,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                     continue;
                 }
 
-                VisualizationNode recursionVisualizationNode = HasRecursion(childNode.Key, visualizationNodeStack);
-                bool isRecursion = recursionVisualizationNode != null;
+                var recursionVisualizationNode = HasRecursion(childNode.Key, visualizationNodeStack);
+                var isRecursion = recursionVisualizationNode != null;
 
-                VisualizationNode childVisualizationNode = GetVisualizationNode(childNode);
-                VisualizationNode visualizationChildNode = isRecursion ? recursionVisualizationNode : childVisualizationNode;
+                var childVisualizationNode = GetVisualizationNode(childNode);
+                var visualizationChildNode = isRecursion ? recursionVisualizationNode : childVisualizationNode;
 
                 visualizationChildNode.Filtered = IsNodeFiltered(childNode);
 
@@ -1638,9 +1718,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                         mergedNode.Target, depth + 1, relationType, nodeDisplayOptions, ref iterations);
                 }
 
-                if ((!nodeDisplayOptions.HideFilteredNodes || HasNoneFilteredChildren(childVisualizationNode, relationType)))
+                if (!nodeDisplayOptions.HideFilteredNodes ||
+                    HasNoneFilteredChildren(childVisualizationNode, relationType))
                 {
-                    AddBidirConnection(relationType, visualizationNode, visualizationChildNode, mergedNode.Datas, isRecursion);
+                    AddBidirConnection(relationType, visualizationNode, visualizationChildNode, mergedNode.Datas,
+                        isRecursion);
                     visualizationChildNode.HasNonFilteredChildren = true;
                 }
                 else
@@ -1651,16 +1733,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             if (cutConnectionCount > 0)
             {
-                CutData cutData = visualizationNode.GetCutData(relationType, true);
+                var cutData = visualizationNode.GetCutData(relationType, true);
                 cutData.Entries.Add(new CutData.Entry
                     {Count = cutConnectionCount, CutReason = CutReason.NodeAlreadyShown});
             }
 
             if (filteredOutCount > 0)
             {
-                CutData cutData = visualizationNode.GetCutData(relationType, true);
-                cutData.Entries.Add(new CutData.Entry
-                    {Count = filteredOutCount, CutReason = CutReason.FilteredOut});
+                var cutData = visualizationNode.GetCutData(relationType, true);
+                cutData.Entries.Add(new CutData.Entry {Count = filteredOutCount, CutReason = CutReason.FilteredOut});
             }
 
             SortChildNodes(visualizationNode, relationType);
@@ -1669,12 +1750,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         }
 
         private void AddBidirConnection(RelationType relationType, VisualizationNodeBase node,
-            VisualizationNodeBase target,
-            List<VisualizationConnection.Data> datas, bool isRecursion)
+            VisualizationNodeBase target, List<VisualizationConnection.Data> datas, bool isRecursion)
         {
             if (_nodeDisplayOptions.ShowPropertyPathes)
             {
-                PathVisualizationNode pathVisualizationNode = new PathVisualizationNode();
+                var pathVisualizationNode = new PathVisualizationNode();
 
                 node.AddRelation(relationType, new VisualizationConnection(datas, pathVisualizationNode, false));
 
@@ -1692,9 +1772,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
         private bool HasNoneFilteredChildren(VisualizationNode node, RelationType relationType)
         {
-            foreach (VisualizationConnection connection in node.GetRelations(relationType, true, false))
+            foreach (var connection in node.GetRelations(relationType))
             {
-                if (connection.VNode.HasNoneFilteredChildren(relationType) || !connection.VNode.IsFiltered(relationType))
+                if (connection.VNode.HasNoneFilteredChildren(relationType) ||
+                    !connection.VNode.IsFiltered(relationType))
                     return true;
             }
 
@@ -1714,15 +1795,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private void SortChildNodes(VisualizationNode visualizationNode, RelationType relationType)
         {
             visualizationNode.SetRelations(
-                visualizationNode.GetRelations(relationType, true, true).OrderBy(p =>
-                {
-                    return p.VNode.GetSortingKey(relationType, _nodeDisplayOptions.SortBySize);
-                }).ToList(), relationType);
+                visualizationNode.GetRelations(relationType, true, true)
+                    .OrderBy(p => { return p.VNode.GetSortingKey(relationType, _nodeDisplayOptions.SortBySize); })
+                    .ToList(), relationType);
         }
 
         private VisualizationNode GetVisualizationNode(Node node)
         {
-            return new VisualizationNode {NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type]};
+            return new VisualizationNode
+                {NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type]};
         }
 
         /// <summary>
@@ -1731,18 +1812,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public static void DrawConnection(float sX, float sY, float eX, float eY, Color color, float alphaModifier = 1,
             bool markWeak = false)
         {
-            float distance = Math.Abs(sX - eX) / 2.0f;
+            var distance = Math.Abs(sX - eX) / 2.0f;
 
             if (distance < 0.5)
                 return;
 
-            float tan = Math.Max(distance, 0.5f);
-
-            Vector3 centerPos = new Vector3((sX + eX) * 0.5f, (sY + eY) * 0.5f, 0);
-            Vector3 startPos = new Vector3(sX, sY + 8, 0);
-            Vector3 endPos = new Vector3(eX, eY + 8, 0);
-            Vector3 startTan = startPos + Vector3.right * tan;
-            Vector3 endTan = endPos + Vector3.left * tan;
+            var tan = Math.Max(distance, 0.5f);
+            var startPos = new Vector3(sX, sY + 8, 0);
+            var endPos = new Vector3(eX, eY + 8, 0);
+            var startTan = startPos + Vector3.right * tan;
+            var endTan = endPos + Vector3.left * tan;
 
             color *= ARVStyles.ConnectionColorMod;
             color.a *= alphaModifier;

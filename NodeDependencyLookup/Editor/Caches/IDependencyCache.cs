@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -9,7 +10,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public bool Update;
 		public bool Save;
 	}
-	
+
 	/**
 	 * Interface for the Dependency Cache
 	 * A dependencyCache stores already updated Assets, etc. so that a not changed asset for example doesnt need to be searched for dependencies again.
@@ -19,17 +20,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	 */
 	public interface IDependencyCache
 	{
-		void ClearFile(string directory);
 		void Initialize(CreatedDependencyCache createdDependencyCache);
 		bool CanUpdate();
-		bool Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+		IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate);
 		void AddExistingNodes(List<IDependencyMappingNode> nodes);
 		List<Dependency> GetDependenciesForId(string id);
 		void Load(string directory);
 		void Save(string directory);
 		void InitLookup();
-		
+
 		// Required for AssetRelationsViewer!
 		Type GetResolverType();
 	}

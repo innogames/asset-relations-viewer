@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,6 +23,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/**
 	 * NodeHandler for assets
 	 */
+	[UsedImplicitly]
 	public class AssetNodeHandler : INodeHandler
 	{
 		private class NameAndType
