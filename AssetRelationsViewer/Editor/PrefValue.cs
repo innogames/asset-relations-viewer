@@ -4,14 +4,14 @@ using UnityEditor;
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
 	/// <summary>
-	/// Helper class to more conveniently handle EditorPrefs 
+	/// Helper class to more conveniently handle EditorPrefs
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	public abstract class PrefValue<T>
 	{
 		protected T DefaultValue;
 		protected T CachedValue;
-			
+
 		protected string Key;
 		protected T Value;
 
@@ -30,7 +30,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			Key = GetProjectSpecificKey(key);
 			DefaultValue = defaultValue;
-				
+
 			MinValue = minValue;
 			MaxValue = maxValue;
 
@@ -49,13 +49,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Load();
 			return Value;
 		}
-			
+
 		public void DirtyOnChange(T newValue, Action<T> onChange = null)
 		{
 			if (!newValue.Equals(GetValue()))
 			{
 				SetValue(newValue);
-					
+
 				if(onChange != null)
 					onChange(newValue);
 			}
@@ -66,11 +66,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return pref.CachedValue;
 		}
 	}
-		
+
 	public class PrefValueBool : PrefValue<bool>
 	{
 		public PrefValueBool(string key, bool defaultValue): base(key, defaultValue, false, true){}
-			
+
 		protected override void Save()
 		{
 			EditorPrefs.SetBool(Key, Value);
@@ -81,11 +81,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Value = EditorPrefs.GetBool(Key, DefaultValue);
 		}
 	}
-		
+
 	public class PrefValueString : PrefValue<String>
 	{
 		public PrefValueString(string key, string defaultValue): base(key, defaultValue, "", ""){}
-			
+
 		protected override void Save()
 		{
 			EditorPrefs.SetString(Key, Value);
@@ -100,7 +100,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	public class PrefValueInt : PrefValue<int>
 	{
 		public PrefValueInt(string key, int defaultValue, int minValue, int maxValue) : base(key, defaultValue, minValue, maxValue){}
-			
+
 		protected override void Save()
 		{
 			EditorPrefs.SetInt(Key, Value);

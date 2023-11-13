@@ -29,18 +29,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     {
         private class NodeDisplayOptions
         {
-            public readonly PrefValueInt MaxDepth = new("ARV_MaxDepth", 64, 0, 64);
-            public readonly PrefValueBool ShowNodesOnce = new("ARV_ShowNodesOnce", false);
-            public readonly PrefValueBool ShowHierarchyOnce = new("ARV_ShowHierarchyOnce", false);
-            public readonly PrefValueBool DrawReferencerNodes = new("ARV_DrawReferencerNodes", true);
-            public readonly PrefValueBool ShowPropertyPathes = new("ARV_ShowPropertyPathes", true);
-            public readonly PrefValueBool AlignNodes = new("ARV_AlignNodes", true);
-            public readonly PrefValueBool HideFilteredNodes = new("ARV_HideFilteredNodes", true);
-            public readonly PrefValueBool MergeRelations = new("ARV_MergeRelations", true);
-            public readonly PrefValueBool SortBySize = new("ARV_SortBySize", false);
-            public readonly PrefValueBool OnlyHardDependencies = new("ARV_OnlyHardDependencies", false);
+            public readonly PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 64, 0, 64);
+            public readonly PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
+            public readonly PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
+            public readonly PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
+            public readonly PrefValueBool ShowPropertyPathes = new PrefValueBool("ARV_ShowPropertyPathes", true);
+            public readonly PrefValueBool AlignNodes = new PrefValueBool("ARV_AlignNodes", true);
+            public readonly PrefValueBool HideFilteredNodes = new PrefValueBool("ARV_HideFilteredNodes", true);
+            public readonly PrefValueBool MergeRelations = new PrefValueBool("ARV_MergeRelations", true);
+            public readonly PrefValueBool SortBySize = new PrefValueBool("ARV_SortBySize", false);
+            public readonly PrefValueBool OnlyHardDependencies = new PrefValueBool("ARV_OnlyHardDependencies", false);
 
-            public HashSet<string> ConnectionTypesToDisplay = new();
+            public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
         }
 
         private class CacheUpgradeSettingsOptions
@@ -61,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private class MergedNode
         {
             public Connection Target;
-            public readonly List<VisualizationConnection.Data> Datas = new();
+            public readonly List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
         }
 
         private class NodeFilterData
@@ -89,18 +89,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private readonly int _maxHierarchyDepth = 256;
 
         private VisualizationNode _nodeStructure;
-        private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new();
+        private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 
-        private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new();
+        private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new Dictionary<string, VisualizationNodeData>();
 
-        private readonly HashSet<string> _visibleNodes = new();
-        private readonly Dictionary<string, AssetCacheData> _cachedNodes = new();
-        private readonly Dictionary<string, bool> _cachedPackedInfo = new();
-        private readonly HashSet<Node> _nodeSizesReachedNodes = new();
+        private readonly HashSet<string> _visibleNodes = new HashSet<string>();
+        private readonly Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
+        private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
+        private readonly HashSet<Node> _nodeSizesReachedNodes = new HashSet<Node>();
 
-        private readonly Stack<UndoStep> _undoSteps = new();
+        private readonly Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
 
-        private readonly ViewAreaData _viewAreaData = new();
+        private readonly ViewAreaData _viewAreaData = new ViewAreaData();
 
         private bool _nodeStructureDirty = true;
         private bool _visualizationDirty = true;
@@ -109,10 +109,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private NodeDisplayOptions _nodeDisplayOptions;
         private CacheUpgradeSettingsOptions _cacheUpgradeSettingsOptions;
 
-        private readonly List<CacheState> _cacheStates = new();
-        private readonly List<ITypeHandler> _typeHandlers = new();
+        private readonly List<CacheState> _cacheStates = new List<CacheState>();
+        private readonly List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
 
-        private Dictionary<string, ITypeHandler> _typeHandlerLookup = new();
+        private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
 
         private Vector2 _cachesScrollPosition;
         private Vector2 _handlersScrollPosition;
@@ -130,14 +130,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         private string[] _nodeFilterTokens = new string[0];
         private string[] _typeFilterTokens = new string[0];
 
-        private readonly List<Node> filteredNodes = new();
+        private readonly List<Node> filteredNodes = new List<Node>();
         private string[] _filteredNodeNames = new string[0];
 
         private int _selectedSearchNodeIndex;
 
-        private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup = new();
+        private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup = new Dictionary<string, NodeFilterData>();
 
-        private readonly List<NodeFilterData> _nodeSearchList = new();
+        private readonly List<NodeFilterData> _nodeSearchList = new List<NodeFilterData>();
 
         private bool _canUnloadCaches;
         private bool _isInitialized;

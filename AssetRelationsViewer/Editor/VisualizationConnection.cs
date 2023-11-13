@@ -13,12 +13,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 PathSegments = pathSegments;
                 IsHardRef = hardRef;
             }
-			
+
             public readonly string Type;
             public PathSegment[] PathSegments;
             public bool IsHardRef;
         }
-		
+
         public VisualizationConnection(List<Data> datas, VisualizationNodeBase node, bool isRecursion)
         {
             Datas = datas;
@@ -36,7 +36,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
             return false;
         }
-        
+
         public readonly VisualizationNodeBase VNode;
         public readonly List<Data> Datas;
         public readonly bool IsRecursion;

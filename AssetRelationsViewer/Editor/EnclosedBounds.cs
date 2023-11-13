@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public int MaxX = Int32.MinValue;
         public int MinY = Int32.MaxValue;
         public int MaxY = Int32.MinValue;
-			
+
         public EnclosedBounds(){}
 
         public EnclosedBounds(int x, int y)
@@ -70,7 +70,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         {
             get { return MaxX - MinX; }
         }
-			
+
         public int Height
         {
             get { return MaxY - MinY; }

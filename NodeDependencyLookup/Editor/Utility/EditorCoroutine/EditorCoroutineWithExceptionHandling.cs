@@ -8,7 +8,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine
 	public class EditorCoroutineWithExceptionHandling
     {
         private IEnumerator cacheUpdateEnumerator;
-        private readonly Stack<IEnumerator> coroutineStack = new(64);
+        private readonly Stack<IEnumerator> coroutineStack = new Stack<IEnumerator>(64);
         private Action<Exception> onExceptionCallback;
         private bool isRunning;
 

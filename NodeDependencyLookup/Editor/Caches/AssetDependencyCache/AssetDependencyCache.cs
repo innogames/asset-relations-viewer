@@ -122,8 +122,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private IEnumerator FindDependenciesForChangedFilesForResolvers(CacheUpdateSettings settings, List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps, FileToAssetNode[] fileToAssetNodes)
 		{
 			Dictionary<string, FileToAssetNode> list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
-			list.EnsureCapacity(pathes.Length);
-
 			List<IAssetDependencyResolver> resolversToExecute = new List<IAssetDependencyResolver>();
 
 			CacheUpdateResourcesCleaner cleaner = new CacheUpdateResourcesCleaner();
@@ -256,7 +254,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Profiler.EndSample();
 
 			_hierarchyTraverser.Initialize();
-			bool hasChanges = false;
 
 			List<IAssetDependencyResolver> resolvers = new List<IAssetDependencyResolver>();
 
@@ -288,8 +285,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			FileToAssetNode fileToAssetNode = resultList[fileId];
-
-			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 
 			List<Dependency> dependencies = searchContext.ResolverDependencies[resolver];
 			AssetNode assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);

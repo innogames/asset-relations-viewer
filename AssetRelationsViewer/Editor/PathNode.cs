@@ -39,7 +39,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public static void AddPath(PathNode node, PathSegment[] segments, string type)
 		{
 			PathNode currentNode = node;
-			
+
 			foreach (PathSegment segment in segments)
 			{
 				string name = GetPathSegmentName(segment);
@@ -61,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				return ObjectNames.NicifyVariableName(name);
 			}
-			
+
 			return name;
 		}
 

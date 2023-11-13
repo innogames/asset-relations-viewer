@@ -31,7 +31,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
     			_loadedMainAsset = NodeDependencyLookupUtility.GetMainAssetById(Node.Id);
     			_assetLoaded = true;
     		}
-    		
+
     		if (_loadedAsset != null && _assetPreview == null && _assetPreviewRenderTries < MAX_ASSET_PREVIEW_RENDER_RETRIES)
     		{
     			Texture2D previewTexture = AssetPreview.GetAssetPreview(_loadedAsset);

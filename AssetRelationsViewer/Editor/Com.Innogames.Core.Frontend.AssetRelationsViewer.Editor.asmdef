@@ -1,19 +1,19 @@
 {
-    "name": "Com.Innogames.Core.Frontend.AssetRelationsViewer.Editor",
-    "rootNamespace": "",
-    "references": [
-        "Com.Innogames.Core.Frontend.NodeDependencyLookup.Editor",
-        "Unity.EditorCoroutines.Editor"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Com.Innogames.Core.Frontend.AssetRelationsViewer.Editor",
+  "rootNamespace": "",
+  "references": [
+    "Com.Innogames.Core.Frontend.NodeDependencyLookup.Editor",
+    "Unity.EditorCoroutines.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

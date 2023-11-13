@@ -143,8 +143,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
             Profiler.EndSample();
             NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetsMappings);
 
-            bool hasChanges = false;
-
             foreach (CreatedResolver resolverUsage in createdDependencyCache.ResolverUsages)
             {
                 if (!(resolverUsage.Resolver is IAssetToFileDependencyResolver))

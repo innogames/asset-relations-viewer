@@ -109,14 +109,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			serializedObject.Dispose();
 		}
 
-		private void StringToStackallocSpan(ref string value, ref Span<char> span)
-		{
-			for (var i = 0; i < value.Length; i++)
-			{
-				span[i] = value[i];
-			}
-		}
-
 		protected override void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
 		{
 			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)

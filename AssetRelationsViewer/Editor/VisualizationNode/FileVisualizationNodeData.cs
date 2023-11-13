@@ -29,7 +29,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	            _loadedMainAsset = NodeDependencyLookupUtility.GetMainAssetById(Node.Id);
     			_assetLoaded = true;
     		}
-    		
+
     		if (_loadedMainAsset != null && _assetPreview == null && _assetPreviewRenderTries < MAX_ASSET_PREVIEW_RENDER_RETRIES)
     		{
     			Texture2D previewTexture = AssetPreview.GetAssetPreview(_loadedMainAsset);
@@ -52,7 +52,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
     	public override Texture2D ThumbNailTexture
     	{
-    	
+
     		get { return GetThumbnail(); }
     	}
 

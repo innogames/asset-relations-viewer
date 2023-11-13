@@ -41,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 EditorPrefs.SetBool(key, ActiveConnectionTypes.Contains(types[i]));
             }
         }
-        
+
         private string GetTypeKey(string type)
         {
             return EditorPrefUtilities.GetProjectSpecificKey(Resolver.GetId() + "|" + type);

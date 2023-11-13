@@ -7,7 +7,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public Rect ViewArea;
         public Vector2 ScrollPosition;
         public EnclosedBounds Bounds = new EnclosedBounds();
-			
+
         public void Update(Rect _windowData)
         {
             ViewArea.x = (int)ScrollPosition.x + Bounds.MinX;
@@ -16,7 +16,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
             ViewArea.width = _windowData.width;
             ViewArea.height = _windowData.height;
         }
-			
+
         public void UpdateAreaSize(VisualizationNode node, Rect _windowData)
         {
             EnclosedBounds oldArea = new EnclosedBounds();
@@ -34,7 +34,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
                 ScrollPosition.y += (Bounds.Height - oldArea.Height) / 2;
             }
         }
-			
+
         /// <summary>
         /// Function to check if a node is actually in view
         /// </summary>

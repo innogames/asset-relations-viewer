@@ -19,7 +19,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
         public void UpdateActivation()
         {
             IsActive = false;
-            
+
             foreach (ResolverState state in ResolverStates)
             {
                 IsActive |= state.IsActive;
