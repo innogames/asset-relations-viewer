@@ -11,7 +11,8 @@
 - Node Search calculation is now done in seperate thread
 - API changes to INodeHandler and IAssetDependencyResolver to simplify implementations
 - Sizes of FileNodes and AssetNodes are now cached for faster loading
-- Several performance improvements to speed up RelationLookup creation
+- Removed any reflection code and fully rely on SerializedProperties
+- Added async update functionality using Enumerators
 - Removed support for Unity 2018 and below
 
 **1.5.1**

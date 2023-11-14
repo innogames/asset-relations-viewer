@@ -547,12 +547,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				i => InvalidateNodeStructure());
 
 			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button("Refresh"))
+			if (GUILayout.Button("Reload"))
 			{
 				ReloadContext(false);
 			}
 
-			if (GUILayout.Button("Update and Refresh"))
+			if (GUILayout.Button("Update"))
 			{
 				ReloadContext();
 			}
@@ -560,13 +560,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			EditorGUILayout.EndHorizontal();
 
 			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button("Save and Refresh"))
+			if (GUILayout.Button("Save and Update"))
 			{
 				AssetDatabase.SaveAssets();
 				ReloadContext();
 			}
 
-			if (GUILayout.Button("Clear and refresh"))
+			if (GUILayout.Button("Clear Cache and Update"))
 			{
 				if (EditorUtility.DisplayDialog("Clear cache",
 					    "This will clear the cache and might take a while to recompute. Continue?", "Yes", "No"))
