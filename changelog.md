@@ -1,3 +1,6 @@
+**1.5.2**
+- Remove warning
+
 **1.5.1**
 - Increase serialize version of AssetToFileDependencyCache because of dependency order change
 - Fixed possible StackOverflowException with very huge dependency trees and ShowAdditionalInformation option being enabled
