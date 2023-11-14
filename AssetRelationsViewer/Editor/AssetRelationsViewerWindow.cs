@@ -145,13 +145,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 #endif
 		}
 
+		[MenuItem("Window/Asset Relations Viewer/Open")]
+		public static void Open()
+		{
+			ShowWindow();
+		}
+
 		private static void ShowWindowForAssetInternal()
 		{
 			AssetRelationsViewerWindow window = ShowWindow();
 			window.OnAssetSelectionChanged();
 		}
 
-		[MenuItem("Window/Asset Relations Viewer/Open")]
 		public static AssetRelationsViewerWindow ShowWindow()
 		{
 			AssetRelationsViewerWindow window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
