@@ -4,7 +4,7 @@
 	{
 		string Id { get; }
 	}
-	
+
 	/**
 	 * A node that got resolved by one of the caches
 	 * This could be for example an Asset, LocaKey, AssetBundle, etc. 

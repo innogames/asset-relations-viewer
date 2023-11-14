@@ -1,5 +1,4 @@
-﻿
-namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
+﻿namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	/// <summary>
 	/// A dependency from one node to the other

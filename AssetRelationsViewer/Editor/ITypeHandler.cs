@@ -14,7 +14,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		void SelectInEditor(string id);
 		void OnGui();
 		void OnSelectAsset(string id, string type);
-		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow viewerWindow);
+
+		void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
+			AssetRelationsViewerWindow viewerWindow);
+
 		bool HandlesCurrentNode();
 	}
 }

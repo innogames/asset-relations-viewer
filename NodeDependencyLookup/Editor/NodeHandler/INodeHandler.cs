@@ -17,7 +17,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData);
 
 		/// After <see cref="CalculateOwnFileSize"/> has been run do any node dependency related filesize calculations here
-		void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context, HashSet<Node> calculatedNodes);
+		void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context,
+			HashSet<Node> calculatedNodes);
 
 		/// Returns if a node is packed to the app or not. Helpful to find out if an asset is actually used in the final game or not
 		bool IsNodePackedToApp(Node node, bool alwaysExcluded = false);

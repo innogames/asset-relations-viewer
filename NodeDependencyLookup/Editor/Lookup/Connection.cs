@@ -1,5 +1,4 @@
-﻿
-namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
+﻿namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	/// <summary>
 	/// A relation can be either of a node is a dependency of another one or if the node is references by another node

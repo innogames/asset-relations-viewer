@@ -38,11 +38,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public static void AddPath(PathNode node, PathSegment[] segments, string type)
 		{
-			PathNode currentNode = node;
+			var currentNode = node;
 
-			foreach (PathSegment segment in segments)
+			foreach (var segment in segments)
 			{
-				string name = GetPathSegmentName(segment);
+				var name = GetPathSegmentName(segment);
 
 				if (!currentNode.Children.Any(n => n.Name == name))
 				{
@@ -55,7 +55,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public static string GetPathSegmentName(PathSegment segment)
 		{
-			string name = segment.Name.Replace(".Array.data", "");
+			var name = segment.Name.Replace(".Array.data", "");
 
 			if (segment.Type == PathSegmentType.Property)
 			{
@@ -73,27 +73,27 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CalculatePositionData(int px, int py, HashSet<PathNode> targetNodes)
 		{
-			int totalHeight = ChildrenHeight;
-			int currentHeight = 0;
+			var totalHeight = ChildrenHeight;
+			var currentHeight = 0;
 
 			PosX = px;
 			PosY = py;
 
-			int width = TextLength + 16;
-			int maxChildWidth = 0;
+			var width = TextLength + 16;
+			var maxChildWidth = 0;
 
 			if (Children.Count == 0)
 			{
 				targetNodes.Add(this);
 			}
 
-			foreach (PathNode nodeChild in Children)
+			foreach (var nodeChild in Children)
 			{
-				int childHeight = nodeChild.Height;
-				int offset = currentHeight - (int)((totalHeight - childHeight) * 0.5);
+				var childHeight = nodeChild.Height;
+				var offset = currentHeight - (int) ((totalHeight - childHeight) * 0.5);
 
-				int eX = px + width;
-				int eY = py + offset;
+				var eX = px + width;
+				var eY = py + offset;
 
 				nodeChild.CalculatePositionData(eX, eY, targetNodes);
 				maxChildWidth = maxChildWidth > nodeChild.Width ? maxChildWidth : nodeChild.Width;
@@ -108,18 +108,19 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			DrawPathSegment(node.PosX + px, node.PosY + py, node);
 
-			foreach (PathNode child in node.Children)
+			foreach (var child in node.Children)
 			{
 				DrawPathNodeRec(px, py, child, colorProvider);
-				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py, child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
+				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py,
+					child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
 			}
 		}
 
 		public static int CalculateNodeHeight(PathNode node)
 		{
-			int height = 0;
+			var height = 0;
 
-			foreach (PathNode nodeChild in node.Children)
+			foreach (var nodeChild in node.Children)
 			{
 				height += CalculateNodeHeight(nodeChild);
 			}
@@ -131,14 +132,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public static void DrawPathSegment(float px, float py, PathNode node)
 		{
-			Color color = Color.black;
+			var color = Color.black;
 
 			switch (node.Type)
 			{
-				case PathSegmentType.GameObject: color = new Color(0.1f, 0.1f, 0.2f, 0.7f); break;
-				case PathSegmentType.Component: color = new Color(0.1f, 0.4f, 0.2f, 0.7f); break;
-				case PathSegmentType.Property: color = new Color(0.3f, 0.2f, 0.2f, 0.7f); break;
-				case PathSegmentType.Unknown: color = new Color(0.3f, 0.3f, 0.3f, 0.7f); break;
+				case PathSegmentType.GameObject:
+					color = new Color(0.1f, 0.1f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Component:
+					color = new Color(0.1f, 0.4f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Property:
+					color = new Color(0.3f, 0.2f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Unknown:
+					color = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+					break;
 			}
 
 			EditorGUI.DrawRect(new Rect(px, py, node.TextLength, NodeHeight - 2), color);
@@ -147,10 +156,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public static int GetTextLength(string text, Font font)
 		{
-			int length = 0;
+			var length = 0;
 			CharacterInfo info;
 
-			foreach (char c in text)
+			foreach (var c in text)
 			{
 				font.GetCharacterInfo(c, out info);
 				length += info.advance;

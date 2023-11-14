@@ -15,7 +15,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 	public class AssetToAssetByObjectDependencyType : DependencyType
 	{
-		public AssetToAssetByObjectDependencyType(string name, Color color, bool isIndirect, bool isHard, string description) :
+		public AssetToAssetByObjectDependencyType(string name, Color color, bool isIndirect, bool isHard,
+			string description) :
 			base(name, color, isIndirect, isHard, description)
 		{
 		}
@@ -41,116 +42,124 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
 		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
-		private static DependencyType ObjectType = new AssetToAssetByObjectDependencyType("Asset->Asset by Object", new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
+
+		private static DependencyType ObjectType = new AssetToAssetByObjectDependencyType("Asset->Asset by Object",
+			new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		private const string Id = "ObjectSerializedDependencyResolver";
 
 		// Don't include m_CorrespondingSourceObject because otherwise every property would have a dependency to it
-        private HashSet<string> ExcludedProperties = new HashSet<string>(new []{"m_CorrespondingSourceObject"});
+		private HashSet<string> ExcludedProperties = new HashSet<string>(new[] {"m_CorrespondingSourceObject"});
 
-        // Don't include any dependencies to UnityEngine internal scripts
-        private HashSet<string> ExcludedDependencies = new HashSet<string>(new []{"UnityEngine.UI.dll", "UnityEngine.dll"});
+		// Don't include any dependencies to UnityEngine internal scripts
+		private HashSet<string> ExcludedDependencies =
+			new HashSet<string>(new[] {"UnityEngine.UI.dll", "UnityEngine.dll"});
 
-        private Dictionary<string, string> cachedAssetAsDependencyData = new Dictionary<string, string>();
+		private Dictionary<string, string> cachedAssetAsDependencyData = new Dictionary<string, string>();
 
-        public void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
-        {
-            AddPrefabAsDependency(searchContext, obj, stack);
-        }
+		public void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
+		{
+			AddPrefabAsDependency(searchContext, obj, stack);
+		}
 
-        public void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
-        {
-            stack.Push(new PathSegment("Variant Of", PathSegmentType.Component));
-            AddPrefabAsDependency(searchContext, obj, stack);
-            stack.Pop();
-        }
+		public void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
+		{
+			stack.Push(new PathSegment("Variant Of", PathSegmentType.Component));
+			AddPrefabAsDependency(searchContext, obj, stack);
+			stack.Pop();
+		}
 
-        private void AddPrefabAsDependency(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
-        {
-            Object correspondingObjectFromSource = PrefabUtility.GetCorrespondingObjectFromSource(obj);
-            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(correspondingObjectFromSource);
-            string assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
-            string guid = AssetDatabase.AssetPathToGUID(assetPath);
+		private void AddPrefabAsDependency(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
+		{
+			var correspondingObjectFromSource = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+			var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(correspondingObjectFromSource);
+			var assetPath = AssetDatabase.GetAssetPath(correspondingObjectFromSource);
+			var guid = AssetDatabase.AssetPathToGUID(assetPath);
 
-            if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId))
-            {
-	            searchContext.AddDependency(this, new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
-            }
-        }
+			if (guid != NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId))
+			{
+				searchContext.AddDependency(this,
+					new Dependency(assetId, AssetToAssetObjectDependency.Name, AssetNodeType.Name, stack.ToArray()));
+			}
+		}
 
-        private string GetAssetPathForAsset(string sourceAssetId, Object value)
-        {
-	        if (value == null)
-                return null;
+		private string GetAssetPathForAsset(string sourceAssetId, Object value)
+		{
+			if (value == null)
+				return null;
 
-            string assetPath = AssetDatabase.GetAssetPath(value);
+			var assetPath = AssetDatabase.GetAssetPath(value);
 
-            if (string.IsNullOrEmpty(assetPath) || ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
-            {
-                return null;
-            }
+			if (string.IsNullOrEmpty(assetPath) || ExcludedDependencies.Contains(Path.GetFileName(assetPath)))
+			{
+				return null;
+			}
 
-            string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+			var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
+			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-            bool isUnityAsset = guid.StartsWith("0000000");
-            bool isScriptableObject = value is ScriptableObject;
+			var isUnityAsset = guid.StartsWith("0000000");
+			var isScriptableObject = value is ScriptableObject;
 
-            bool isMainAsset = AssetDatabase.IsMainAsset(value);
-            bool isSubAsset = AssetDatabase.IsSubAsset(value);
-            bool isAsset = isMainAsset || isSubAsset;
-            bool isComponentAssetReference = value is Component && NodeDependencyLookupUtility.GetGuidFromAssetId(sourceAssetId) != guid;
+			var isMainAsset = AssetDatabase.IsMainAsset(value);
+			var isSubAsset = AssetDatabase.IsSubAsset(value);
+			var isAsset = isMainAsset || isSubAsset;
+			var isComponentAssetReference = value is Component &&
+			                                NodeDependencyLookupUtility.GetGuidFromAssetId(sourceAssetId) != guid;
 
-            if (isUnityAsset || isScriptableObject || isAsset)
-            {
-                return assetId;
-            }
+			if (isUnityAsset || isScriptableObject || isAsset)
+			{
+				return assetId;
+			}
 
-            if (isComponentAssetReference)
-            {
-                Object mainAsset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
-                return NodeDependencyLookupUtility.GetAssetIdForAsset(mainAsset);
-            }
+			if (isComponentAssetReference)
+			{
+				var mainAsset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
+				return NodeDependencyLookupUtility.GetAssetIdForAsset(mainAsset);
+			}
 
-            if (!(AssetDatabase.LoadMainAssetAtPath(assetPath) is GameObject))
-            {
-                return assetId;
-            }
+			if (!(AssetDatabase.LoadMainAssetAtPath(assetPath) is GameObject))
+			{
+				return assetId;
+			}
 
-            return null;
-        }
+			return null;
+		}
 
-        public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
-	        ref string propertyPath, SerializedPropertyType type)
-        {
-            if (type != SerializedPropertyType.ObjectReference)
-            {
-                return null;
-            }
+		public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+			ref string propertyPath, SerializedPropertyType type)
+		{
+			if (type != SerializedPropertyType.ObjectReference)
+			{
+				return null;
+			}
 
-            Object asset = property.objectReferenceValue;
+			var asset = property.objectReferenceValue;
 
-            if (asset == null)
-            {
-	            return null;
-            }
+			if (asset == null)
+			{
+				return null;
+			}
 
-            string id = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
+			var id = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
 
-            if(!cachedAssetAsDependencyData.TryGetValue(id, out string assetId))
-            {
-                assetId = GetAssetPathForAsset(sourceAssetId, asset);
-                cachedAssetAsDependencyData.Add(id, assetId);
-            }
+			if (!cachedAssetAsDependencyData.TryGetValue(id, out var assetId))
+			{
+				assetId = GetAssetPathForAsset(sourceAssetId, asset);
+				cachedAssetAsDependencyData.Add(id, assetId);
+			}
 
-            if (assetId == null || ExcludedProperties.Contains(propertyPath))
-            {
-                return null;
-            }
+			if (assetId == null || ExcludedProperties.Contains(propertyPath))
+			{
+				return null;
+			}
 
-            return new AssetDependencyResolverResult {Id = assetId, DependencyType = AssetToAssetObjectDependency.Name, NodeType = AssetNodeType.Name};
-        }
+			return new AssetDependencyResolverResult
+				{Id = assetId, DependencyType = AssetToAssetObjectDependency.Name, NodeType = AssetNodeType.Name};
+		}
 
 		public bool IsGuidValid(string guid)
 		{
@@ -169,7 +178,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string[] GetDependencyTypes()
 		{
-			return new[] { AssetToAssetObjectDependency.Name };
+			return new[] {AssetToAssetObjectDependency.Name};
 		}
 
 		public void SetValidGUIDs()
@@ -182,9 +191,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				"t:TextAsset"
 			};
 
-			foreach (string filter in invalidAssetFilter)
+			foreach (var filter in invalidAssetFilter)
 			{
-				foreach (string guid in AssetDatabase.FindAssets(filter))
+				foreach (var guid in AssetDatabase.FindAssets(filter))
 				{
 					_inValidGuids.Add(guid);
 				}

@@ -6,230 +6,242 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 {
-    public class AsmdefToAsmdefDependency
-    {
-        public const string Name = "AsmDefToAsmDef";
-    }
+	public class AsmdefToAsmdefDependency
+	{
+		public const string Name = "AsmDefToAsmDef";
+	}
 
-    public class AsmDefDependencyCache : IDependencyCache
-    {
-        private class AsmDefJson
-        {
-            public string name = String.Empty;
-            public string[] references = Array.Empty<string>();
-        }
+	public class AsmDefDependencyCache : IDependencyCache
+	{
+		private class AsmDefJson
+		{
+			public string name = string.Empty;
+			public string[] references = Array.Empty<string>();
+		}
 
-        private class AsmRefJson
-        {
-            public string reference;
-        }
+		private class AsmRefJson
+		{
+			public string reference;
+		}
 
-        private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
-        private Dictionary<string, GenericDependencyMappingNode> _lookup = new Dictionary<string, GenericDependencyMappingNode>();
-        private CreatedDependencyCache _createdDependencyCache;
+		private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
 
-        public void ClearFile(string directory)
-        {
-            // not needed
-        }
+		private Dictionary<string, GenericDependencyMappingNode> _lookup =
+			new Dictionary<string, GenericDependencyMappingNode>();
 
-        public void Initialize(CreatedDependencyCache createdDependencyCache)
-        {
-            _createdDependencyCache = createdDependencyCache;
-        }
+		private CreatedDependencyCache _createdDependencyCache;
 
-        public bool CanUpdate()
-        {
-            return true;
-        }
+		public void ClearFile(string directory)
+		{
+			// not needed
+		}
 
-        public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
-            bool shouldUpdate)
-        {
-            _lookup.Clear();
+		public void Initialize(CreatedDependencyCache createdDependencyCache)
+		{
+			_createdDependencyCache = createdDependencyCache;
+		}
 
-            List<IDependencyMappingNode> nodes = new List<IDependencyMappingNode>();
-            Dictionary<string, string> nameToFileMapping = GenerateAsmDefFileMapping();
+		public bool CanUpdate()
+		{
+			return true;
+		}
 
-            AddAsmDefs(nodes, nameToFileMapping);
-            AddAsmRefs(nodes, nameToFileMapping);
+		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
+			bool shouldUpdate)
+		{
+			_lookup.Clear();
 
-            Nodes = nodes.ToArray();
+			var nodes = new List<IDependencyMappingNode>();
+			var nameToFileMapping = GenerateAsmDefFileMapping();
 
-            yield return null;
-        }
+			AddAsmDefs(nodes, nameToFileMapping);
+			AddAsmRefs(nodes, nameToFileMapping);
 
-        private Dictionary<string, string> GenerateAsmDefFileMapping()
-        {
-            Dictionary<string, string> nameToFileMapping = new Dictionary<string, string>();
+			Nodes = nodes.ToArray();
 
-            string[] guids = AssetDatabase.FindAssets("t:asmdef");
+			yield return null;
+		}
 
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                TextAsset asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-                nameToFileMapping.Add(JsonUtility.FromJson<AsmDefJson>(asmdef.text).name, path);
-            }
+		private Dictionary<string, string> GenerateAsmDefFileMapping()
+		{
+			var nameToFileMapping = new Dictionary<string, string>();
 
-            return nameToFileMapping;
-        }
+			var guids = AssetDatabase.FindAssets("t:asmdef");
 
-        private bool TryGetRefPathFromGUID(string reference, Dictionary<string, string> nameToFileMapping, out string refPath)
-        {
-            if (reference.StartsWith("GUID:"))
-            {
-                refPath = AssetDatabase.GUIDToAssetPath(reference.Split(':')[1]);
-            }
-            else if(!nameToFileMapping.TryGetValue(reference, out refPath))
-            {
-                return false;
-            }
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
+				var asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+				nameToFileMapping.Add(JsonUtility.FromJson<AsmDefJson>(asmdef.text).name, path);
+			}
 
-            if (string.IsNullOrEmpty(refPath))
-            {
-                return false;
-            }
+			return nameToFileMapping;
+		}
 
-            return true;
-        }
+		private bool TryGetRefPathFromGUID(string reference, Dictionary<string, string> nameToFileMapping,
+			out string refPath)
+		{
+			if (reference.StartsWith("GUID:"))
+			{
+				refPath = AssetDatabase.GUIDToAssetPath(reference.Split(':')[1]);
+			}
+			else if (!nameToFileMapping.TryGetValue(reference, out refPath))
+			{
+				return false;
+			}
 
-        private void AddAsmDefs( List<IDependencyMappingNode> nodes, Dictionary<string, string> nameToFileMapping)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:asmdef");
+			if (string.IsNullOrEmpty(refPath))
+			{
+				return false;
+			}
 
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
+			return true;
+		}
 
-                TextAsset asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-                AsmDefJson asmDefJson = JsonUtility.FromJson<AsmDefJson>(asmdef.text);
+		private void AddAsmDefs(List<IDependencyMappingNode> nodes, Dictionary<string, string> nameToFileMapping)
+		{
+			var guids = AssetDatabase.FindAssets("t:asmdef");
 
-                GenericDependencyMappingNode node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmdef), AssetNodeType.Name);
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
 
-                int g = 0;
+				var asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+				var asmDefJson = JsonUtility.FromJson<AsmDefJson>(asmdef.text);
 
-                foreach (string reference in asmDefJson.references)
-                {
-                    if (!TryGetRefPathFromGUID(reference, nameToFileMapping, out string refPath))
-                    {
-                        continue;
-                    }
+				var node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmdef),
+					AssetNodeType.Name);
 
-                    TextAsset refAsmDef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
+				var g = 0;
 
-                    if (refAsmDef == null)
-                    {
-                        Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
-                        continue;
-                    }
+				foreach (var reference in asmDefJson.references)
+				{
+					if (!TryGetRefPathFromGUID(reference, nameToFileMapping, out var refPath))
+					{
+						continue;
+					}
 
-                    string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(refAsmDef);
-                    string componentName = "Ref " + g++;
+					var refAsmDef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
 
-                    node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name, new []{new PathSegment(componentName, PathSegmentType.Property), }));
-                }
+					if (refAsmDef == null)
+					{
+						Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
+						continue;
+					}
 
-                nodes.Add(node);
-                _lookup.Add(node.Id, node);
-            }
-        }
+					var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(refAsmDef);
+					var componentName = "Ref " + g++;
 
-        private void AddAsmRefs( List<IDependencyMappingNode> nodes, Dictionary<string, string> nameToFileMapping)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:asmref");
+					node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
+						new[] {new PathSegment(componentName, PathSegmentType.Property)}));
+				}
 
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
+				nodes.Add(node);
+				_lookup.Add(node.Id, node);
+			}
+		}
 
-                TextAsset asmref = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-                AsmRefJson asmRefJson = JsonUtility.FromJson<AsmRefJson>(asmref.text);
+		private void AddAsmRefs(List<IDependencyMappingNode> nodes, Dictionary<string, string> nameToFileMapping)
+		{
+			var guids = AssetDatabase.FindAssets("t:asmref");
 
-                GenericDependencyMappingNode node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmref), AssetNodeType.Name);
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
 
-                if (!TryGetRefPathFromGUID(asmRefJson.reference, nameToFileMapping, out string refPath))
-                {
-                    continue;
-                }
+				var asmref = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+				var asmRefJson = JsonUtility.FromJson<AsmRefJson>(asmref.text);
 
-                TextAsset asmRef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
+				var node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asmref),
+					AssetNodeType.Name);
 
-                if (asmRef == null)
-                {
-                    Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
-                    continue;
-                }
+				if (!TryGetRefPathFromGUID(asmRefJson.reference, nameToFileMapping, out var refPath))
+				{
+					continue;
+				}
 
-                string assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmRef);
-                string componentName = "Ref";
+				var asmRef = AssetDatabase.LoadAssetAtPath<TextAsset>(refPath);
 
-                node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name, new []{new PathSegment(componentName, PathSegmentType.Property), }));
+				if (asmRef == null)
+				{
+					Debug.LogWarning($"No Assembly Definition loaded for {refPath}");
+					continue;
+				}
 
-                nodes.Add(node);
-                _lookup.Add(node.Id, node);
-            }
-        }
+				var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmRef);
+				var componentName = "Ref";
 
-        public void AddExistingNodes(List<IDependencyMappingNode> nodes)
-        {
-            foreach (IDependencyMappingNode node in Nodes)
-            {
-                nodes.Add(node);
-            }
-        }
+				node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
+					new[] {new PathSegment(componentName, PathSegmentType.Property)}));
 
-        public List<Dependency> GetDependenciesForId(string id)
-        {
-            if(NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AsmDefDependencyResolver.Id, AsmdefToAsmdefDependency.Name))
-            {
-                return _lookup[id].Dependencies;
-            }
+				nodes.Add(node);
+				_lookup.Add(node.Id, node);
+			}
+		}
 
-            return new List<Dependency>();
-        }
+		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
+		{
+			foreach (var node in Nodes)
+			{
+				nodes.Add(node);
+			}
+		}
 
-        public void Load(string directory)
-        {
-        }
+		public List<Dependency> GetDependenciesForId(string id)
+		{
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AsmDefDependencyResolver.Id,
+				    AsmdefToAsmdefDependency.Name))
+			{
+				return _lookup[id].Dependencies;
+			}
 
-        public void Save(string directory)
-        {
-        }
+			return new List<Dependency>();
+		}
 
-        public void InitLookup()
-        {
-        }
+		public void Load(string directory)
+		{
+		}
 
-        public Type GetResolverType()
-        {
-            return typeof(IAsmDefDependencyResolver);
-        }
+		public void Save(string directory)
+		{
+		}
 
-        public interface IAsmDefDependencyResolver : IDependencyResolver
-        {
-        }
+		public void InitLookup()
+		{
+		}
 
-        public class AsmDefDependencyResolver : IAsmDefDependencyResolver
-        {
-            private const string ConnectionTypeDescription = "Dependencies between AssemblyDefinitions";
-            private static DependencyType asmdefDependencyType = new DependencyType("AsmDef->AsmDef", new Color(0.9f, 0.9f, 0.5f), false, true, ConnectionTypeDescription);
-            public const string Id = "AsmdefDependencyResolver";
+		public Type GetResolverType()
+		{
+			return typeof(IAsmDefDependencyResolver);
+		}
 
-            public string[] GetDependencyTypes()
-            {
-                return new[] {AsmdefToAsmdefDependency.Name};
-            }
+		public interface IAsmDefDependencyResolver : IDependencyResolver
+		{
+		}
 
-            public string GetId()
-            {
-                return Id;
-            }
+		public class AsmDefDependencyResolver : IAsmDefDependencyResolver
+		{
+			private const string ConnectionTypeDescription = "Dependencies between AssemblyDefinitions";
 
-            public DependencyType GetDependencyTypeForId(string typeId)
-            {
-                return asmdefDependencyType;
-            }
-        }
-    }
+			private static DependencyType asmdefDependencyType = new DependencyType("AsmDef->AsmDef",
+				new Color(0.9f, 0.9f, 0.5f), false, true, ConnectionTypeDescription);
+
+			public const string Id = "AsmdefDependencyResolver";
+
+			public string[] GetDependencyTypes()
+			{
+				return new[] {AsmdefToAsmdefDependency.Name};
+			}
+
+			public string GetId()
+			{
+				return Id;
+			}
+
+			public DependencyType GetDependencyTypeForId(string typeId)
+			{
+				return asmdefDependencyType;
+			}
+		}
+	}
 }

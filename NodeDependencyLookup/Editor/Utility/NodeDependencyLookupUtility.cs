@@ -184,7 +184,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary, isFastUpdate, needsDataUpdate);
+			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary,
+				isFastUpdate, needsDataUpdate);
 		}
 
 		public static Dictionary<string, INodeHandler> BuildNodeHandlerLookup()
@@ -214,7 +215,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		/// <summary>
 		/// Used to get the size of an asset inside the packed build.
-		/// Currently sounds are not correct since the file isnt going to be written into the libraray in the final format.
+		/// Currently sounds are not correct since the file isnt going to be written into the library in the final format.
 		/// </summary>
 		public static int GetPackedAssetSize(string assetId)
 		{
@@ -551,7 +552,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			return result.ToString();
 #else
-            return $"{id}@{type}";
+			return $"{id}@{type}";
 #endif
 		}
 

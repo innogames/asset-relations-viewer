@@ -51,17 +51,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void OnSelectAsset(string id, string type)
 		{
-			if (type == GetHandledType())
-			{
-				_selectedAsset = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id));
-			}
-			else
-			{
-				_selectedAsset = null;
-			}
+			_selectedAsset = type == GetHandledType() ? AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id)) : null;
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
+			AssetRelationsViewerWindow window)
 		{
 		}
 

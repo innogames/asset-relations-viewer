@@ -21,8 +21,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void Start()
 		{
-			_thread = new Thread(ThreadProc);
-			_thread.Name = "HierarchySizeThread";
+			_thread = new Thread(ThreadProc)
+			{
+				Name = "HierarchySizeThread"
+			};
 			_thread.Start();
 		}
 
@@ -39,16 +41,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void ThreadProc()
 		{
-			HashSet<Node> flattedHierarchy = new HashSet<Node>();
+			var flattedHierarchy = new HashSet<Node>();
 
-			while(true)
+			while (true)
 			{
 				while (_stack.Count > 0)
 				{
-					VisualizationNodeData visualizationNodeData = _stack.Pop();
+					var visualizationNodeData = _stack.Pop();
 					if (visualizationNodeData != null)
 					{
-						visualizationNodeData.HierarchySize = NodeDependencyLookupUtility.GetTreeSize(visualizationNodeData.Node, _context, flattedHierarchy);
+						visualizationNodeData.HierarchySize =
+							NodeDependencyLookupUtility.GetTreeSize(visualizationNodeData.Node, _context,
+								flattedHierarchy);
 					}
 				}
 

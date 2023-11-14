@@ -20,17 +20,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void AddResolver(Type resolverType, List<string> dependencyTypes)
 		{
-			string resolverTypeFullName = resolverType.FullName;
+			var resolverTypeFullName = resolverType.FullName;
 
 			if (!CreatedResolvers.ContainsKey(resolverTypeFullName))
 			{
-				IDependencyResolver dependencyResolver = NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(resolverType);
-				CreatedResolver resolver = new CreatedResolver(dependencyResolver);
+				var dependencyResolver =
+					NodeDependencyLookupUtility.InstantiateClass<IDependencyResolver>(resolverType);
+				var resolver = new CreatedResolver(dependencyResolver);
 				CreatedResolvers.Add(resolverTypeFullName, resolver);
 			}
 
-			CreatedResolver createdResolver = CreatedResolvers[resolverTypeFullName];
-			string resolverId = createdResolver.Resolver.GetId();
+			var createdResolver = CreatedResolvers[resolverTypeFullName];
+			var resolverId = createdResolver.Resolver.GetId();
 
 			if (!ResolverUsagesLookup.ContainsKey(resolverId))
 			{
@@ -38,7 +39,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				ResolverUsagesLookup.Add(resolverId, createdResolver);
 			}
 
-			string[] collection = dependencyTypes != null ? dependencyTypes.ToArray() : createdResolver.Resolver.GetDependencyTypes();
+			var collection = dependencyTypes != null
+				? dependencyTypes.ToArray()
+				: createdResolver.Resolver.GetDependencyTypes();
 			createdResolver.DependencyTypes = new List<string>(collection);
 			createdResolver.IsActive = true;
 		}
@@ -48,7 +51,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			ResolverUsages.Clear();
 			ResolverUsagesLookup.Clear();
 
-			foreach (KeyValuePair<string,CreatedResolver> pair in CreatedResolvers)
+			foreach (var pair in CreatedResolvers)
 			{
 				pair.Value.IsActive = false;
 			}

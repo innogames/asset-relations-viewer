@@ -24,7 +24,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		private const string FileName = "AddressableGroupToAssetDependencyCacheData_" + Version + ".cache";
 
 		private GenericDependencyMappingNode[] Nodes = new GenericDependencyMappingNode[0];
-		private Dictionary<string, GenericDependencyMappingNode> Lookup = new Dictionary<string, GenericDependencyMappingNode>();
+
+		private Dictionary<string, GenericDependencyMappingNode> Lookup =
+			new Dictionary<string, GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
@@ -45,54 +47,58 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			if(!shouldUpdate && Nodes.Length > 0)
+			if (!shouldUpdate && Nodes.Length > 0)
 			{
 				yield break;
 			}
 
-			AddressableAssetSettings settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
 
 			if (settings == null)
 			{
-				Debug.LogWarning("Could not find UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings. Please add Addressable Settings if you use the AddressableGroup -> Asset resolver");
+				Debug.LogWarning(
+					"Could not find UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings. Please add Addressable Settings if you use the AddressableGroup -> Asset resolver");
 				yield break;
 			}
 
-			CacheUpdateInfo resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			RelationLookup.RelationsLookup assetToFileLookup = new RelationLookup.RelationsLookup();
-			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo, assetToFileLookup);
+			var resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
+			var assetToFileLookup = new RelationLookup.RelationsLookup();
+			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
+				assetToFileLookup);
 
 			Lookup.Clear();
 
 			Nodes = new GenericDependencyMappingNode[0];
 
-			List<GenericDependencyMappingNode> nodes = new List<GenericDependencyMappingNode>();
+			var nodes = new List<GenericDependencyMappingNode>();
 
-			for (int i = 0; i < settings.groups.Count; ++i)
+			for (var i = 0; i < settings.groups.Count; ++i)
 			{
-				AddressableAssetGroup group = settings.groups[i];
-				EditorUtility.DisplayProgressBar("AddressableAssetGroupTempCache", $"Getting dependencies for {group.Name}", i / (float)(settings.groups.Count));
-				GenericDependencyMappingNode node = new GenericDependencyMappingNode(group.Name, AddressableAssetGroupNodeType.Name);
+				var group = settings.groups[i];
+				EditorUtility.DisplayProgressBar("AddressableAssetGroupTempCache",
+					$"Getting dependencies for {group.Name}", i / (float) settings.groups.Count);
+				var node = new GenericDependencyMappingNode(group.Name, AddressableAssetGroupNodeType.Name);
 
-				int g = 0;
+				var g = 0;
 
-				foreach (AddressableAssetEntry addressableAssetEntry in group.entries)
+				foreach (var addressableAssetEntry in group.entries)
 				{
-					List<AddressableAssetEntry> entries = new List<AddressableAssetEntry>();
+					var entries = new List<AddressableAssetEntry>();
 					addressableAssetEntry.GatherAllAssets(entries, true, true, false);
 
-					foreach (AddressableAssetEntry assetEntry in entries)
+					foreach (var assetEntry in entries)
 					{
-						Node fileNode = assetToFileLookup.GetNode(assetEntry.guid, FileNodeType.Name);
+						var fileNode = assetToFileLookup.GetNode(assetEntry.guid, FileNodeType.Name);
 
 						if (fileNode == null)
 						{
 							continue;
 						}
 
-						string assetId = fileNode.Referencers[0].Node.Id;
-						string componentName = "GroupUsage " + g++;
-						node.Dependencies.Add(new Dependency(assetId, AddressableGroupToAssetDependency.Name, AssetNodeType.Name, new []{new PathSegment(componentName, PathSegmentType.Property)}));
+						var assetId = fileNode.Referencers[0].Node.Id;
+						var componentName = "GroupUsage " + g++;
+						node.Dependencies.Add(new Dependency(assetId, AddressableGroupToAssetDependency.Name,
+							AssetNodeType.Name, new[] {new PathSegment(componentName, PathSegmentType.Property)}));
 					}
 				}
 
@@ -113,7 +119,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if(NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AddressableAssetGroupResolver.Id, AddressableGroupToAssetDependency.Name))
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AddressableAssetGroupResolver.Id,
+				    AddressableGroupToAssetDependency.Name))
 			{
 				return Lookup[id].Dependencies;
 			}
@@ -123,7 +130,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public void Load(string directory)
 		{
-			string path = Path.Combine(directory, FileName);
+			var path = Path.Combine(directory, FileName);
 
 			Nodes = CacheSerializerUtils.LoadGenericLookup(path);
 			Lookup = CacheSerializerUtils.GenerateIdLookup(Nodes);
@@ -153,8 +160,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public const string Id = "AddressableAssetGroupResolver";
 
 		private string[] ConnectionTypes = {AddressableGroupToAssetDependency.Name};
-		private const string ConnectionTypeDescription = "Dependencies from the AddressableAssetGroup to its containing assets";
-		private static DependencyType DependencyType = new DependencyType("AddressableAssetGroup->Asset", new Color(0.85f, 0.65f, 0.55f), false, true, ConnectionTypeDescription);
+
+		private const string ConnectionTypeDescription =
+			"Dependencies from the AddressableAssetGroup to its containing assets";
+
+		private static DependencyType DependencyType = new DependencyType("AddressableAssetGroup->Asset",
+			new Color(0.85f, 0.65f, 0.55f), false, true, ConnectionTypeDescription);
 
 		public string[] GetDependencyTypes()
 		{

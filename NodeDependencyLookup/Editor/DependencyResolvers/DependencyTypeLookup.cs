@@ -10,18 +10,20 @@ namespace Assets.Package.Editor.DependencyResolvers
 	/// </summary>
 	public class DependencyTypeLookup
 	{
-		private static DependencyType _defaultType = new DependencyType("Default", new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false, "Default");
+		private static DependencyType _defaultType =
+			new DependencyType("Default", new Color(0.9f, 0.9f, 0.9f, 1.0f), false, false, "Default");
+
 		private Dictionary<string, DependencyType> _lookup = new Dictionary<string, DependencyType>();
 
 		internal DependencyTypeLookup(List<CreatedDependencyCache> usages)
 		{
-			foreach (CreatedDependencyCache usage in usages)
+			foreach (var usage in usages)
 			{
-				foreach (CreatedResolver resolverUsage in usage.ResolverUsages)
+				foreach (var resolverUsage in usage.ResolverUsages)
 				{
-					foreach (string type in resolverUsage.Resolver.GetDependencyTypes())
+					foreach (var type in resolverUsage.Resolver.GetDependencyTypes())
 					{
-						if(!_lookup.ContainsKey(type))
+						if (!_lookup.ContainsKey(type))
 						{
 							_lookup.Add(type, resolverUsage.Resolver.GetDependencyTypeForId(type));
 						}
@@ -32,7 +34,7 @@ namespace Assets.Package.Editor.DependencyResolvers
 
 		public DependencyType GetDependencyType(string typeId)
 		{
-			if (_lookup.TryGetValue(typeId, out DependencyType type))
+			if (_lookup.TryGetValue(typeId, out var type))
 			{
 				return type;
 			}

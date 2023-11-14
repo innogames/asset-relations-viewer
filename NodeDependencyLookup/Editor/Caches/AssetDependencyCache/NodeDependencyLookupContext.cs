@@ -12,12 +12,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
 
-		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts = new Dictionary<string, NodeDependencyLookupContext>();
+		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts =
+			new Dictionary<string, NodeDependencyLookupContext>();
 
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
 		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		public DependencyTypeLookup DependencyTypeLookup;
-		public Dictionary<string, CreatedDependencyCache> CreatedCaches = new Dictionary<string, CreatedDependencyCache>();
+
+		public Dictionary<string, CreatedDependencyCache> CreatedCaches =
+			new Dictionary<string, CreatedDependencyCache>();
 
 		public CacheUpdateSettings CacheUpdateSettings;
 
@@ -44,14 +47,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void UpdateFromDefinition(ResolverUsageDefinitionList definitionList)
 		{
-			foreach (ResolverUsageDefinitionList.Entry entry in definitionList.CacheUsages)
+			foreach (var entry in definitionList.CacheUsages)
 			{
-				string cacheTypeFullName = entry.CacheType.FullName;
+				var cacheTypeFullName = entry.CacheType.FullName;
 
 				if (!CreatedCaches.ContainsKey(cacheTypeFullName))
 				{
-					IDependencyCache cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(entry.CacheType);
-					CreatedDependencyCache createdCache = new CreatedDependencyCache(cache);
+					var cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(entry.CacheType);
+					var createdCache = new CreatedDependencyCache(cache);
 
 					CreatedCaches.Add(cacheTypeFullName, createdCache);
 				}
@@ -64,7 +67,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void ResetCacheUsages()
 		{
-			foreach (KeyValuePair<string,CreatedDependencyCache> pair in CreatedCaches)
+			foreach (var pair in CreatedCaches)
 			{
 				pair.Value.ResetLookups();
 			}

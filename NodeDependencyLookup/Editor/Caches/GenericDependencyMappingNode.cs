@@ -6,11 +6,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public class GenericDependencyMappingNode : IDependencyMappingNode
 	{
 		public string NodeId { get; private set; }
-		public string NodeType = String.Empty;
+		public string NodeType = string.Empty;
 		private string KeyValue;
-		
+
 		public List<Dependency> Dependencies = new List<Dependency>();
-		
+
 		public string Id => NodeId;
 		public string Type => NodeType;
 		public string Key => KeyValue;

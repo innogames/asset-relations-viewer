@@ -15,12 +15,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string Id => FileId;
 
-		public List<ResolverTimeStamp> ResolverTimeStamps = new List<ResolverTimeStamp>(4);
-
+		public readonly List<ResolverTimeStamp> ResolverTimeStamps = new List<ResolverTimeStamp>(4);
 
 		public AssetNode GetAssetNode(string id)
 		{
-			foreach (AssetNode assetNode in AssetNodes)
+			foreach (var assetNode in AssetNodes)
 			{
 				if (assetNode.Id == id)
 				{
@@ -28,14 +27,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			AssetNode newAssetNode = new AssetNode(id);
+			var newAssetNode = new AssetNode(id);
 			AssetNodes.Add(newAssetNode);
 			return newAssetNode;
 		}
 
 		public ResolverTimeStamp GetResolverTimeStamp(string id)
 		{
-			foreach (ResolverTimeStamp resolverTimeStamp in ResolverTimeStamps)
+			foreach (var resolverTimeStamp in ResolverTimeStamps)
 			{
 				if (resolverTimeStamp.ResolverId == id)
 				{
@@ -43,7 +42,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			ResolverTimeStamp newTimestamp = new ResolverTimeStamp{ResolverId = id};
+			var newTimestamp = new ResolverTimeStamp {ResolverId = id};
 			ResolverTimeStamps.Add(newTimestamp);
 
 			return newTimestamp;
@@ -78,7 +77,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public ResolverData GetResolverData(string id)
 		{
-			foreach (ResolverData resolverData in ResolverDatas)
+			foreach (var resolverData in ResolverDatas)
 			{
 				if (resolverData.ResolverId == id)
 				{
@@ -86,7 +85,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			ResolverData newResolver = new ResolverData();
+			var newResolver = new ResolverData();
 			newResolver.ResolverId = id;
 
 			ResolverDatas.Add(newResolver);
@@ -96,18 +95,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public List<Dependency> GetDependenciesForResolverUsages(Dictionary<string, CreatedResolver> resolverUsages)
 		{
-			List<Dependency> result = new List<Dependency>();
+			var result = new List<Dependency>();
 
-			foreach (ResolverData data in ResolverDatas)
+			foreach (var data in ResolverDatas)
 			{
 				if (!resolverUsages.ContainsKey(data.ResolverId))
 				{
 					continue;
 				}
 
-				CreatedResolver dependencyCache = resolverUsages[data.ResolverId];
+				var dependencyCache = resolverUsages[data.ResolverId];
 
-				foreach (Dependency dependency in data.Dependencies)
+				foreach (var dependency in data.Dependencies)
 				{
 					if (dependencyCache.DependencyTypes.Contains(dependency.DependencyType))
 					{

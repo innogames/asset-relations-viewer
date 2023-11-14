@@ -12,9 +12,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
 
-			public IEnumerator Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches, Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
+			public IEnumerator Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches,
+				Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
 			{
-				yield return RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary, fastUpdate, updateData);
+				yield return RelationLookupBuilder.CreateRelationMapping(stateContext, caches, nodeDictionary,
+					fastUpdate, updateData);
 				_lookup = nodeDictionary;
 			}
 
@@ -39,12 +41,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings, CacheUpdateInfo updateInfo, RelationsLookup relationsLookup)
+		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings,
+			CacheUpdateInfo updateInfo, RelationsLookup relationsLookup)
 		{
-			NodeDependencyLookupContext context = new NodeDependencyLookupContext(cacheUpdateSettings);
+			var context = new NodeDependencyLookupContext(cacheUpdateSettings);
 			context.RelationsLookup = relationsLookup;
-			ResolverUsageDefinitionList resolverList = new ResolverUsageDefinitionList();
-			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update, updateInfo.Save);
+			var resolverList = new ResolverUsageDefinitionList();
+			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update,
+				updateInfo.Save);
 			yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(context, resolverList);
 		}
 
@@ -53,9 +57,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			public static Dictionary<string, T> ConvertToDictionary<T>(T[] entries) where T : IIdentifyable
 			{
-				Dictionary<string, T> list = new Dictionary<string, T>();
+				var list = new Dictionary<string, T>();
 
-				foreach (T entry in entries)
+				foreach (var entry in entries)
 				{
 					list[entry.Id] = entry;
 				}
@@ -63,16 +67,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return list;
 			}
 
-			public static IEnumerator  CreateRelationMapping(NodeDependencyLookupContext stateContext,
+			public static IEnumerator CreateRelationMapping(NodeDependencyLookupContext stateContext,
 				List<CreatedDependencyCache> dependencyCaches,
 				Dictionary<string, Node> nodeDictionary, bool isFastUpdate, bool updateNodeData)
 			{
-				List<IDependencyMappingNode> resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
-				CacheUpdateSettings cacheUpdateSettings = stateContext.CacheUpdateSettings;
+				var resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
+				var cacheUpdateSettings = stateContext.CacheUpdateSettings;
 
 				if (isFastUpdate)
 				{
-					foreach (KeyValuePair<string,Node> pair in nodeDictionary)
+					foreach (var pair in nodeDictionary)
 					{
 						pair.Value.ResetRelationInformation();
 					}
@@ -83,46 +87,50 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				// Init Name and Type information for node handlers
-				foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+				foreach (var pair in stateContext.NodeHandlerLookup)
 				{
 					pair.Value.InitNodeCreation();
 				}
 
-				foreach (CreatedDependencyCache dependencyCache in dependencyCaches)
+				foreach (var dependencyCache in dependencyCaches)
 				{
-					IDependencyCache cache = dependencyCache.Cache;
+					var cache = dependencyCache.Cache;
 					resolvedNodes.Clear();
 
 					cache.AddExistingNodes(resolvedNodes);
 					cache.InitLookup();
 
-					int k = 0;
-					int c = 0;
+					var k = 0;
+					var c = 0;
 
-					CacheUpdateResourcesCleaner cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
+					var cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
 
 					// create dependency structure here
-					foreach (IDependencyMappingNode resolvedNode in resolvedNodes)
+					foreach (var resolvedNode in resolvedNodes)
 					{
-						float percentageDone = (float)k / resolvedNodes.Count;
-						Node node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary, stateContext, updateNodeData, out bool nodeCached);
+						var percentageDone = (float) k / resolvedNodes.Count;
+						var node = GetOrCreateNode(resolvedNode.Id, resolvedNode.Type, resolvedNode.Key, nodeDictionary,
+							stateContext, updateNodeData, out var nodeCached);
 
-						List<Dependency> dependenciesForId = dependencyCache.Cache.GetDependenciesForId(node.Id);
+						var dependenciesForId = dependencyCache.Cache.GetDependenciesForId(node.Id);
 
-						foreach (Dependency dependency in dependenciesForId)
+						foreach (var dependency in dependenciesForId)
 						{
-							Node dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key, nodeDictionary, stateContext, updateNodeData, out bool dependencyCached);
-							bool isHardConnection = stateContext.DependencyTypeLookup.GetDependencyType(dependency.DependencyType).IsHardConnection(node, dependencyNode);
-							Connection connection = new Connection(dependencyNode, dependency.DependencyType, dependency.PathSegments, isHardConnection);
+							var dependencyNode = GetOrCreateNode(dependency.Id, dependency.NodeType, dependency.Key,
+								nodeDictionary, stateContext, updateNodeData, out var dependencyCached);
+							var isHardConnection = stateContext.DependencyTypeLookup
+								.GetDependencyType(dependency.DependencyType).IsHardConnection(node, dependencyNode);
+							var connection = new Connection(dependencyNode, dependency.DependencyType,
+								dependency.PathSegments, isHardConnection);
 							node.Dependencies.Add(connection);
 
-							if(!dependencyCached)
+							if (!dependencyCached)
 							{
 								DisplayNodeCreationProgress(dependencyNode, percentageDone);
 							}
 						}
 
-						if(!nodeCached)
+						if (!nodeCached)
 						{
 							c++;
 							DisplayNodeCreationProgress(node, percentageDone);
@@ -139,21 +147,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 
-				int j = 0;
+				var j = 0;
 
 				// create reference structure here
 				foreach (var pair in nodeDictionary)
 				{
 					if (j % 2000 == 0)
 					{
-						EditorUtility.DisplayProgressBar("RelationLookup", $"Building reference structure", (float)j / nodeDictionary.Count);
+						EditorUtility.DisplayProgressBar("RelationLookup", $"Building reference structure",
+							(float) j / nodeDictionary.Count);
 					}
 
-					Node referencerNode = pair.Value;
+					var referencerNode = pair.Value;
 
-					foreach (Connection connection in referencerNode.Dependencies)
+					foreach (var connection in referencerNode.Dependencies)
 					{
-						connection.Node.Referencers.Add(new Connection(referencerNode, connection.DependencyType, connection.PathSegments, connection.IsHardDependency));
+						connection.Node.Referencers.Add(new Connection(referencerNode, connection.DependencyType,
+							connection.PathSegments, connection.IsHardDependency));
 					}
 
 					j++;
@@ -164,13 +174,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 
-				yield return NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext, updateNodeData);
+				yield return NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(),
+					stateContext, updateNodeData);
 
 				if (updateNodeData)
 				{
-					foreach (KeyValuePair<string, INodeHandler> pair in stateContext.NodeHandlerLookup)
+					foreach (var pair in stateContext.NodeHandlerLookup)
 					{
-						EditorUtility.DisplayProgressBar("RelationLookup", $"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
+						EditorUtility.DisplayProgressBar("RelationLookup",
+							$"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
 						pair.Value.SaveCaches();
 					}
 				}
@@ -180,7 +192,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			private static void DisplayNodeCreationProgress(Node node, float percentage)
 			{
-				bool canceled = EditorUtility.DisplayCancelableProgressBar("Creating node data", $"[{node.ConcreteType}]{node.Name}", percentage);
+				var canceled = EditorUtility.DisplayCancelableProgressBar("Creating node data",
+					$"[{node.ConcreteType}]{node.Name}", percentage);
 
 				if (canceled)
 				{
@@ -189,16 +202,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			private static Node GetOrCreateNode(string id, string type, string key,
-				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context, bool updateData, out bool wasCached)
+				Dictionary<string, Node> nodeDictionary, NodeDependencyLookupContext context, bool updateData,
+				out bool wasCached)
 			{
-				if (nodeDictionary.TryGetValue(key, out Node outNode))
+				if (nodeDictionary.TryGetValue(key, out var outNode))
 				{
 					wasCached = true;
 					return outNode;
 				}
 
-				INodeHandler nodeHandler = context.NodeHandlerLookup[type];
-				Node node = nodeHandler.CreateNode(id, type, updateData, out wasCached);
+				var nodeHandler = context.NodeHandlerLookup[type];
+				var node = nodeHandler.CreateNode(id, type, updateData, out wasCached);
 
 				nodeDictionary.Add(key, node);
 

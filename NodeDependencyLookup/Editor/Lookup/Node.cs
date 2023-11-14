@@ -22,10 +22,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly string Type;
 		public readonly string Key;
 
-		public string Name = String.Empty;
-		public string ConcreteType = String.Empty;
+		public string Name = string.Empty;
+		public string ConcreteType = string.Empty;
 
-		public NodeSize OwnSize = new NodeSize{Size = -1};
+		public NodeSize OwnSize = new NodeSize {Size = -1};
 
 		public Node(string id, string type, string name, string concreteType)
 		{

@@ -11,7 +11,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		NodeLimitReached,
 		HierarchyAlreadyShown,
 		NodeAlreadyShown,
-		FilteredOut,
+		FilteredOut
 	}
 
 	public class CutData
@@ -25,15 +25,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public List<Entry> Entries = new List<Entry>();
 	}
 
-    public abstract class VisualizationNodeBase
+	public abstract class VisualizationNodeBase
 	{
 		private List<VisualizationConnection> _dependencies = new List<VisualizationConnection>();
 		private List<VisualizationConnection> _referencers = new List<VisualizationConnection>();
 
 		private CutData[] _cutDatas = new CutData[2];
 
-		protected int PosX = Int32.MaxValue;
-		protected int PosY = Int32.MaxValue;
+		protected int PosX = int.MaxValue;
+		protected int PosY = int.MaxValue;
 		public int ExtendedNodeWidth; // extended with
 
 		public EnclosedBounds Bounds = new EnclosedBounds();
@@ -52,7 +52,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public virtual void CalculateCachedDataInternal()
 		{
-
 		}
 
 		public Vector2 GetPosition(ViewAreaData viewAreaData)
@@ -65,34 +64,38 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return GetPositionOffsetInternal(PosY, viewAreaData.ViewArea, Bounds, TreeBounds);
 		}
 
-		public static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
+		public static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds,
+			EnclosedBounds treeBounds)
 		{
-			float positionOffset = GetPositionOffsetInternal(posY, viewArea, bounds, treeBounds);
+			var positionOffset = GetPositionOffsetInternal(posY, viewArea, bounds, treeBounds);
 
 			return new Vector2(posX, posY + positionOffset);
 		}
 
-		public static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds, EnclosedBounds treeBounds)
+		public static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds,
+			EnclosedBounds treeBounds)
 		{
-			float overallOffset = 270; // this is just a "random" number which I had to apply, I dont know why this offset exists
+			float
+				overallOffset =
+					270; // this is just a "random" number which I had to apply, I dont know why this offset exists
 
-			float effect = Mathf.Clamp01(treeBounds.Height / viewArea.height);
+			var effect = Mathf.Clamp01(treeBounds.Height / viewArea.height);
 
-			float lowerDist = -viewArea.yMin + treeBounds.MaxY - overallOffset;
-			float upperDist = viewArea.yMax - treeBounds.MinY - overallOffset;
+			var lowerDist = -viewArea.yMin + treeBounds.MaxY - overallOffset;
+			var upperDist = viewArea.yMax - treeBounds.MinY - overallOffset;
 
-			float lowerInterp = Mathf.Clamp01(upperDist / treeBounds.Height);
-			float upperInterp = Mathf.Clamp01(lowerDist / treeBounds.Height);
+			var lowerInterp = Mathf.Clamp01(upperDist / treeBounds.Height);
+			var upperInterp = Mathf.Clamp01(lowerDist / treeBounds.Height);
 
-			float totalInterp = lowerInterp + upperInterp;
+			var totalInterp = lowerInterp + upperInterp;
 
 			lowerInterp /= totalInterp;
 			upperInterp /= totalInterp;
 
-			float lower = treeBounds.MaxY - bounds.MaxY + posY;
-			float upper = treeBounds.MinY - bounds.MinY + posY;
+			var lower = treeBounds.MaxY - bounds.MaxY + posY;
+			var upper = treeBounds.MinY - bounds.MinY + posY;
 
-			float newY = lower * lowerInterp + upper * upperInterp;
+			var newY = lower * lowerInterp + upper * upperInterp;
 			newY = newY * effect + posY * (1.0f - effect);
 
 			return newY - posY;
@@ -100,8 +103,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void InvalidatePositionData()
 		{
-			PosX = Int32.MaxValue;
-			PosY = Int32.MaxValue;
+			PosX = int.MaxValue;
+			PosY = int.MaxValue;
 			Bounds = new EnclosedBounds();
 			TreeBounds = new EnclosedBounds();
 		}
@@ -118,7 +121,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			ExtendedNodeWidth = Bounds.Width;
 
-			foreach (VisualizationConnection childConnection in GetRelations(connectionType))
+			foreach (var childConnection in GetRelations(connectionType))
 			{
 				childConnection.VNode.CalculateBounds(displayData, connectionType);
 			}
@@ -126,43 +129,45 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CalculateXData(float pX, RelationType connectionType, NodeDisplayData displayData)
 		{
-			PosX = (int)pX;
+			PosX = (int) pX;
 			PosY = 0;
-			Bounds.Shift((int)pX, 0);
-			TreeBounds.Shift((int)pX, 0);
+			Bounds.Shift((int) pX, 0);
+			TreeBounds.Shift((int) pX, 0);
 
-			int offsetX = connectionType == RelationType.DEPENDENCY ? ExtendedNodeWidth + displayData.NodeSpaceX: -displayData.NodeSpaceX;
+			var offsetX = connectionType == RelationType.DEPENDENCY
+				? ExtendedNodeWidth + displayData.NodeSpaceX
+				: -displayData.NodeSpaceX;
 
-			foreach (VisualizationConnection childConnection in GetRelations(connectionType))
+			foreach (var childConnection in GetRelations(connectionType))
 			{
-				int cOffset = connectionType == RelationType.REFERENCER ? -childConnection.VNode.ExtendedNodeWidth : 0;
+				var cOffset = connectionType == RelationType.REFERENCER ? -childConnection.VNode.ExtendedNodeWidth : 0;
 				childConnection.VNode.CalculateXData(pX + offsetX + cOffset, connectionType, displayData);
 			}
 		}
 
 		public void CalculateYData(RelationType connectionType)
 		{
-			List<VisualizationConnection> connections = GetRelations(connectionType);
-			int[] offsets = new int[connections.Count];
-			int totalHeight = 0;
+			var connections = GetRelations(connectionType);
+			var offsets = new int[connections.Count];
+			var totalHeight = 0;
 
-			foreach (VisualizationConnection childConnection in connections)
+			foreach (var childConnection in connections)
 			{
 				childConnection.VNode.CalculateYData(connectionType);
 			}
 
 			for (var i = 0; i < connections.Count - 1; i++)
 			{
-				int w1 = connections[i].VNode.TreeBounds.MaxY;
-				int w2 = connections[i + 1].VNode.TreeBounds.MinY;
-				int height = w1 - w2;
+				var w1 = connections[i].VNode.TreeBounds.MaxY;
+				var w2 = connections[i + 1].VNode.TreeBounds.MinY;
+				var height = w1 - w2;
 				offsets[i + 1] = height + totalHeight;
 				totalHeight += height;
 			}
 
 			for (var i = 0; i < connections.Count; i++)
 			{
-				VisualizationNodeBase childNode = connections[i].VNode;
+				var childNode = connections[i].VNode;
 				childNode.ShiftY(offsets[i] - totalHeight / 2, connectionType);
 				TreeBounds.Enclose(childNode.TreeBounds);
 			}
@@ -174,7 +179,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Bounds.Shift(0, y);
 			TreeBounds.Shift(0, y);
 
-			foreach (VisualizationConnection childConnection in GetRelations(connectionType))
+			foreach (var childConnection in GetRelations(connectionType))
 			{
 				childConnection.VNode.ShiftY(y, connectionType);
 			}
@@ -198,8 +203,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public CutData GetCutData(RelationType relationType, bool createIfNotExisting)
 		{
-			int type = (int)relationType;
-			CutData cutData = _cutDatas[type];
+			var type = (int) relationType;
+			var cutData = _cutDatas[type];
 
 			if (createIfNotExisting && cutData == null)
 			{
@@ -209,13 +214,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return _cutDatas[type];
 		}
 
-		public List<VisualizationConnection> GetRelations(RelationType type, bool nonRecursive = true, bool recursive = false)
+		public List<VisualizationConnection> GetRelations(RelationType type, bool nonRecursive = true,
+			bool recursive = false)
 		{
-			List<VisualizationConnection> result = new List<VisualizationConnection>();
+			var result = new List<VisualizationConnection>();
 
-			foreach (VisualizationConnection connection in GetRelationArray(type))
+			foreach (var connection in GetRelationArray(type))
 			{
-				if((connection.IsRecursion && recursive) || (!connection.IsRecursion && nonRecursive))
+				if ((connection.IsRecursion && recursive) || (!connection.IsRecursion && nonRecursive))
 					result.Add(connection);
 			}
 
@@ -226,8 +232,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			switch (type)
 			{
-				case RelationType.DEPENDENCY: _dependencies = nodes; break;
-				case RelationType.REFERENCER: _referencers = nodes; break;
+				case RelationType.DEPENDENCY:
+					_dependencies = nodes;
+					break;
+				case RelationType.REFERENCER:
+					_referencers = nodes;
+					break;
 			}
 		}
 	}

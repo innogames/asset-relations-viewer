@@ -19,7 +19,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public bool Save;
 
 			// Will add all resolved types to be active
-			internal Entry(Type cacheType, Type resolverType, List<string> connectionTypes, bool load, bool update, bool save)
+			internal Entry(Type cacheType, Type resolverType, List<string> connectionTypes, bool load, bool update,
+				bool save)
 			{
 				CacheType = cacheType;
 				ResolverType = resolverType;
@@ -34,13 +35,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return ConnectionTypes == null || ConnectionTypes.Count > 0;
 			}
 		}
-		
+
 		internal List<Entry> CacheUsages = new List<Entry>();
 		internal Dictionary<string, Entry> ResolverUsagesLookup = new Dictionary<string, Entry>();
 
 		public bool IsCacheActive(Type cacheType)
 		{
-			foreach (Entry cacheUsage in CacheUsages)
+			foreach (var cacheUsage in CacheUsages)
 			{
 				if (cacheUsage.CacheType == cacheType && cacheUsage.HasActiveConnectionTypes())
 				{
@@ -53,11 +54,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public CacheUpdateInfo GetUpdateStateForCache(Type cacheType)
 		{
-			bool load = false;
-			bool update = false;
-			bool save = false;
+			var load = false;
+			var update = false;
+			var save = false;
 
-			foreach (Entry cacheUsage in CacheUsages)
+			foreach (var cacheUsage in CacheUsages)
 			{
 				if (cacheUsage.CacheType == cacheType && cacheUsage.HasActiveConnectionTypes())
 				{
@@ -72,25 +73,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public CacheUpdateInfo GetUpdateStateForResolver(Type resolverType)
 		{
-			foreach (Entry cacheUsage in CacheUsages)
+			foreach (var cacheUsage in CacheUsages)
 			{
 				if (cacheUsage.ResolverType == resolverType && cacheUsage.HasActiveConnectionTypes())
 				{
-					return new CacheUpdateInfo {Load = cacheUsage.Load, Update = cacheUsage.Update, Save = cacheUsage.Save};
+					return new CacheUpdateInfo
+						{Load = cacheUsage.Load, Update = cacheUsage.Update, Save = cacheUsage.Save};
 				}
 			}
 
 			return new CacheUpdateInfo {Load = false, Update = false, Save = false};
 		}
 
-		public void Add<C, R>(bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
+		public void Add<C, R>(bool load = true, bool update = true, bool save = true,
+			List<string> connectionTypes = null) where C : IDependencyCache where R : IDependencyResolver
 		{
 			Add(typeof(C), typeof(R), load, update, save, connectionTypes);
 		}
 
-		public void Add(Type cacheType, Type resolverType, bool load = true, bool update = true, bool save = true, List<string> connectionTypes = null)
+		public void Add(Type cacheType, Type resolverType, bool load = true, bool update = true, bool save = true,
+			List<string> connectionTypes = null)
 		{
-			Entry entry = new Entry(cacheType, resolverType, connectionTypes, load, update, save);
+			var entry = new Entry(cacheType, resolverType, connectionTypes, load, update, save);
 			ResolverUsagesLookup[resolverType.FullName] = entry;
 			CacheUsages.Add(entry);
 		}

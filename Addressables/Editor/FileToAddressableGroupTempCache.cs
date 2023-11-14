@@ -20,7 +20,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		private const string FileName = "FileToAddressableGroupDependencyCacheData_" + Version + ".cache";
 
 		private GenericDependencyMappingNode[] Nodes = new GenericDependencyMappingNode[0];
-		private Dictionary<string, GenericDependencyMappingNode> Lookup = new Dictionary<string, GenericDependencyMappingNode>();
+
+		private Dictionary<string, GenericDependencyMappingNode> Lookup =
+			new Dictionary<string, GenericDependencyMappingNode>();
+
 		private CreatedDependencyCache _createdDependencyCache;
 
 		public void ClearFile(string directory)
@@ -40,48 +43,52 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			if(!shouldUpdate && Nodes.Length > 0)
+			if (!shouldUpdate && Nodes.Length > 0)
 			{
 				yield break;
 			}
 
-			AddressableAssetSettings settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
 
 			if (settings == null)
 			{
 				yield break;
 			}
 
-			CacheUpdateInfo resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			RelationLookup.RelationsLookup assetToFileLookup = new RelationLookup.RelationsLookup();
-			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo, assetToFileLookup);
+			var resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
+			var assetToFileLookup = new RelationLookup.RelationsLookup();
+			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
+				assetToFileLookup);
 
 			Lookup.Clear();
 			Nodes = new GenericDependencyMappingNode[0];
 
-			List<GenericDependencyMappingNode> nodes = new List<GenericDependencyMappingNode>();
+			var nodes = new List<GenericDependencyMappingNode>();
 
-			for (int i = 0; i < settings.groups.Count; ++i)
+			for (var i = 0; i < settings.groups.Count; ++i)
 			{
-				AddressableAssetGroup group = settings.groups[i];
-				EditorUtility.DisplayProgressBar("FileToAddressableAssetGroupTempCache", $"Getting dependencies for {group.Name}", i / (float)(settings.groups.Count));
+				var group = settings.groups[i];
+				EditorUtility.DisplayProgressBar("FileToAddressableAssetGroupTempCache",
+					$"Getting dependencies for {group.Name}", i / (float) settings.groups.Count);
 
-				foreach (AddressableAssetEntry addressableAssetEntry in group.entries)
+				foreach (var addressableAssetEntry in group.entries)
 				{
-					List<AddressableAssetEntry> entries = new List<AddressableAssetEntry>();
+					var entries = new List<AddressableAssetEntry>();
 					addressableAssetEntry.GatherAllAssets(entries, true, true, false);
 
-					foreach (AddressableAssetEntry assetEntry in entries)
+					foreach (var assetEntry in entries)
 					{
-						Node fileNode = assetToFileLookup.GetNode(assetEntry.guid, FileNodeType.Name);
+						var fileNode = assetToFileLookup.GetNode(assetEntry.guid, FileNodeType.Name);
 
 						if (fileNode == null)
 						{
 							continue;
 						}
 
-						GenericDependencyMappingNode node = new GenericDependencyMappingNode(fileNode.Id, FileNodeType.Name);
-						node.Dependencies.Add(new Dependency(group.Name, FileToAddressableGroupDependency.Name, AddressableAssetGroupNodeType.Name, new []{new PathSegment("AssetGroup", PathSegmentType.Property)}));
+						var node = new GenericDependencyMappingNode(fileNode.Id, FileNodeType.Name);
+						node.Dependencies.Add(new Dependency(group.Name, FileToAddressableGroupDependency.Name,
+							AddressableAssetGroupNodeType.Name,
+							new[] {new PathSegment("AssetGroup", PathSegmentType.Property)}));
 
 						nodes.Add(node);
 						Lookup.Add(node.Id, node);
@@ -102,7 +109,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if(NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, FileToAddressableGroupResolver.Id, FileToAddressableGroupDependency.Name) && Lookup.ContainsKey(id))
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, FileToAddressableGroupResolver.Id,
+				    FileToAddressableGroupDependency.Name) && Lookup.ContainsKey(id))
 			{
 				return Lookup[id].Dependencies;
 			}
@@ -112,7 +120,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public void Load(string directory)
 		{
-			string path = Path.Combine(directory, FileName);
+			var path = Path.Combine(directory, FileName);
 
 			Nodes = CacheSerializerUtils.LoadGenericLookup(path);
 			Lookup = CacheSerializerUtils.GenerateIdLookup(Nodes);
@@ -142,26 +150,31 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public const string Id = "FileToAddressableGroupResolver";
 
 		private string[] ConnectionTypes = {FileToAddressableGroupDependency.Name};
-		private const string ConnectionTypeDescription = "Dependencies from the file to the AddressableAssetGroup the file is part of";
-		private static DependencyType DependencyType = new AssetToAddressableAssetGroupDependencyType("File->AddressableAssetGroup", new Color(0.85f, 0.55f, 0.35f), false, true, ConnectionTypeDescription);
+
+		private const string ConnectionTypeDescription =
+			"Dependencies from the file to the AddressableAssetGroup the file is part of";
+
+		private static DependencyType DependencyType = new AssetToAddressableAssetGroupDependencyType(
+			"File->AddressableAssetGroup", new Color(0.85f, 0.55f, 0.35f), false, true, ConnectionTypeDescription);
 
 		public class AssetToAddressableAssetGroupDependencyType : DependencyType
 		{
-			public AssetToAddressableAssetGroupDependencyType(string name, Color color, bool isIndirect, bool isHard, string description) :
+			public AssetToAddressableAssetGroupDependencyType(string name, Color color, bool isIndirect, bool isHard,
+				string description) :
 				base(name, color, isIndirect, isHard, description)
 			{
 			}
 
 			public override bool IsHardConnection(Node source, Node target)
 			{
-				AddressableAssetSettings settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
-				foreach (AddressableAssetGroup group in settings.groups)
+				var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+				foreach (var group in settings.groups)
 				{
 					if (group.Name == target.Name)
 					{
 						if (group.HasSchema<BundledAssetGroupSchema>())
 						{
-							BundledAssetGroupSchema groupSchema = group.GetSchema<BundledAssetGroupSchema>();
+							var groupSchema = group.GetSchema<BundledAssetGroupSchema>();
 							return groupSchema.IncludeInBuild;
 						}
 					}

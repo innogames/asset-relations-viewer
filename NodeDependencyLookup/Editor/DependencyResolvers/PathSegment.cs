@@ -12,7 +12,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		GameObject = 0,
 		Component = 1,
 		Property = 2,
-		Unknown = 3,
+		Unknown = 3
 	}
 
 	/// <summary>
@@ -32,4 +32,3 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public PathSegmentType Type;
 	}
 }
-

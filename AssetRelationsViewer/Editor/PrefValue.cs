@@ -56,7 +56,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				SetValue(newValue);
 
-				if(onChange != null)
+				if (onChange != null)
 					onChange(newValue);
 			}
 		}
@@ -69,7 +69,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 	public class PrefValueBool : PrefValue<bool>
 	{
-		public PrefValueBool(string key, bool defaultValue): base(key, defaultValue, false, true){}
+		public PrefValueBool(string key, bool defaultValue) : base(key, defaultValue, false, true)
+		{
+		}
 
 		protected override void Save()
 		{
@@ -82,9 +84,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 	}
 
-	public class PrefValueString : PrefValue<String>
+	public class PrefValueString : PrefValue<string>
 	{
-		public PrefValueString(string key, string defaultValue): base(key, defaultValue, "", ""){}
+		public PrefValueString(string key, string defaultValue) : base(key, defaultValue, "", "")
+		{
+		}
 
 		protected override void Save()
 		{
@@ -99,7 +103,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 	public class PrefValueInt : PrefValue<int>
 	{
-		public PrefValueInt(string key, int defaultValue, int minValue, int maxValue) : base(key, defaultValue, minValue, maxValue){}
+		public PrefValueInt(string key, int defaultValue, int minValue, int maxValue) : base(key, defaultValue,
+			minValue, maxValue)
+		{
+		}
 
 		protected override void Save()
 		{

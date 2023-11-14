@@ -12,13 +12,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public Object Asset;
 		public string AssetId = string.Empty;
 		public List<IAssetDependencyResolver> Resolvers;
-		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies = new Dictionary<IAssetDependencyResolver, List<Dependency>>();
+
+		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies =
+			new Dictionary<IAssetDependencyResolver, List<Dependency>>();
 
 		public void SetResolvers(List<IAssetDependencyResolver> resolvers)
 		{
 			Resolvers = resolvers;
 			ResolverDependencies.Clear();
-			foreach (IAssetDependencyResolver resolver in resolvers)
+			foreach (var resolver in resolvers)
 			{
 				ResolverDependencies.Add(resolver, new List<Dependency>());
 			}
@@ -44,15 +46,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			typeof(RectTransform),
 			typeof(CanvasRenderer),
 			typeof(TextAsset),
-			typeof(AudioClip),
+			typeof(AudioClip)
 		};
 
 		private PropertyInfo unsafeModeMethod = null;
 
 		public void Initialize()
 		{
-			Type type = typeof(SerializedProperty);
-			unsafeModeMethod = type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
+			var type = typeof(SerializedProperty);
+			unsafeModeMethod = type.GetProperty("unsafeMode",
+				BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
 		}
 
 		private Stack<PathSegment> tmpStack = new Stack<PathSegment>();
@@ -68,7 +71,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Traverse(searchContext, searchContext.Asset, tmpStack);
 		}
 
-		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj, bool onlyOverriden, Stack<PathSegment> stack)
+		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj,
+			bool onlyOverriden, Stack<PathSegment> stack)
 		{
 			// this can happen if the linked asset doesnt exist anymore
 			if (obj == null)
@@ -76,15 +80,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			Type objType = obj.GetType();
+			var objType = obj.GetType();
 
-			if(excludedTypes.Contains(objType))
+			if (excludedTypes.Contains(objType))
 			{
 				return;
 			}
 
-			SerializedObject serializedObject = new SerializedObject(obj);
-			SerializedProperty property = serializedObject.GetIterator();
+			var serializedObject = new SerializedObject(obj);
+			var property = serializedObject.GetIterator();
 
 			unsafeModeMethod.SetValue(property, true);
 			property.Next(true);
@@ -95,7 +99,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				propertyType = property.propertyType;
 
-				if (propertyType != SerializedPropertyType.ObjectReference && propertyType != SerializedPropertyType.Generic)
+				if (propertyType != SerializedPropertyType.ObjectReference &&
+				    propertyType != SerializedPropertyType.Generic)
 				{
 					continue;
 				}
@@ -109,29 +114,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			serializedObject.Dispose();
 		}
 
-		protected override void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
 		{
-			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
+			foreach (var resolver in searchContext.Resolvers)
 			{
 				resolver.TraversePrefab(searchContext, obj, stack);
 			}
 		}
 
-		protected override void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
 		{
-			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
+			foreach (var resolver in searchContext.Resolvers)
 			{
 				resolver.TraversePrefabVariant(searchContext, obj, stack);
 			}
 		}
 
-		private bool TraverseProperty(ResolverDependencySearchContext searchContext, SerializedProperty property, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
+		private bool TraverseProperty(ResolverDependencySearchContext searchContext, SerializedProperty property,
+			SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			bool dependenciesAdded = false;
+			var dependenciesAdded = false;
 
-			foreach (IAssetDependencyResolver resolver in searchContext.Resolvers)
+			foreach (var resolver in searchContext.Resolvers)
 			{
-				AssetDependencyResolverResult result = resolver.GetDependency(ref searchContext.AssetId, ref property, ref propertyPath, type);
+				var result = resolver.GetDependency(ref searchContext.AssetId, ref property, ref propertyPath, type);
 
 				if (result == null || searchContext.AssetId == result.Id)
 				{
@@ -139,7 +147,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-				searchContext.AddDependency(resolver, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
+				searchContext.AddDependency(resolver,
+					new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
 
 				dependenciesAdded = true;
