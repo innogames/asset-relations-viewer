@@ -70,16 +70,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			File.WriteAllBytes(path, AssetDependencyCacheSerializer.Serialize(_fileToAssetNodes));
 		}
 
-		public void ClearFile(string directory)
-		{
-			var path = Path.Combine(directory, VersionedFileName);
-
-			if (File.Exists(path))
-			{
-				File.Delete(path);
-			}
-		}
-
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
 			foreach (var fileToAssetNode in _fileToAssetNodes)
