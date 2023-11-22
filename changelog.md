@@ -1,3 +1,6 @@
+**3.0.0-pre.2**
+Fix possible ```cs ArgumentException: An item with the same key has already been added``` which happened if a deleted file was referenced as a dependency
+
 **3.0.0-pre.1**
 - Unity Addressables are now supported in the base package, the additional repo is not required anymore!
 - Removed any reflection code and fully rely on SerializedProperties

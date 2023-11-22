@@ -32,11 +32,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public string Type;
 		}
 
+		private class FileData
+		{
+			public Dictionary<string, NameAndType> Assets = new Dictionary<string, NameAndType>();
+		}
+
 		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup =
 			new Dictionary<string, SerializedNodeData>();
 
 		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
-		private Dictionary<string, NameAndType> nameAndTypeMapping = new Dictionary<string, NameAndType>();
+		private Dictionary<string, FileData> fileDataMapping = new Dictionary<string, FileData>();
 		private List<AssetListEntry> assetList = new List<AssetListEntry>(1024);
 
 		public string GetHandledNodeType()
@@ -210,27 +215,33 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new Node(id, type, name, concreteType);
 		}
 
-		private void GetNameAndType(string path, string id, out string name, out string type)
+		private void GetNameAndType(string path, string assetId, out string name, out string type)
 		{
 			assetList.Clear();
 			name = NodeDependencyCacheConstants.UnknownNodeType;
 			type = NodeDependencyCacheConstants.UnknownNodeType;
 
-			if (!nameAndTypeMapping.ContainsKey(id))
+			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
+
+			if (!fileDataMapping.ContainsKey(guid))
 			{
 				NodeDependencyLookupUtility.AddAssetsToList(assetList, path);
+				var assetData = new FileData();
 
 				foreach (var entry in assetList)
 				{
 					GetNameAndTypeForAsset(entry.Asset, entry.AssetId, path, out name, out type);
-					nameAndTypeMapping.Add(entry.AssetId, new NameAndType {Name = name, Type = type});
+					assetData.Assets.Add(entry.AssetId, new NameAndType {Name = name, Type = type});
 				}
+
+				fileDataMapping.Add(guid, assetData);
 			}
 
-			if (nameAndTypeMapping.TryGetValue(id, out var value))
+			if (fileDataMapping.TryGetValue(guid, out var value) &&
+			    value.Assets.TryGetValue(assetId, out NameAndType nameAndType))
 			{
-				name = value.Name;
-				type = value.Type;
+				name = nameAndType.Name;
+				type = nameAndType.Type;
 			}
 		}
 
