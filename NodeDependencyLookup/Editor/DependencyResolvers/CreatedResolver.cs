@@ -13,10 +13,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		public bool IsLoaded = false;
-		public IDependencyCache Cache;
-		public List<CreatedResolver> ResolverUsages = new List<CreatedResolver>();
-		public Dictionary<string, CreatedResolver> ResolverUsagesLookup = new Dictionary<string, CreatedResolver>();
-		public Dictionary<string, CreatedResolver> CreatedResolvers = new Dictionary<string, CreatedResolver>();
+		public readonly IDependencyCache Cache;
+		public readonly List<CreatedResolver> ResolverUsages = new List<CreatedResolver>();
+		public readonly Dictionary<string, CreatedResolver> ResolverUsagesLookup = new Dictionary<string, CreatedResolver>();
+		public readonly Dictionary<string, CreatedResolver> CreatedResolvers = new Dictionary<string, CreatedResolver>();
 
 		public void AddResolver(Type resolverType, List<string> dependencyTypes)
 		{

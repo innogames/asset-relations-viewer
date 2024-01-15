@@ -15,7 +15,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public const string Name = "AssetToFile";
 	}
 
-	// Cache to find get mapping of assets to the file the asset is included in
+	/// <summary>
+	/// Cache to find get mapping of assets to the file the asset is included in
+	/// </summary>
 	public class AssetToFileDependencyCache : IDependencyCache
 	{
 		private const string Version = "1.5.1";
@@ -50,11 +52,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private IEnumerator FindDependenciesInChangedAssets(CacheUpdateSettings settings, string[] pathes,
 			IAssetToFileDependencyResolver resolver, long[] timestamps)
 		{
-			var fileToAssetMappingDictionary =
-				RelationLookup.RelationLookupBuilder.ConvertToDictionary(_fileToAssetsMappings);
-
 			float lastDisplayedPercentage = 0;
 
+			var fileToAssetMappingDictionary = RelationsLookup.ConvertToDictionary(_fileToAssetsMappings);
 			var cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
 
 			for (int i = 0, j = 0; i < pathes.Length; ++i)

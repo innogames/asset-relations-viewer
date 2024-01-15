@@ -4,6 +4,10 @@ using System.IO;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Contains all necessary functions to encode and decode the cache to binary and back
+	/// Reason for doing own conversion instead of using json is speed.
+	/// </summary>
 	public static class CacheSerializerUtils
 	{
 		public const int ARRAY_SIZE_OFFSET = 0xFFFF; // 64 kb

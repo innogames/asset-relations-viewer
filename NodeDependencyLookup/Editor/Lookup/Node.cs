@@ -21,9 +21,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public readonly string Id;
 		public readonly string Type;
 		public readonly string Key;
-
-		public string Name = string.Empty;
-		public string ConcreteType = string.Empty;
+		public readonly string Name;
+		public readonly string ConcreteType;
 
 		public NodeSize OwnSize = new NodeSize {Size = -1};
 

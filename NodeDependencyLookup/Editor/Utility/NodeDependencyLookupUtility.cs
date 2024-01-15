@@ -50,7 +50,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var resolverUsagesLookup = createdCache.ResolverUsagesLookup;
 			return resolverUsagesLookup.TryGetValue(id, out var resolver) &&
-			       resolver.DependencyTypes.Contains(connectionType);
+				resolver.DependencyTypes.Contains(connectionType);
 		}
 
 		public static long[] GetTimeStampsForFiles(string[] pathes)
@@ -224,7 +224,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (!string.IsNullOrEmpty(fullpath) && File.Exists(fullpath))
 			{
 				var info = new FileInfo(fullpath);
-				return (int) info.Length;
+				return (int)info.Length;
 			}
 
 			return 0;
@@ -239,7 +239,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (Path.GetExtension(path).Equals(".asset"))
+			if (Path.GetExtension(path).Equals(".asset") || Path.GetExtension(path).Equals(".anim"))
 			{
 				return path;
 			}
@@ -444,7 +444,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (path.EndsWith(".unity"))
 			{
-				return new[] {AssetDatabase.LoadMainAssetAtPath(path)};
+				return new[] { AssetDatabase.LoadMainAssetAtPath(path) };
 			}
 
 			return AssetDatabase.LoadAllAssetsAtPath(path);
@@ -496,7 +496,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (!(mainAsset is GameObject) || AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset))
 				{
 					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long fileID);
-					assetList.Add(new AssetListEntry {AssetId = $"{guid}_{fileID}", Asset = asset});
+					assetList.Add(new AssetListEntry { AssetId = $"{guid}_{fileID}", Asset = asset });
 				}
 			}
 		}
@@ -609,7 +609,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (i % 5000 == 0)
 				{
 					EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}",
-						i / (float) nodes.Count);
+						i / (float)nodes.Count);
 					yield return null;
 				}
 			}
@@ -630,7 +630,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			while (!compressedSizeTask.IsCompleted)
 			{
 				EditorUtility.DisplayProgressBar("Updating all node sizes compressed",
-					$"[{currentNode.Type}] {currentNode.Name}", count / (float) nodes.Count);
+					$"[{currentNode.Type}] {currentNode.Name}", count / (float)nodes.Count);
 				yield return null;
 			}
 
@@ -646,7 +646,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (i % 1000 == 0)
 				{
 					EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}",
-						i / (float) nodes.Count);
+						i / (float)nodes.Count);
 				}
 			}
 

@@ -36,8 +36,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		internal List<Entry> CacheUsages = new List<Entry>();
-		internal Dictionary<string, Entry> ResolverUsagesLookup = new Dictionary<string, Entry>();
+		internal readonly List<Entry> CacheUsages = new List<Entry>();
 
 		public bool IsCacheActive(Type cacheType)
 		{
@@ -95,7 +94,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			List<string> connectionTypes = null)
 		{
 			var entry = new Entry(cacheType, resolverType, connectionTypes, load, update, save);
-			ResolverUsagesLookup[resolverType.FullName] = entry;
 			CacheUsages.Add(entry);
 		}
 	}

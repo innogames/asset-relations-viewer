@@ -15,7 +15,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private static Dictionary<string, NodeDependencyLookupContext> m_stateContexts =
 			new Dictionary<string, NodeDependencyLookupContext>();
 
-		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
+		public RelationsLookup RelationsLookup = new RelationsLookup();
 		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		public DependencyTypeLookup DependencyTypeLookup;
 
@@ -41,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void Reset()
 		{
-			RelationsLookup = new RelationLookup.RelationsLookup();
+			RelationsLookup = new RelationsLookup();
 			DependencyTypeLookup = null;
 		}
 

@@ -12,7 +12,7 @@ using Debug = UnityEngine.Debug;
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	/**
-	 * Cache to store all dependencies of assets to other nodes
+	 * Cache to store all dependencies of assets to other assets
 	 */
 	public class AssetDependencyCache : IDependencyCache
 	{
@@ -113,7 +113,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps,
 			FileToAssetNode[] fileToAssetNodes)
 		{
-			var list = RelationLookup.RelationLookupBuilder.ConvertToDictionary(fileToAssetNodes);
+			var list = RelationsLookup.ConvertToDictionary(fileToAssetNodes);
 			var resolversToExecute = new List<IAssetDependencyResolver>();
 
 			var cleaner = new CacheUpdateResourcesCleaner();
@@ -283,7 +283,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var fileToAssetNode = resultList[fileId];
-
 			var dependencies = searchContext.ResolverDependencies[resolver];
 			var assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
 

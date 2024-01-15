@@ -60,19 +60,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public List<Dependency> Dependencies;
 		}
 
-		private string AssetId;
-		private string KeyId;
+		public string Id { get; }
+		public string Key { get; }
 
-		public string Id => AssetId;
 		public string Type => AssetNodeType.Name;
-		public string Key => KeyId;
 
 		public List<ResolverData> ResolverDatas = new List<ResolverData>(2);
 
 		public AssetNode(string assetId)
 		{
-			AssetId = assetId;
-			KeyId = NodeDependencyLookupUtility.GetNodeKey(AssetId, Type);
+			Id = assetId;
+			Key = NodeDependencyLookupUtility.GetNodeKey(Id, Type);
 		}
 
 		public ResolverData GetResolverData(string id)
