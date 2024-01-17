@@ -1,40 +1,44 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class RelationsLookup
+	public class RelationLookup
 	{
-		private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
-
-		public IEnumerator Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches,
-			Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
+		public class RelationsLookup
 		{
-			yield return CreateRelationMapping(stateContext, caches, nodeDictionary,
-				fastUpdate, updateData);
-			_lookup = nodeDictionary;
-		}
+			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
 
-		public Node GetNode(string id, string type)
-		{
-			return GetNode(NodeDependencyLookupUtility.GetNodeKey(id, type));
-		}
-
-		public Node GetNode(string key)
-		{
-			if (_lookup.ContainsKey(key))
+			public IEnumerator Build(NodeDependencyLookupContext stateContext, List<CreatedDependencyCache> caches,
+				Dictionary<string, Node> nodeDictionary, bool fastUpdate, bool updateData)
 			{
-				return _lookup[key];
+				yield return CreateRelationMapping(stateContext, caches, nodeDictionary,
+					fastUpdate, updateData);
+				_lookup = nodeDictionary;
 			}
 
-			return null;
-		}
+			public Node GetNode(string id, string type)
+			{
+				return GetNode(NodeDependencyLookupUtility.GetNodeKey(id, type));
+			}
 
-		public List<Node> GetAllNodes()
-		{
-			return _lookup.Values.ToList();
+			public Node GetNode(string key)
+			{
+				if (_lookup.ContainsKey(key))
+				{
+					return _lookup[key];
+				}
+
+				return null;
+			}
+
+			public List<Node> GetAllNodes()
+			{
+				return _lookup.Values.ToList();
+			}
 		}
 
 		public static IEnumerator GetAssetToFileLookup(CacheUpdateSettings cacheUpdateSettings,

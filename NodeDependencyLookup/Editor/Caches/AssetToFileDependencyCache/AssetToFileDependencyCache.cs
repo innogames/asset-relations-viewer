@@ -54,7 +54,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			float lastDisplayedPercentage = 0;
 
-			var fileToAssetMappingDictionary = RelationsLookup.ConvertToDictionary(_fileToAssetsMappings);
+			var fileToAssetMappingDictionary = RelationLookup.ConvertToDictionary(_fileToAssetsMappings);
 			var cacheUpdateResourcesCleaner = new CacheUpdateResourcesCleaner();
 
 			for (int i = 0, j = 0; i < pathes.Length; ++i)

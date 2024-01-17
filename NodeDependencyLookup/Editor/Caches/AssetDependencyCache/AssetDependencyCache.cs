@@ -113,7 +113,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps,
 			FileToAssetNode[] fileToAssetNodes)
 		{
-			var list = RelationsLookup.ConvertToDictionary(fileToAssetNodes);
+			var list = RelationLookup.ConvertToDictionary(fileToAssetNodes);
 			var resolversToExecute = new List<IAssetDependencyResolver>();
 
 			var cleaner = new CacheUpdateResourcesCleaner();

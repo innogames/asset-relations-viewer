@@ -56,8 +56,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 
 			var resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			var assetToFileLookup = new RelationsLookup();
-			yield return RelationsLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
+			var assetToFileLookup = new RelationLookup.RelationsLookup();
+			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
 				assetToFileLookup);
 
 			Lookup.Clear();
