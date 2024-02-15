@@ -20,6 +20,9 @@ Fix possible ```cs ArgumentException: An item with the same key has already been
 - Sped up creation of large dependency trees in ARV
 - AssetRelationsViewer can now be opened without updating or loading any caches
 
+**1.5.2**
+- Remove warning
+
 **1.5.1**
 - Increase serialize version of AssetToFileDependencyCache because of dependency order change
 - Fixed possible StackOverflowException with very huge dependency trees and ShowAdditionalInformation option being enabled
