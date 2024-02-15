@@ -5,12 +5,13 @@ using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
 	/// <summary>
-	/// Thread to calculate the hierarchy size of nodes in the background
+	/// Thread to calculate the hierarchy size of nodes in the background.
+	/// The reason for this is that calculating the treesize can get very slow if the tree depth is very high.
+	/// For example in the case of bidirectional AddressableAssetGroup->AddressableAssetGroup dependencies.
 	/// </summary>
 	public class NodeSizeThread
 	{
 		private readonly Stack<VisualizationNodeData> _stack = new Stack<VisualizationNodeData>();
-		private readonly HashSet<string> _traversedNodes = new HashSet<string>();
 		private Thread _thread;
 		private NodeDependencyLookupContext _context;
 

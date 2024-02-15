@@ -3,6 +3,9 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Exception that is thrown if the Dependency Cache update got aborted by the user
+	/// </summary>
 	public class DependencyUpdateAbortedException : Exception
 	{
 		public DependencyUpdateAbortedException()

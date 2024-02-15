@@ -1,11 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Serializer for the AssetToFile mapping.
+	/// Stores its data into a byte format to be small and fast compared to json
+	/// </summary>
 	public class AssetToFileDependencyCacheSerializer
 	{
-		public const string EOF = "EndOfSerializedAssetToFileDependencyCache";
+		private const string EOF = "EndOfSerializedAssetToFileDependencyCache";
 
 		public static byte[] Serialize(FileToAssetsMapping[] assetToFileMappings)
 		{
@@ -70,7 +75,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (!eof.Equals(EOF))
 			{
 				Debug.LogError("AssetToFileDependencyCache cache file to be corrupted. Rebuilding cache required");
-				return new FileToAssetsMapping[0];
+				return Array.Empty<FileToAssetsMapping>();
 			}
 
 			return assetToFileMappings;

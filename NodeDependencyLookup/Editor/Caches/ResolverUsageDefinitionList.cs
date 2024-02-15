@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	///<summary>
-	///List to store which resolvers will be used when creating the dependency structure.
-	///Only the given resolvers will be executed instead of executing all available ones
+	/// List to store which resolvers will be used when creating the dependency structure.
+	/// Only the given resolvers will be executed instead of executing all available ones
 	///</summary>
 	public class ResolverUsageDefinitionList
 	{
@@ -13,12 +13,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			public readonly Type CacheType;
 			public readonly Type ResolverType;
-			public List<string> ConnectionTypes;
-			public bool Load;
-			public bool Update;
-			public bool Save;
+			public readonly List<string> ConnectionTypes;
+			public readonly bool Load;
+			public readonly bool Update;
+			public readonly bool Save;
 
-			// Will add all resolved types to be active
+			/// <summary>
+			/// Will add all resolved types to be active
+			/// </summary>
 			internal Entry(Type cacheType, Type resolverType, List<string> connectionTypes, bool load, bool update,
 				bool save)
 			{

@@ -11,9 +11,9 @@ using Debug = UnityEngine.Debug;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	/**
-	 * Cache to store all dependencies of assets to other assets
-	 */
+	/// <summary>
+	/// Cache to store all dependencies of assets to other assets
+	/// </summary>
 	public class AssetDependencyCache : IDependencyCache
 	{
 		private const string Version = "1.4.5";
@@ -21,9 +21,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const string VersionedFileName = FileName + "_" + Version + ".cache";
 
 		private FileToAssetNode[] _fileToAssetNodes = new FileToAssetNode[0];
-		private Dictionary<string, AssetNode> _assetNodesDict = new Dictionary<string, AssetNode>();
+		private readonly Dictionary<string, AssetNode> _assetNodesDict = new Dictionary<string, AssetNode>();
+		private readonly AssetSerializedPropertyTraverser _hierarchyTraverser = new AssetSerializedPropertyTraverser();
 
-		private AssetSerializedPropertyTraverser _hierarchyTraverser = new AssetSerializedPropertyTraverser();
+		private List<AssetListEntry> _entries = new List<AssetListEntry>();
+		private ResolverDependencySearchContext _searchContext = new ResolverDependencySearchContext();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
@@ -168,32 +170,29 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			yield return null;
 		}
 
-		private List<AssetListEntry> entries = new List<AssetListEntry>();
-		private ResolverDependencySearchContext searchContext = new ResolverDependencySearchContext();
-
 		private void FindDependenciesForResolvers(List<IAssetDependencyResolver> resolvers, string path, long timeStamp,
 			Dictionary<string, FileToAssetNode> list, float progress)
 		{
 			var progressBarTitle = $"AssetDependencyCache";
 
-			entries.Clear();
-			NodeDependencyLookupUtility.AddAssetsToList(entries, path);
+			_entries.Clear();
+			NodeDependencyLookupUtility.AddAssetsToList(_entries, path);
 
-			for (var i = 0; i < entries.Count; i++)
+			for (var i = 0; i < _entries.Count; i++)
 			{
-				var entry = entries[i];
+				var entry = _entries[i];
 
 				if (i % 10 == 0)
 				{
 					var info = "";
 
-					if (entries.Count < 50)
+					if (_entries.Count < 50)
 					{
 						info = path;
 					}
 					else
 					{
-						info = $"[{i + 1}/{entries.Count}] {path}";
+						info = $"[{i + 1}/{_entries.Count}] {path}";
 					}
 
 					if (EditorUtility.DisplayCancelableProgressBar(progressBarTitle, info, progress))
@@ -202,14 +201,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 
-				searchContext.AssetId = entry.AssetId;
-				searchContext.Asset = entry.Asset;
-				searchContext.SetResolvers(resolvers);
-				_hierarchyTraverser.Search(searchContext);
+				_searchContext.AssetId = entry.AssetId;
+				_searchContext.Asset = entry.Asset;
+				_searchContext.SetResolvers(resolvers);
+				_hierarchyTraverser.Search(_searchContext);
 
 				foreach (var resolver in resolvers)
 				{
-					GetDependenciesForResolver(searchContext, timeStamp, resolver, list);
+					GetDependenciesForResolver(_searchContext, timeStamp, resolver, list);
 				}
 			}
 		}

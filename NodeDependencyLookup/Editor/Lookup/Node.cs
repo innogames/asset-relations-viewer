@@ -9,6 +9,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class Node
 	{
+		/// <summary>
+		/// Size related information of the node
+		/// </summary>
 		public struct NodeSize
 		{
 			public int Size;

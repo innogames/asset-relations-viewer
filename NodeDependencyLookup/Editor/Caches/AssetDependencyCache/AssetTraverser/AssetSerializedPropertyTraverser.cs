@@ -7,40 +7,14 @@ using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class ResolverDependencySearchContext
-	{
-		public Object Asset;
-		public string AssetId = string.Empty;
-		public List<IAssetDependencyResolver> Resolvers;
-
-		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies =
-			new Dictionary<IAssetDependencyResolver, List<Dependency>>();
-
-		public void SetResolvers(List<IAssetDependencyResolver> resolvers)
-		{
-			Resolvers = resolvers;
-			ResolverDependencies.Clear();
-			foreach (var resolver in resolvers)
-			{
-				ResolverDependencies.Add(resolver, new List<Dependency>());
-			}
-		}
-
-		public void AddDependency(IAssetDependencyResolver resolver, Dependency dependency)
-		{
-			if (dependency.Id == AssetId)
-			{
-				// Dont add self dependency
-				return;
-			}
-
-			ResolverDependencies[resolver].Add(dependency);
-		}
-	}
-
+	/// <summary>
+	/// AssetTraverser which uses <see cref="SerializedObject"/> to find references in the components
+	/// </summary>
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private HashSet<Type> excludedTypes = new HashSet<Type>
+		private readonly Stack<PathSegment> pathSegmentStack = new Stack<PathSegment>();
+
+		private readonly HashSet<Type> excludedTypes = new HashSet<Type>
 		{
 			typeof(Transform),
 			typeof(RectTransform),
@@ -49,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			typeof(AudioClip)
 		};
 
-		private PropertyInfo unsafeModeMethod = null;
+		private PropertyInfo unsafeModeMethod;
 
 		public void Initialize()
 		{
@@ -58,8 +32,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
 		}
 
-		private Stack<PathSegment> tmpStack = new Stack<PathSegment>();
-
 		public void Search(ResolverDependencySearchContext searchContext)
 		{
 			if (searchContext.Asset == null)
@@ -67,8 +39,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			tmpStack.Clear();
-			Traverse(searchContext, searchContext.Asset, tmpStack);
+			pathSegmentStack.Clear();
+			Traverse(searchContext, searchContext.Asset, pathSegmentStack);
 		}
 
 		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj,
@@ -100,7 +72,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				propertyType = property.propertyType;
 
 				if (propertyType != SerializedPropertyType.ObjectReference &&
-				    propertyType != SerializedPropertyType.Generic)
+				    propertyType != SerializedPropertyType.Generic &&
+				    propertyType != SerializedPropertyType.ManagedReference)
 				{
 					continue;
 				}
@@ -109,7 +82,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					TraverseProperty(searchContext, property, propertyType, property.propertyPath, stack);
 				}
-			} while (property.Next(propertyType == SerializedPropertyType.Generic));
+			} while (property.Next(propertyType == SerializedPropertyType.Generic || propertyType == SerializedPropertyType.ManagedReference));
 
 			serializedObject.Dispose();
 		}
@@ -132,11 +105,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
-		private bool TraverseProperty(ResolverDependencySearchContext searchContext, SerializedProperty property,
+		private void TraverseProperty(ResolverDependencySearchContext searchContext, SerializedProperty property,
 			SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			var dependenciesAdded = false;
-
 			foreach (var resolver in searchContext.Resolvers)
 			{
 				var result = resolver.GetDependency(ref searchContext.AssetId, ref property, ref propertyPath, type);
@@ -150,11 +121,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				searchContext.AddDependency(resolver,
 					new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
-
-				dependenciesAdded = true;
 			}
-
-			return dependenciesAdded;
 		}
 	}
 }

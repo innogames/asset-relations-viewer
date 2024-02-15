@@ -17,7 +17,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			ViewArea.height = _windowData.height;
 		}
 
-		public void UpdateAreaSize(VisualizationNode node, Rect _windowData)
+		public void UpdateAreaSize(NodeVisualizationNode node, Rect _windowData)
 		{
 			var oldArea = new EnclosedBounds();
 			Bounds.CopyTo(oldArea);

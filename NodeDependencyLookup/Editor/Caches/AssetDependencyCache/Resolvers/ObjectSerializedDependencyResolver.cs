@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class AssetToAssetObjectDependency
+	public static class AssetToAssetObjectDependency
 	{
 		public const string Name = "ATOA_Object";
 	}
@@ -26,8 +26,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return !IsSpriteOfSpriteAtlas(source, target);
 		}
 
-		private string spriteTypeFullName = typeof(Sprite).FullName;
-		private string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
+		private readonly string spriteTypeFullName = typeof(Sprite).FullName;
+		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
 		private bool IsSpriteOfSpriteAtlas(Node source, Node target)
 		{
@@ -35,25 +35,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 	}
 
-	/**
-	 * Resolver for resolving Object references by using the SerializedPropertySearcher
-	 * This one provided hierarchy and property pathes but is most likely slower than the SimpleObjectResolver
-	 */
+	/// <summary>
+	/// Resolver for resolving Object references by using the SerializedPropertySearcher
+	/// This one provided hierarchy and property pathes but is most likely slower than the SimpleObjectResolver
+	/// </summary>
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{
 		private const string ConnectionTypeDescription = "Dependencies between assets by a direct Object reference";
 
-		private static DependencyType ObjectType = new AssetToAssetByObjectDependencyType("Asset->Asset by Object",
+		private static readonly DependencyType ObjectType = new AssetToAssetByObjectDependencyType("Asset->Asset by Object",
 			new Color(0.8f, 0.8f, 0.8f), false, true, ConnectionTypeDescription);
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		private const string Id = "ObjectSerializedDependencyResolver";
 
 		// Don't include m_CorrespondingSourceObject because otherwise every property would have a dependency to it
-		private HashSet<string> ExcludedProperties = new HashSet<string>(new[] {"m_CorrespondingSourceObject"});
+		private readonly HashSet<string> ExcludedProperties = new HashSet<string>(new[] {"m_CorrespondingSourceObject"});
 
 		// Don't include any dependencies to UnityEngine internal scripts
-		private HashSet<string> ExcludedDependencies =
+		private readonly HashSet<string> ExcludedDependencies =
 			new HashSet<string>(new[] {"UnityEngine.UI.dll", "UnityEngine.dll"});
 
 		private Dictionary<string, string> cachedAssetAsDependencyData = new Dictionary<string, string>();
@@ -89,7 +89,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private string GetAssetPathForAsset(string sourceAssetId, Object value)
 		{
 			if (value == null)
+			{
 				return null;
+			}
 
 			var assetPath = AssetDatabase.GetAssetPath(value);
 

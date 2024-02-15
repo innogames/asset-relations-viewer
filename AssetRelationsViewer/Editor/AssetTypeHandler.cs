@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -13,8 +11,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		private Object _selectedAsset;
 		private AssetRelationsViewerWindow _viewerWindow;
-
-		private PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
+		private readonly PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
 
 		public string GetHandledType()
 		{
@@ -114,14 +111,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			EditorPrefUtilities.TogglePref(_explorerSyncModePref, "Sync to explorer:");
 			EditorGUILayout.EndVertical();
-		}
-
-		private HashSet<string> CreateFilter(string filter)
-		{
-			if (string.IsNullOrEmpty(filter))
-				return null;
-
-			return new HashSet<string>(AssetDatabase.FindAssets(filter));
 		}
 	}
 }

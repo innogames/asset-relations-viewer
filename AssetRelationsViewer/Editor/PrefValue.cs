@@ -6,7 +6,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	/// <summary>
 	/// Helper class to more conveniently handle EditorPrefs
 	/// </summary>
-	/// <typeparam name="T"></typeparam>
 	public abstract class PrefValue<T>
 	{
 		protected T DefaultValue;

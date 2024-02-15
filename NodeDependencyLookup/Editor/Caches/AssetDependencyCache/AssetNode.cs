@@ -2,6 +2,9 @@
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Stores dependencies from a File to all Assets it contains
+	/// </summary>
 	public class FileToAssetNode : IIdentifyable
 	{
 		public class ResolverTimeStamp
@@ -49,9 +52,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 	}
 
-	/**
-	 * Stores a relation and contains a list of dependency nodes and a list of referencer nodes
-	 */
+	/// <summary>
+	/// Stores a relation and contains a list of dependency nodes and a list of referencer nodes
+	/// </summary>
 	public class AssetNode : IDependencyMappingNode
 	{
 		public class ResolverData
@@ -62,10 +65,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string Id { get; }
 		public string Key { get; }
-
 		public string Type => AssetNodeType.Name;
 
-		public List<ResolverData> ResolverDatas = new List<ResolverData>(2);
+		public readonly List<ResolverData> ResolverDatas = new List<ResolverData>(2);
 
 		public AssetNode(string assetId)
 		{

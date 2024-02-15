@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Com.Innogames.Core.Frontend.AssetRelationsViewer;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,6 +15,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public override Texture2D ThumbNailTexture => null;
 	}
 
+	/// <summary>
+	/// TypeHandler for AddressableAssetGroups for the Unity Addressables package
+	/// </summary>
+	[UsedImplicitly]
 	public class AddressableAssetGroupTypeHandler : ITypeHandler
 	{
 		private string[] m_nodes = new string[0];
@@ -126,6 +131,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		}
 	}
 
+	[UsedImplicitly]
 	public class AddressableGroupNodeHandler : INodeHandler
 	{
 		public string GetHandledNodeType()

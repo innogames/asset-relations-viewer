@@ -1,15 +1,16 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
-using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// VisualizationNode to for displaying a path (GameObject -> Component -> MemberVariable) between connections
+	/// </summary>
 	public class PathVisualizationNode : VisualizationNodeBase
 	{
-		public PathNode PathNode;
-		public HashSet<PathNode> TargetNodes = new HashSet<PathNode>();
+		private PathNode PathNode;
+		private HashSet<PathNode> TargetNodes = new HashSet<PathNode>();
 
 		public override string GetSortingKey(RelationType relationType, bool sortBySize)
 		{

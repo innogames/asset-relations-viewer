@@ -88,7 +88,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private readonly int _maxHierarchyDepth = 256;
 
-		private VisualizationNode _nodeStructure;
+		private NodeVisualizationNode _nodeStructure;
 		private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
 
 		private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas =
@@ -1584,13 +1584,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			_nodeStructure = GetVisualizationNode(rootConnectionNode);
 
 			var iterations = 0;
-			CreateNodeHierarchyRec(new HashSet<string>(), new Stack<VisualizationNode>(), _nodeStructure,
+			CreateNodeHierarchyRec(new HashSet<string>(), new Stack<NodeVisualizationNode>(), _nodeStructure,
 				rootConnection, 0, RelationType.DEPENDENCY, _nodeDisplayOptions, ref iterations);
 
 			if (_nodeDisplayOptions.DrawReferencerNodes)
 			{
 				iterations = 0;
-				CreateNodeHierarchyRec(new HashSet<string>(), new Stack<VisualizationNode>(), _nodeStructure,
+				CreateNodeHierarchyRec(new HashSet<string>(), new Stack<NodeVisualizationNode>(), _nodeStructure,
 					rootConnection, 0, RelationType.REFERENCER, _nodeDisplayOptions, ref iterations);
 			}
 
@@ -1631,7 +1631,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return result.Values;
 		}
 
-		private VisualizationNode HasRecursion(string key, Stack<VisualizationNode> visualizationNodeStack)
+		private NodeVisualizationNode HasRecursion(string key, Stack<NodeVisualizationNode> visualizationNodeStack)
 		{
 			var hash = key.GetHashCode();
 			foreach (var node in visualizationNodeStack)
@@ -1644,7 +1644,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 
 		private void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes,
-			Stack<VisualizationNode> visualizationNodeStack, VisualizationNode visualizationNode, Connection connection,
+			Stack<NodeVisualizationNode> visualizationNodeStack, NodeVisualizationNode visualizationNode, Connection connection,
 			int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
 		{
 			visualizationNode.SetKey(connection.Node.Key);
@@ -1777,7 +1777,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				new VisualizationConnection(datas, node, isRecursion));
 		}
 
-		private bool HasNoneFilteredChildren(VisualizationNode node, RelationType relationType)
+		private bool HasNoneFilteredChildren(NodeVisualizationNode node, RelationType relationType)
 		{
 			foreach (var connection in node.GetRelations(relationType))
 			{
@@ -1799,7 +1799,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return !IsNodeMatchingFilter(GetOrCreateSearchDataForNode(node), _nodeFilterTokens, _typeFilterTokens);
 		}
 
-		private void SortChildNodes(VisualizationNode visualizationNode, RelationType relationType)
+		private void SortChildNodes(NodeVisualizationNode visualizationNode, RelationType relationType)
 		{
 			visualizationNode.SetRelations(
 				visualizationNode.GetRelations(relationType, true, true)
@@ -1807,9 +1807,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					.ToList(), relationType);
 		}
 
-		private VisualizationNode GetVisualizationNode(Node node)
+		private NodeVisualizationNode GetVisualizationNode(Node node)
 		{
-			return new VisualizationNode
+			return new NodeVisualizationNode
 				{NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type]};
 		}
 

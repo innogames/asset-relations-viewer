@@ -6,8 +6,16 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class RelationLookup
+	/// <summary>
+	/// Static class containing Helper methods for the internal <see cref="RelationsLookup"/> class
+	/// </summary>
+	public static class RelationLookup
 	{
+		/// <summary>
+		/// Contains the created RelationsLookup created by the <see cref="NodeDependencyLookupContext"/>
+		/// Contains methods to either get all found nodes <see cref="GetAllNodes"/>
+		/// or explicitly search for one specific node <see cref="GetNode"/>
+		/// </summary>
 		public class RelationsLookup
 		{
 			private Dictionary<string, Node> _lookup = new Dictionary<string, Node>();
@@ -20,24 +28,24 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				_lookup = nodeDictionary;
 			}
 
+			public List<Node> GetAllNodes()
+			{
+				return _lookup.Values.ToList();
+			}
+
 			public Node GetNode(string id, string type)
 			{
 				return GetNode(NodeDependencyLookupUtility.GetNodeKey(id, type));
 			}
 
-			public Node GetNode(string key)
+			private Node GetNode(string key)
 			{
-				if (_lookup.ContainsKey(key))
+				if (_lookup.TryGetValue(key, out var node))
 				{
-					return _lookup[key];
+					return node;
 				}
 
 				return null;
-			}
-
-			public List<Node> GetAllNodes()
-			{
-				return _lookup.Values.ToList();
 			}
 		}
 
@@ -49,6 +57,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var resolverList = new ResolverUsageDefinitionList();
 			resolverList.Add<AssetToFileDependencyCache, AssetToFileDependencyResolver>(true, updateInfo.Update,
 				updateInfo.Save);
+
 			yield return NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(context, resolverList);
 		}
 
@@ -64,7 +73,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return list;
 		}
 
-		public static IEnumerator CreateRelationMapping(NodeDependencyLookupContext stateContext,
+		private static IEnumerator CreateRelationMapping(NodeDependencyLookupContext stateContext,
 			List<CreatedDependencyCache> dependencyCaches,
 			Dictionary<string, Node> nodeDictionary, bool isFastUpdate, bool updateNodeData)
 		{

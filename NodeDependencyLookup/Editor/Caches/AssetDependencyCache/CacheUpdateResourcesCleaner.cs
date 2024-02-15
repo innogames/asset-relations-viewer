@@ -3,6 +3,9 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Helper to unload all unused assets every n iterations
+	/// </summary>
 	public class CacheUpdateResourcesCleaner
 	{
 		private int lastCleanIndex;
@@ -19,7 +22,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			lastCleanIndex = index;
 		}
 
-		public static void ForceClean(CacheUpdateSettings settings)
+		private static void ForceClean(CacheUpdateSettings settings)
 		{
 			if (settings.ShouldUnloadUnusedAssets)
 			{

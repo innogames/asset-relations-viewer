@@ -6,7 +6,10 @@ using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-	public class VisualizationNode : VisualizationNodeBase
+	/// <summary>
+	/// VisualizationNode to display a <see cref="Node"/>> in the TreeView
+	/// </summary>
+	public class NodeVisualizationNode : VisualizationNodeBase
 	{
 		public ITypeHandler TypeHandler;
 		public VisualizationNodeData NodeData;

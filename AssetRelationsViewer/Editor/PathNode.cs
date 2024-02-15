@@ -14,26 +14,26 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		public static int NodeHeight = 16;
 
-		public string Name = string.Empty;
-		public int TextLength;
-		public PathSegmentType Type;
-		public List<PathNode> Children = new List<PathNode>();
-		public int Height;
-		public int ChildrenHeight;
-		public string DependencyType;
-		public VisualizationNode TargetNode;
+		private readonly string _name;
+		private readonly int _textLength;
+		private readonly PathSegmentType _type;
+		private readonly List<PathNode> _children = new List<PathNode>();
+		private readonly NodeVisualizationNode _targetNode;
+		private int _height;
+		private int _childrenHeight;
+		public readonly string DependencyType;
 
 		public float PosX;
 		public float PosY;
-
 		public int Width;
 
 		public PathNode(string name, PathSegmentType type, string dependencyType)
 		{
-			Name = name;
-			Type = type;
+			_name = name;
+			_type = type;
+
 			DependencyType = dependencyType;
-			TextLength = GetTextLength(name, GUI.skin.font);
+			_textLength = GetTextLength(name, GUI.skin.font);
 		}
 
 		public static void AddPath(PathNode node, PathSegment[] segments, string type)
@@ -44,16 +44,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				var name = GetPathSegmentName(segment);
 
-				if (!currentNode.Children.Any(n => n.Name == name))
+				if (currentNode._children.All(n => n._name != name))
 				{
-					currentNode.Children.Add(new PathNode(name, segment.Type, type));
+					currentNode._children.Add(new PathNode(name, segment.Type, type));
 				}
 
-				currentNode = currentNode.Children.Find(n => n.Name == name && n.TargetNode == null);
+				currentNode = currentNode._children.Find(n => n._name == name && n._targetNode == null);
 			}
 		}
 
-		public static string GetPathSegmentName(PathSegment segment)
+		private static string GetPathSegmentName(PathSegment segment)
 		{
 			var name = segment.Name.Replace(".Array.data", "");
 
@@ -73,23 +73,23 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CalculatePositionData(int px, int py, HashSet<PathNode> targetNodes)
 		{
-			var totalHeight = ChildrenHeight;
+			var totalHeight = _childrenHeight;
 			var currentHeight = 0;
 
 			PosX = px;
 			PosY = py;
 
-			var width = TextLength + 16;
+			var width = _textLength + 16;
 			var maxChildWidth = 0;
 
-			if (Children.Count == 0)
+			if (_children.Count == 0)
 			{
 				targetNodes.Add(this);
 			}
 
-			foreach (var nodeChild in Children)
+			foreach (var nodeChild in _children)
 			{
-				var childHeight = nodeChild.Height;
+				var childHeight = nodeChild._height;
 				var offset = currentHeight - (int) ((totalHeight - childHeight) * 0.5);
 
 				var eX = px + width;
@@ -98,20 +98,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				nodeChild.CalculatePositionData(eX, eY, targetNodes);
 				maxChildWidth = maxChildWidth > nodeChild.Width ? maxChildWidth : nodeChild.Width;
 
-				currentHeight += nodeChild.Height;
+				currentHeight += nodeChild._height;
 			}
 
 			Width = width + maxChildWidth;
 		}
 
-		public static void DrawPathNodeRec(float px, float py, PathNode node, INodeDisplayDataProvider colorProvider)
+		private static void DrawPathNodeRec(float px, float py, PathNode node, INodeDisplayDataProvider colorProvider)
 		{
 			DrawPathSegment(node.PosX + px, node.PosY + py, node);
 
-			foreach (var child in node.Children)
+			foreach (var child in node._children)
 			{
 				DrawPathNodeRec(px, py, child, colorProvider);
-				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py,
+				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node._textLength, node.PosY + py,
 					child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
 			}
 		}
@@ -120,21 +120,21 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			var height = 0;
 
-			foreach (var nodeChild in node.Children)
+			foreach (var nodeChild in node._children)
 			{
 				height += CalculateNodeHeight(nodeChild);
 			}
 
-			node.ChildrenHeight = height;
-			node.Height = Math.Max(NodeHeight, height);
-			return node.Height;
+			node._childrenHeight = height;
+			node._height = Math.Max(NodeHeight, height);
+			return node._height;
 		}
 
-		public static void DrawPathSegment(float px, float py, PathNode node)
+		private static void DrawPathSegment(float px, float py, PathNode node)
 		{
 			var color = Color.black;
 
-			switch (node.Type)
+			switch (node._type)
 			{
 				case PathSegmentType.GameObject:
 					color = new Color(0.1f, 0.1f, 0.2f, 0.7f);
@@ -150,11 +150,11 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					break;
 			}
 
-			EditorGUI.DrawRect(new Rect(px, py, node.TextLength, NodeHeight - 2), color);
-			EditorGUI.LabelField(new Rect(px, py, node.TextLength + 6, NodeHeight), node.Name);
+			EditorGUI.DrawRect(new Rect(px, py, node._textLength, NodeHeight - 2), color);
+			EditorGUI.LabelField(new Rect(px, py, node._textLength + 6, NodeHeight), node._name);
 		}
 
-		public static int GetTextLength(string text, Font font)
+		private static int GetTextLength(string text, Font font)
 		{
 			var length = 0;
 			CharacterInfo info;

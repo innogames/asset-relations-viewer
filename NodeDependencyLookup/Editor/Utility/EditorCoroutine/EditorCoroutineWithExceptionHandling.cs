@@ -5,6 +5,12 @@ using UnityEditor;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine
 {
+	/// <summary>
+	/// EditorCoroutine which handles exceptions.
+	/// If an exception happened it will stop.
+	/// There is also a EditorCoroutine package from Unity,
+	/// but there the coroutine will continue even though an exception has been thrown
+	/// </summary>
 	public class EditorCoroutineWithExceptionHandling
 	{
 		private IEnumerator cacheUpdateEnumerator;

@@ -14,26 +14,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public abstract class AssetTraverser
 	{
-		// Traverses an object (Monobehaviour, ScriptableObject) to get the dependencies from it
+		/// <summary>
+		///  Traverses an object (Monobehaviour, ScriptableObject) to get the dependencies from it
+		/// </summary>
 		protected abstract void TraverseObject(ResolverDependencySearchContext searchContext, Object obj,
 			bool onlyOverriden, Stack<PathSegment> stack);
 
-		// What to to when a prefab got found, in case of searching for assets, it should be added as a dependency
+		/// <summary>
+		/// What to do when a prefab got found, in case of searching for assets, it should be added as a dependency
+		/// </summary>
 		protected abstract void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj,
 			Stack<PathSegment> stack);
 
+		/// <summary>
+		/// What to do when a PrefabVariant got found, in case of searching for assets, it should be added as a dependency
+		/// </summary>
 		protected abstract void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj,
 			Stack<PathSegment> stack);
 
 		protected void Traverse(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
 		{
 			// TODO avoid adding them at another place
-			if (obj is Mesh)
-			{
-				return;
-			}
-
-			if (obj is Texture)
+			if (obj is Mesh || obj is Texture)
 			{
 				return;
 			}
@@ -84,7 +86,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var isPrefabInstance = false;
 			var onlyOverriden = false;
-
 			var prefabAssetType = PrefabUtility.GetPrefabAssetType(go);
 
 			if ((prefabAssetType == PrefabAssetType.Regular || prefabAssetType == PrefabAssetType.Variant) &&

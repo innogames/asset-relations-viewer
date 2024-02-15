@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class AssetToFileDependency
+	public static class AssetToFileDependency
 	{
 		public const string Name = "AssetToFile";
 	}

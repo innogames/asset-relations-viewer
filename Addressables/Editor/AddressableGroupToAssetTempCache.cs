@@ -2,28 +2,33 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 {
-	public class AddressableAssetGroupNodeType
+	public static class AddressableAssetGroupNodeType
 	{
 		public const string Name = "AddressableAssetGroup";
 	}
 
-	public class AddressableGroupToAssetDependency
+	public static class AddressableGroupToAssetDependency
 	{
 		public const string Name = "AddressableGroupToAsset";
 	}
 
+	/// <summary>
+	/// DependencyCache to store connections from an AddressableAssetGroup to an Asset
+	/// </summary>
+	[UsedImplicitly]
 	public class AddressableGroupToAssetTempCache : IDependencyCache
 	{
 		private const string Version = "2.0.0";
 		private const string FileName = "AddressableGroupToAssetDependencyCacheData_" + Version + ".cache";
 
-		private GenericDependencyMappingNode[] Nodes = new GenericDependencyMappingNode[0];
+		private GenericDependencyMappingNode[] Nodes = Array.Empty<GenericDependencyMappingNode>();
 
 		private Dictionary<string, GenericDependencyMappingNode> Lookup =
 			new Dictionary<string, GenericDependencyMappingNode>();

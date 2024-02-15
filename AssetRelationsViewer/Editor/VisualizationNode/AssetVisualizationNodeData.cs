@@ -4,23 +4,28 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// NodeData for asset Nodes.
+	/// Responsible to display a preview image of the file
+	/// </summary>
 	public class AssetVisualizationNodeData : VisualizationNodeData
 	{
+		private const int MAX_ASSET_PREVIEW_RENDER_RETRIES = 100;
+
 		private Object _loadedAsset;
 		private Object _loadedMainAsset;
 		private bool _assetLoaded;
 		private int _assetPreviewRenderTries;
 
-		private const int MAX_ASSET_PREVIEW_RENDER_RETRIES = 100;
+		public override Texture2D ThumbNailTexture => GetThumbnail();
+		public override Texture2D AssetPreviewTexture => TryGetAssetPreview();
 
 		public AssetVisualizationNodeData(Node node)
 		{
 			Node = node;
 		}
 
-		public override Texture2D AssetPreviewTexture => TryGetAssetPreview();
-
-		public Texture2D TryGetAssetPreview()
+		private Texture2D TryGetAssetPreview()
 		{
 			if (!_assetLoaded)
 			{
@@ -55,8 +60,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			return _assetPreview;
 		}
-
-		public override Texture2D ThumbNailTexture => GetThumbnail();
 
 		private Texture2D GetThumbnail()
 		{

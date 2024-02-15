@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
 	/// <summary>
-	/// Settings for how to display nodes
+	/// Settings for how to display <see cref="NodeVisualizationNode"/> in the TreeView
 	/// </summary>
 	public class NodeDisplayData
 	{

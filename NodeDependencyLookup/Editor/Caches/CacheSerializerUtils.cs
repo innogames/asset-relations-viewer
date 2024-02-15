@@ -84,20 +84,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return new string(charArray);
 		}
 
-		public static void EncodePathSegments(PathSegment[] pathSegments, ref byte[] bytes, ref int offset)
+		private static void EncodePathSegments(PathSegment[] pathSegments, ref byte[] bytes, ref int offset)
 		{
 			EncodeShort((short) pathSegments.Length, ref bytes, ref offset);
 
-			for (var p = 0; p < pathSegments.Length; p++)
+			foreach (var pathSegment in pathSegments)
 			{
-				var pathSegment = pathSegments[p];
-
 				EncodeString(pathSegment.Name, ref bytes, ref offset);
 				EncodeShort((short) pathSegment.Type, ref bytes, ref offset);
 			}
 		}
 
-		public static PathSegment[] DecodePathSegments(ref byte[] bytes, ref int offset)
+		private static PathSegment[] DecodePathSegments(ref byte[] bytes, ref int offset)
 		{
 			int pathLength = DecodeShort(ref bytes, ref offset);
 			var pathSegments = new PathSegment[pathLength];
@@ -170,7 +168,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var offset = 0;
 
 			var count = DecodeLong(ref bytes, ref offset);
-
 			var nodes = new GenericDependencyMappingNode[count];
 
 			for (var i = 0; i < count; ++i)

@@ -4,10 +4,10 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	/**
-	 * Serializer for the AssetDependencyCache
-	 * Since all json solutions where to slow and the structure is quite simple it was fastest to manually write it into a byte array
-	 */
+	/// <summary>
+	/// Serializer for the AssetDependencyCache
+	/// Since all json solutions where to slow and the structure is quite simple it was fastest to manually write it into a byte array
+	/// </summary>
 	public class AssetDependencyCacheSerializer
 	{
 		private const string EOF = "EndOfSerializedAssetDependencyCache";

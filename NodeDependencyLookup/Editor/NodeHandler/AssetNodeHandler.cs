@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class AssetNodeType
+	public static class AssetNodeType
 	{
 		public const string Name = "Asset";
 	}
@@ -20,9 +20,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public long TimeStamp;
 	}
 
-	/**
-	 * NodeHandler for assets
-	 */
+	/// <summary>
+	/// NodeHandler for assets
+	/// </summary>
 	[UsedImplicitly]
 	public class AssetNodeHandler : INodeHandler
 	{
@@ -34,15 +34,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private class FileData
 		{
-			public Dictionary<string, NameAndType> Assets = new Dictionary<string, NameAndType>();
+			public readonly Dictionary<string, NameAndType> Assets = new Dictionary<string, NameAndType>();
 		}
 
 		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup =
 			new Dictionary<string, SerializedNodeData>();
 
-		private Dictionary<string, long> cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
-		private Dictionary<string, FileData> fileDataMapping = new Dictionary<string, FileData>();
-		private List<AssetListEntry> assetList = new List<AssetListEntry>(1024);
+		private readonly Dictionary<string, long> _cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
+		private readonly Dictionary<string, FileData> _fileDataMapping = new Dictionary<string, FileData>();
+		private readonly List<AssetListEntry> _assetList = new List<AssetListEntry>(1024);
 
 		public string GetHandledNodeType()
 		{
@@ -105,12 +105,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void SaveCaches()
 		{
 			SaveNodeDataCache();
-			cachedTimeStamps.Clear();
+			_cachedTimeStamps.Clear();
 		}
 
 		private string GetCachePath()
 		{
-			var version = "2.2";
+			var version = "3.0";
 			var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
 			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH,
 				$"AssetNodeHandlerCache_{buildTarget}_{version}.cache");
@@ -146,7 +146,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var cachePath = GetCachePath();
-
 			var offset = 0;
 			var bytes = new byte[512 * 1024];
 
@@ -171,7 +170,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 
 			wasCached = _cachedNodeDataLookup.TryGetValue(id, out var cachedValue);
-			long timeStamp = 0;
+			var timeStamp = 0L;
 			var timeStampChanged = false;
 
 			if (update)
@@ -181,10 +180,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					return new Node(id, type, "Deleted", NodeDependencyCacheConstants.UnknownNodeType);
 				}
 
-				if (!cachedTimeStamps.TryGetValue(guid, out timeStamp))
+				if (!_cachedTimeStamps.TryGetValue(guid, out timeStamp))
 				{
 					timeStamp = NodeDependencyLookupUtility.GetTimeStampForPath(path);
-					cachedTimeStamps.Add(guid, timeStamp);
+					_cachedTimeStamps.Add(guid, timeStamp);
 				}
 
 				timeStampChanged = !wasCached || cachedValue.TimeStamp != timeStamp;
@@ -217,27 +216,27 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private void GetNameAndType(string path, string assetId, out string name, out string type)
 		{
-			assetList.Clear();
+			_assetList.Clear();
 			name = NodeDependencyCacheConstants.UnknownNodeType;
 			type = NodeDependencyCacheConstants.UnknownNodeType;
 
 			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-			if (!fileDataMapping.ContainsKey(guid))
+			if (!_fileDataMapping.ContainsKey(guid))
 			{
-				NodeDependencyLookupUtility.AddAssetsToList(assetList, path);
+				NodeDependencyLookupUtility.AddAssetsToList(_assetList, path);
 				var assetData = new FileData();
 
-				foreach (var entry in assetList)
+				foreach (var entry in _assetList)
 				{
 					GetNameAndTypeForAsset(entry.Asset, entry.AssetId, path, out name, out type);
 					assetData.Assets.Add(entry.AssetId, new NameAndType {Name = name, Type = type});
 				}
 
-				fileDataMapping.Add(guid, assetData);
+				_fileDataMapping.Add(guid, assetData);
 			}
 
-			if (fileDataMapping.TryGetValue(guid, out var value) &&
+			if (_fileDataMapping.TryGetValue(guid, out var value) &&
 			    value.Assets.TryGetValue(assetId, out NameAndType nameAndType))
 			{
 				name = nameAndType.Name;

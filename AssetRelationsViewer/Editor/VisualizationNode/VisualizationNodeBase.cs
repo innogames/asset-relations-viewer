@@ -5,6 +5,9 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// The reason why a node is not shown (cut) in the treeview
+	/// </summary>
 	public enum CutReason
 	{
 		DepthReached,
@@ -14,6 +17,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		FilteredOut
 	}
 
+	/// <summary>
+	/// Indicates why a node connection is not shown (cut) in the tree view
+	/// This can contain multiple reasons
+	/// </summary>
 	public class CutData
 	{
 		public class Entry
@@ -22,19 +29,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			public CutReason CutReason;
 		}
 
-		public List<Entry> Entries = new List<Entry>();
+		public readonly List<Entry> Entries = new List<Entry>();
 	}
 
+	/// <summary>
+	/// A VisualizationNode is a node to display the <see cref="Node"/> structure of the NodeDependencyCache inside the TreeView
+	/// It contains additional information compared the just the <see cref="Node"/>
+	/// </summary>
 	public abstract class VisualizationNodeBase
 	{
 		private List<VisualizationConnection> _dependencies = new List<VisualizationConnection>();
 		private List<VisualizationConnection> _referencers = new List<VisualizationConnection>();
-
 		private CutData[] _cutDatas = new CutData[2];
 
 		protected int PosX = int.MaxValue;
 		protected int PosY = int.MaxValue;
-		public int ExtendedNodeWidth; // extended with
+		public int ExtendedNodeWidth;
 
 		public EnclosedBounds Bounds = new EnclosedBounds();
 		public EnclosedBounds TreeBounds = new EnclosedBounds();
@@ -64,7 +74,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return GetPositionOffsetInternal(PosY, viewAreaData.ViewArea, Bounds, TreeBounds);
 		}
 
-		public static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds,
+		private static Vector2 GetPositionInternal(float posX, float posY, Rect viewArea, EnclosedBounds bounds,
 			EnclosedBounds treeBounds)
 		{
 			var positionOffset = GetPositionOffsetInternal(posY, viewArea, bounds, treeBounds);
@@ -72,12 +82,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return new Vector2(posX, posY + positionOffset);
 		}
 
-		public static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds,
+		private static float GetPositionOffsetInternal(float posY, Rect viewArea, EnclosedBounds bounds,
 			EnclosedBounds treeBounds)
 		{
-			float
-				overallOffset =
-					270; // this is just a "random" number which I had to apply, I dont know why this offset exists
+			float overallOffset = 270; // this is just a "random" number which I had to apply, I dont know why this offset exists
 
 			var effect = Mathf.Clamp01(treeBounds.Height / viewArea.height);
 
@@ -222,7 +230,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			foreach (var connection in GetRelationArray(type))
 			{
 				if ((connection.IsRecursion && recursive) || (!connection.IsRecursion && nonRecursive))
+				{
 					result.Add(connection);
+				}
 			}
 
 			return result;

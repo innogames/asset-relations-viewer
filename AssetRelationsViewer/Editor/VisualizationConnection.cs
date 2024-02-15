@@ -3,6 +3,9 @@ using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// Connection between two <see cref="VisualizationNodeBase"/>s.
+	/// </summary>
 	public class VisualizationConnection
 	{
 		public class Data

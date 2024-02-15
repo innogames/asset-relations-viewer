@@ -4,10 +4,10 @@ using Assets.Package.Editor.DependencyResolvers;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	/**
-	 * The CacheStateContext holds all information after the Caches updates
-	 * This is to reduce the amount of parameters needing to be passed to the functions because most of the time they need all member values
-	 */
+	/// <summary>
+	/// The CacheStateContext holds all information after the Caches updates
+	/// This is to reduce the amount of parameters needing to be passed to the functions because most of the time they need all member values
+	/// </summary>
 	public class NodeDependencyLookupContext
 	{
 		public Dictionary<string, Node> nodeDictionary = new Dictionary<string, Node>();
@@ -16,10 +16,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			new Dictionary<string, NodeDependencyLookupContext>();
 
 		public RelationLookup.RelationsLookup RelationsLookup = new RelationLookup.RelationsLookup();
-		public Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
+		public readonly Dictionary<string, INodeHandler> NodeHandlerLookup = new Dictionary<string, INodeHandler>();
 		public DependencyTypeLookup DependencyTypeLookup;
 
-		public Dictionary<string, CreatedDependencyCache> CreatedCaches =
+		public readonly Dictionary<string, CreatedDependencyCache> CreatedCaches =
 			new Dictionary<string, CreatedDependencyCache>();
 
 		public CacheUpdateSettings CacheUpdateSettings;
@@ -69,7 +69,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			foreach (var pair in CreatedCaches)
 			{
-				pair.Value.ResetLookups();
+				pair.Value.ResetUsages();
 			}
 		}
 

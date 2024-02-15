@@ -2,11 +2,14 @@
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 using JetBrains.Annotations;
 using UnityEditor;
-using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// TypeHandler for File nodes.
+	/// Displays GUI for the type as well as handles asset selection
+	/// </summary>
 	[UsedImplicitly]
 	public class FileTypeHandler : ITypeHandler
 	{

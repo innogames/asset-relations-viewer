@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// Values on how to load, update and save the cache
+	/// </summary>
 	public struct CacheUpdateInfo
 	{
 		public bool Load;
@@ -11,13 +14,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public bool Save;
 	}
 
-	/**
-	 * Interface for the Dependency Cache
-	 * A dependencyCache stores already updated Assets, etc. so that a not changed asset for example doesnt need to be searched for dependencies again.
-	 * This saves a lot of time when having thousands of assets and only like 10 changes which needs to be updated.
-	 * A Cache for now can only resolve one NodeType.
-	 * A NodeType for example could be an Asset, AssetBundle, LocaKey, etc.
-	 */
+	/// <summary>
+	/// Interface for the Dependency Cache
+	/// A dependencyCache stores already updated Assets, etc. so that a not changed asset for example doesnt need to be searched for dependencies again.
+	/// This saves a lot of time when having thousands of assets and only like 10 changes which needs to be updated.
+	/// A Cache for now can only resolve one NodeType.
+	/// A NodeType for example could be an Asset, AssetBundle, LocaKey, etc.
+	/// </summary>
 	public interface IDependencyCache
 	{
 		void Initialize(CreatedDependencyCache createdDependencyCache);

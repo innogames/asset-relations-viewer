@@ -13,14 +13,14 @@ using UnityEngine.U2D;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class FileNodeType
+	public static class FileNodeType
 	{
 		public const string Name = "File";
 	}
 
-	/**
-	 * NodeHandler for files
-	 */
+	/// <summary>
+	/// NodeHandler for files
+	/// </summary>
 	[UsedImplicitly]
 	public class FileNodeHandler : INodeHandler
 	{
@@ -31,17 +31,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public long TimeStamp;
 		}
 
-		private Dictionary<Node, string> nodeToArtifactPathLookup = new Dictionary<Node, string>();
+		private readonly Dictionary<Node, string> nodeToArtifactPathLookup = new Dictionary<Node, string>();
 
 		private MethodInfo getPreviewTextureMethod;
 		private MethodInfo getAudioSizeMethod;
 		private MethodInfo getStorageMemorySizeMethod;
 
-		private string audioClipTypeName = typeof(AudioClip).FullName;
-		private string spriteTypeName = typeof(Sprite).FullName;
-		private string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
+		private readonly string audioClipTypeName = typeof(AudioClip).FullName;
+		private readonly string spriteTypeName = typeof(Sprite).FullName;
+		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-		private ConcurrentDictionary<string, CachedData> cachedSizeLookup =
+		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup =
 			new ConcurrentDictionary<string, CachedData>();
 
 		public FileNodeHandler()
@@ -236,17 +236,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
-			var name = AssetDatabase.GUIDToAssetPath(id);
-			var concreteType = "File";
-
 			wasCached = false;
-			return new Node(id, type, name, concreteType);
+			return new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
 		}
 
 		private string GetCachePath()
 		{
 			var version = "2.0";
 			var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
+
 			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH,
 				$"FileNodeHandlerCache_{buildTarget}_{version}.cache");
 		}

@@ -5,10 +5,10 @@
 		string Id { get; }
 	}
 
-	/**
-	 * A node that got resolved by one of the caches
-	 * This could be for example an Asset, LocaKey, AssetBundle, etc. 
-	 */
+	/// <summary>
+	/// A node that got resolved by one of the caches
+	/// This could be for example an Asset, LocaKey, AssetBundle, etc.
+	/// </summary>
 	public interface IDependencyMappingNode : IIdentifyable
 	{
 		string Type { get; }

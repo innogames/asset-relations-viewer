@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// Some helper methods to make it easier to handle Toggles and IntSliders for <see cref="PrefValue{T}"/>
+	/// </summary>
 	public static class EditorPrefUtilities
 	{
 		public static string GetProjectSpecificKey(string key)

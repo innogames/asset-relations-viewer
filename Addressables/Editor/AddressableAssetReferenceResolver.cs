@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 {
-	public class AssetToAssetAssetRefDependency
+	public static class AssetToAssetAssetRefDependency
 	{
 		public const string Name = "ATOA_AssetRef";
 	}
@@ -16,16 +15,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	/// <summary>
 	/// Resolver to find dependencies to assets which are connected via the AddressableAssets system
 	/// </summary>
+	[UsedImplicitly]
 	public class AddressableAssetReferenceResolver : IAssetDependencyResolver
 	{
 		private const string ConnectionTypeDescription =
 			"Dependencies between assets done by an Addressable AssetReference";
 
-		private static DependencyType AddressableType = new DependencyType("Asset->Asset by AssetReference",
+		private const string Id = "AddressableReferenceResolver";
+
+		private static readonly DependencyType AddressableType = new DependencyType("Asset->Asset by AssetReference",
 			new Color(0.6f, 0.7f, 0.85f), true, false, ConnectionTypeDescription);
 
 		private readonly HashSet<string> validGuids = new HashSet<string>();
-		private const string Id = "AddressableReferenceResolver";
 
 		public bool IsGuidValid(string guid)
 		{

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
@@ -9,11 +10,17 @@ using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 {
-	public class FileToAddressableGroupDependency
+	public static class FileToAddressableGroupDependency
 	{
 		public const string Name = "FileToAddressableGroup";
 	}
 
+	/// <summary>
+	/// Dependency Cache to store connections from a File to AddressableAssetGroups
+	/// This cache only makes sense to get bidirectional dependency done by
+	/// AddressableAssetGroup -> Asset -> File -> AddressableAssetGroup
+	/// </summary>
+	[UsedImplicitly]
 	public class FileToAddressableAssetGroupTempCache : IDependencyCache
 	{
 		private const string Version = "2.0.0";
@@ -25,10 +32,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			new Dictionary<string, GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
-
-		public void ClearFile(string directory)
-		{
-		}
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
@@ -61,7 +64,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				assetToFileLookup);
 
 			Lookup.Clear();
-			Nodes = new GenericDependencyMappingNode[0];
+			Nodes = Array.Empty<GenericDependencyMappingNode>();
 
 			var nodes = new List<GenericDependencyMappingNode>();
 
@@ -101,7 +104,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
-			foreach (IDependencyMappingNode node in Nodes)
+			foreach (var node in Nodes)
 			{
 				nodes.Add(node);
 			}
@@ -145,16 +148,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	{
 	}
 
+	[UsedImplicitly]
 	public class FileToAddressableGroupResolver : IAddressableAssetToGroupResolver
 	{
 		public const string Id = "FileToAddressableGroupResolver";
 
-		private string[] ConnectionTypes = {FileToAddressableGroupDependency.Name};
+		private readonly string[] ConnectionTypes = {FileToAddressableGroupDependency.Name};
 
 		private const string ConnectionTypeDescription =
 			"Dependencies from the file to the AddressableAssetGroup the file is part of";
 
-		private static DependencyType DependencyType = new AssetToAddressableAssetGroupDependencyType(
+		private static readonly DependencyType DependencyType = new AssetToAddressableAssetGroupDependencyType(
 			"File->AddressableAssetGroup", new Color(0.85f, 0.55f, 0.35f), false, true, ConnectionTypeDescription);
 
 		public class AssetToAddressableAssetGroupDependencyType : DependencyType
@@ -168,15 +172,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			public override bool IsHardConnection(Node source, Node target)
 			{
 				var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+
 				foreach (var group in settings.groups)
 				{
-					if (group.Name == target.Name)
+					if (group.Name == target.Name && group.HasSchema<BundledAssetGroupSchema>())
 					{
-						if (group.HasSchema<BundledAssetGroupSchema>())
-						{
-							var groupSchema = group.GetSchema<BundledAssetGroupSchema>();
-							return groupSchema.IncludeInBuild;
-						}
+						var groupSchema = group.GetSchema<BundledAssetGroupSchema>();
+						return groupSchema.IncludeInBuild;
 					}
 				}
 
