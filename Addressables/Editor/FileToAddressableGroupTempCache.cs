@@ -26,9 +26,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		private const string Version = "2.0.0";
 		private const string FileName = "FileToAddressableGroupDependencyCacheData_" + Version + ".cache";
 
-		private GenericDependencyMappingNode[] Nodes = new GenericDependencyMappingNode[0];
+		private GenericDependencyMappingNode[] _nodes = Array.Empty<GenericDependencyMappingNode>();
 
-		private Dictionary<string, GenericDependencyMappingNode> Lookup =
+		private Dictionary<string, GenericDependencyMappingNode> _lookup =
 			new Dictionary<string, GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
@@ -46,7 +46,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			if (!shouldUpdate && Nodes.Length > 0)
+			if (!shouldUpdate && _nodes.Length > 0)
 			{
 				yield break;
 			}
@@ -63,8 +63,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
 				assetToFileLookup);
 
-			Lookup.Clear();
-			Nodes = Array.Empty<GenericDependencyMappingNode>();
+			_lookup.Clear();
+			_nodes = Array.Empty<GenericDependencyMappingNode>();
 
 			var nodes = new List<GenericDependencyMappingNode>();
 
@@ -94,17 +94,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 							new[] {new PathSegment("AssetGroup", PathSegmentType.Property)}));
 
 						nodes.Add(node);
-						Lookup.Add(node.Id, node);
+						_lookup.Add(node.Id, node);
 					}
 				}
 			}
 
-			Nodes = nodes.ToArray();
+			_nodes = nodes.ToArray();
 		}
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
-			foreach (var node in Nodes)
+			foreach (var node in _nodes)
 			{
 				nodes.Add(node);
 			}
@@ -113,9 +113,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public List<Dependency> GetDependenciesForId(string id)
 		{
 			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, FileToAddressableGroupResolver.Id,
-				    FileToAddressableGroupDependency.Name) && Lookup.ContainsKey(id))
+				    FileToAddressableGroupDependency.Name) && _lookup.ContainsKey(id))
 			{
-				return Lookup[id].Dependencies;
+				return _lookup[id].Dependencies;
 			}
 
 			return new List<Dependency>();
@@ -125,13 +125,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		{
 			var path = Path.Combine(directory, FileName);
 
-			Nodes = CacheSerializerUtils.LoadGenericLookup(path);
-			Lookup = CacheSerializerUtils.GenerateIdLookup(Nodes);
+			_nodes = CacheSerializerUtils.LoadGenericLookup(path);
+			_lookup = CacheSerializerUtils.GenerateIdLookup(_nodes);
 		}
 
 		public void Save(string directory)
 		{
-			CacheSerializerUtils.SaveGenericMapping(directory, FileName, Nodes);
+			CacheSerializerUtils.SaveGenericMapping(directory, FileName, _nodes);
 		}
 
 		public void InitLookup()

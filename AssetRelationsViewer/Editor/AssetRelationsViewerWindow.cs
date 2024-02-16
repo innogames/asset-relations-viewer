@@ -29,7 +29,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		private class NodeDisplayOptions
 		{
-			public readonly PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 64, 0, 64);
+			public readonly PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 4, 0, 64);
 			public readonly PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
 			public readonly PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
 			public readonly PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
@@ -77,8 +77,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			public int Size = -1;
 		}
 
-		private const string OwnName = "AssetRelationsViewer";
-		private string FirstStartupPrefKey = string.Empty;
+		private const string _ownName = "AssetRelationsViewer";
+		private string _firstStartupPrefKey = string.Empty;
 
 		private NodeDisplayData _displayData;
 
@@ -131,7 +131,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private string[] _nodeFilterTokens = new string[0];
 		private string[] _typeFilterTokens = new string[0];
 
-		private readonly List<Node> filteredNodes = new List<Node>();
+		private readonly List<Node> _filteredNodes = new List<Node>();
 		private string[] _filteredNodeNames = new string[0];
 
 		private int _selectedSearchNodeIndex;
@@ -187,7 +187,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private static AssetRelationsViewerWindow ShowWindow(bool update, bool loadCaches)
 		{
-			var window = GetWindow<AssetRelationsViewerWindow>(false, OwnName);
+			var window = GetWindow<AssetRelationsViewerWindow>(false, _ownName);
 
 			window.Initialize(update, loadCaches);
 			return window;
@@ -258,7 +258,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			minSize = new Vector2(800, 600);
 
-			FirstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V2.0");
+			_firstStartupPrefKey = EditorPrefUtilities.GetProjectSpecificKey("ARV_FirstStartup_V2.0");
 			_displayData = new NodeDisplayData();
 			_nodeDisplayOptions = new NodeDisplayOptions();
 			_cacheUpgradeSettingsOptions = new CacheUpgradeSettingsOptions();
@@ -423,7 +423,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void HandleFirstStartup()
 		{
-			var firstStartup = EditorPrefs.GetBool(FirstStartupPrefKey, true);
+			var firstStartup = EditorPrefs.GetBool(_firstStartupPrefKey, true);
 
 			if (firstStartup)
 			{
@@ -436,7 +436,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					SetDefaultResolverAndCacheState();
 				}
 
-				EditorPrefs.SetBool(FirstStartupPrefKey, false);
+				EditorPrefs.SetBool(_firstStartupPrefKey, false);
 			}
 		}
 
@@ -793,7 +793,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void FilterNodeList()
 		{
-			filteredNodes.Clear();
+			_filteredNodes.Clear();
 
 			foreach (var filterData in _nodeSearchList)
 			{
@@ -801,20 +801,20 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				if (IsNodeMatchingFilter(filterData, _nodeSearchTokens, _typeSearchTokens))
 				{
-					filteredNodes.Add(node);
+					_filteredNodes.Add(node);
 
-					if (filteredNodes.Count > 200)
+					if (_filteredNodes.Count > 200)
 					{
 						break;
 					}
 				}
 			}
 
-			_filteredNodeNames = new string[filteredNodes.Count];
+			_filteredNodeNames = new string[_filteredNodes.Count];
 
-			for (var i = 0; i < filteredNodes.Count; i++)
+			for (var i = 0; i < _filteredNodes.Count; i++)
 			{
-				var filteredNode = filteredNodes[i];
+				var filteredNode = _filteredNodes[i];
 				_filteredNodeNames[i] = $"[{filteredNode.ConcreteType}] {filteredNode.Name}";
 			}
 		}
@@ -908,7 +908,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (GUILayout.Button("Select", GUILayout.MaxWidth(50)))
 			{
-				var filteredNode = filteredNodes[_selectedSearchNodeIndex];
+				var filteredNode = _filteredNodes[_selectedSearchNodeIndex];
 				ChangeSelection(filteredNode.Id, filteredNode.Type);
 			}
 

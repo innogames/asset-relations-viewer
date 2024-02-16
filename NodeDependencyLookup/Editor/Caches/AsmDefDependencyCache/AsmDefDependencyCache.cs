@@ -1,40 +1,39 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 {
-	public class AsmdefToAsmdefDependency
+	public static class AsmdefToAsmdefDependency
 	{
 		public const string Name = "AsmDefToAsmDef";
 	}
 
+	[UsedImplicitly]
 	public class AsmDefDependencyCache : IDependencyCache
 	{
+		[UsedImplicitly]
 		private class AsmDefJson
 		{
 			public string name = string.Empty;
 			public string[] references = Array.Empty<string>();
 		}
 
+		[UsedImplicitly]
 		private class AsmRefJson
 		{
 			public string reference;
 		}
 
-		private IDependencyMappingNode[] Nodes = new IDependencyMappingNode[0];
+		private IDependencyMappingNode[] _nodes = Array.Empty<IDependencyMappingNode>();
 
-		private Dictionary<string, GenericDependencyMappingNode> _lookup =
+		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup =
 			new Dictionary<string, GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
-
-		public void ClearFile(string directory)
-		{
-			// not needed
-		}
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
@@ -57,7 +56,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			AddAsmDefs(nodes, nameToFileMapping);
 			AddAsmRefs(nodes, nameToFileMapping);
 
-			Nodes = nodes.ToArray();
+			_nodes = nodes.ToArray();
 
 			yield return null;
 		}
@@ -181,7 +180,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
-			foreach (var node in Nodes)
+			foreach (var node in _nodes)
 			{
 				nodes.Add(node);
 			}

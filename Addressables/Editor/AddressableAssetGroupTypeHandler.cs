@@ -21,11 +21,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	[UsedImplicitly]
 	public class AddressableAssetGroupTypeHandler : ITypeHandler
 	{
-		private string[] m_nodes = new string[0];
-		private string[] m_filteredNodes = new string[0];
+		private string[] _nodes = new string[0];
+		private string[] _filteredNodes = new string[0];
 
-		private string m_selectedGroupId = string.Empty;
-		private string m_filter = string.Empty;
+		private string _selectedGroupId = string.Empty;
+		private string _filter = string.Empty;
 
 		private AddressableGroupNodeHandler _nodeHandler;
 
@@ -75,18 +75,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				}
 			}
 
-			m_nodes = nodes.ToArray();
-			m_filteredNodes = nodes.ToArray();
+			_nodes = nodes.ToArray();
+			_filteredNodes = nodes.ToArray();
 		}
 
 		public bool HandlesCurrentNode()
 		{
-			return !string.IsNullOrEmpty(m_selectedGroupId);
+			return !string.IsNullOrEmpty(_selectedGroupId);
 		}
 
 		public void OnGui()
 		{
-			if (m_nodes.Length == 0)
+			if (_nodes.Length == 0)
 			{
 				EditorGUILayout.LabelField("AddressableGroupTempCache not activated");
 				EditorGUILayout.LabelField("or no addressable groups found");
@@ -94,40 +94,37 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 
 			EditorGUILayout.LabelField("Selected Group:");
-			EditorGUILayout.LabelField(m_selectedGroupId);
+			EditorGUILayout.LabelField(_selectedGroupId);
 			EditorGUILayout.Space();
 
-			var newFilter = EditorGUILayout.TextField("Filter:", m_filter);
+			var newFilter = EditorGUILayout.TextField("Filter:", _filter);
 
-			if (newFilter != m_filter)
+			if (newFilter != _filter)
 			{
-				m_filter = newFilter;
+				_filter = newFilter;
 				var filteredNodes = new HashSet<string>();
 
-				foreach (var node in m_nodes)
+				foreach (var node in _nodes)
 				{
-					if (node.Contains(m_filter))
+					if (node.Contains(_filter))
 						filteredNodes.Add(node);
 				}
 
-				m_filteredNodes = filteredNodes.ToArray();
+				_filteredNodes = filteredNodes.ToArray();
 			}
 
-			m_dropDownIndex = EditorGUILayout.Popup("Groups: ", m_dropDownIndex, m_filteredNodes);
+			m_dropDownIndex = EditorGUILayout.Popup("Groups: ", m_dropDownIndex, _filteredNodes);
 
 			if (GUILayout.Button("Select"))
 			{
-				m_selectedGroupId = m_filteredNodes[m_dropDownIndex];
-				_viewerWindow.ChangeSelection(m_selectedGroupId, AddressableAssetGroupNodeType.Name);
+				_selectedGroupId = _filteredNodes[m_dropDownIndex];
+				_viewerWindow.ChangeSelection(_selectedGroupId, AddressableAssetGroupNodeType.Name);
 			}
 		}
 
 		public void OnSelectAsset(string id, string type)
 		{
-			if (type == AddressableAssetGroupNodeType.Name)
-				m_selectedGroupId = id;
-			else
-				m_selectedGroupId = string.Empty;
+			_selectedGroupId = type == AddressableAssetGroupNodeType.Name ? id : string.Empty;
 		}
 	}
 

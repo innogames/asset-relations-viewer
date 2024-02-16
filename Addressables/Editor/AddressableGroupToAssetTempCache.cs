@@ -35,10 +35,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		private CreatedDependencyCache _createdDependencyCache;
 
-		public void ClearFile(string directory)
-		{
-		}
-
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
 			_createdDependencyCache = createdDependencyCache;
@@ -101,9 +97,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 						}
 
 						var assetId = fileNode.Referencers[0].Node.Id;
-						var componentName = "GroupUsage " + g++;
+						var componentName = "GroupUsage " + g;
 						node.Dependencies.Add(new Dependency(assetId, AddressableGroupToAssetDependency.Name,
 							AssetNodeType.Name, new[] {new PathSegment(componentName, PathSegmentType.Property)}));
+
+						g++;
 					}
 				}
 

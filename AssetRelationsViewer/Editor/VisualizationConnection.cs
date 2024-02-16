@@ -22,6 +22,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			public bool IsHardRef;
 		}
 
+		public readonly VisualizationNodeBase VNode;
+		public readonly List<Data> Datas;
+		public readonly bool IsRecursion;
+
 		public VisualizationConnection(List<Data> datas, VisualizationNodeBase node, bool isRecursion)
 		{
 			Datas = datas;
@@ -39,9 +43,5 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			return false;
 		}
-
-		public readonly VisualizationNodeBase VNode;
-		public readonly List<Data> Datas;
-		public readonly bool IsRecursion;
 	}
 }

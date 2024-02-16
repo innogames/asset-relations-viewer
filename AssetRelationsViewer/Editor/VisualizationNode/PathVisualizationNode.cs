@@ -9,8 +9,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	/// </summary>
 	public class PathVisualizationNode : VisualizationNodeBase
 	{
-		private PathNode PathNode;
-		private HashSet<PathNode> TargetNodes = new HashSet<PathNode>();
+		private PathNode _pathNode;
+		private readonly HashSet<PathNode> _targetNodes = new HashSet<PathNode>();
 
 		public override string GetSortingKey(RelationType relationType, bool sortBySize)
 		{
@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		public override EnclosedBounds GetBoundsOwn(NodeDisplayData displayData)
 		{
 			var count = GetPathNodeCount();
-			var width = PathNode.Width + 16;
+			var width = _pathNode.Width + 16;
 			return new EnclosedBounds(0, count * -8 + 6, width, count * 8 + 10);
 		}
 
@@ -30,15 +30,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
 			var offset = GetPositionOffset(viewAreaData);
-			PathNode.DrawPathNodes(PosX, PosY + offset, PathNode, displayDataProvider);
-			DrawPathNodeConnections(PathNode, TargetNodes, displayDataProvider, offset);
+			PathNode.DrawPathNodes(PosX, PosY + offset, _pathNode, displayDataProvider);
+			DrawPathNodeConnections(_pathNode, _targetNodes, displayDataProvider, offset);
 		}
 
 		public override void CalculateCachedDataInternal()
 		{
-			TargetNodes.Clear();
+			_targetNodes.Clear();
 			GeneratePathNodeTree();
-			PathNode.CalculatePositionData(0, 0, TargetNodes);
+			_pathNode.CalculatePositionData(0, 0, _targetNodes);
 		}
 
 		public override bool HasNoneFilteredChildren(RelationType relationType)
@@ -86,17 +86,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void GeneratePathNodeTree()
 		{
-			PathNode = new PathNode(string.Empty, PathSegmentType.GameObject, "Root");
+			_pathNode = new PathNode(string.Empty, PathSegmentType.GameObject, "Root");
 
 			foreach (var connection in GetRelations(RelationType.DEPENDENCY, true, true))
 			{
 				foreach (var data in connection.Datas)
 				{
-					PathNode.AddPath(PathNode, data.PathSegments.Reverse().ToArray(), data.Type);
+					PathNode.AddPath(_pathNode, data.PathSegments.Reverse().ToArray(), data.Type);
 				}
 			}
 
-			PathNode.CalculateNodeHeight(PathNode);
+			PathNode.CalculateNodeHeight(_pathNode);
 		}
 	}
 }

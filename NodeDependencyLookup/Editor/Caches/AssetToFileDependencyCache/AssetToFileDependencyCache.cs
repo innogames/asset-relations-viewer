@@ -23,26 +23,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const string Version = "1.5.1";
 		private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
 
-		private Dictionary<string, GenericDependencyMappingNode> _fileNodesDict =
+		private readonly Dictionary<string, GenericDependencyMappingNode> _fileNodesDict =
 			new Dictionary<string, GenericDependencyMappingNode>();
 
-		private FileToAssetsMapping[] _fileToAssetsMappings = new FileToAssetsMapping[0];
+		private FileToAssetsMapping[] _fileToAssetsMappings = Array.Empty<FileToAssetsMapping>();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
 		private bool _isLoaded;
 
-		private List<AssetListEntry> tmpEntries = new List<AssetListEntry>();
-
-		public void ClearFile(string directory)
-		{
-			var path = Path.Combine(directory, FileName);
-
-			if (File.Exists(path))
-			{
-				File.Delete(path);
-			}
-		}
+		private readonly List<AssetListEntry> _tmpEntries = new List<AssetListEntry>();
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
@@ -111,13 +101,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private void FindDependenciesForAsset(IAssetToFileDependencyResolver resolver, string path, long timeStamp,
 			Dictionary<string, FileToAssetsMapping> fileToAssetMappingDictionary)
 		{
-			tmpEntries.Clear();
-			NodeDependencyLookupUtility.AddAssetsToList(tmpEntries, path);
+			_tmpEntries.Clear();
+			NodeDependencyLookupUtility.AddAssetsToList(_tmpEntries, path);
 
 			// Delete to avoid piling up removed subassets from file
 			fileToAssetMappingDictionary.Remove(AssetDatabase.AssetPathToGUID(path));
 
-			foreach (var entry in tmpEntries)
+			foreach (var entry in _tmpEntries)
 			{
 				GetDependenciesForAssetInResolver(entry.AssetId, entry.Asset, timeStamp, resolver,
 					fileToAssetMappingDictionary);
