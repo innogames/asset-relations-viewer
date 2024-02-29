@@ -308,6 +308,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				exception =>
 				{
 					_isUpdatingCache = false;
+					EditorUtility.ClearProgressBar();
 					throw exception;
 				});
 		}

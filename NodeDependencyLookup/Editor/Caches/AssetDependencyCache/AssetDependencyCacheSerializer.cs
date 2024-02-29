@@ -32,7 +32,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					CacheSerializerUtils.EncodeLong(resolverTimeStamp.TimeStamp, ref bytes, ref offset);
 				}
 
-				CacheSerializerUtils.EncodeShort((short) fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeInt(fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
 
 				for (var j = 0; j < fileToAssetNode.AssetNodes.Count; ++j)
 				{
@@ -79,7 +79,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					fileAssetNode.ResolverTimeStamps.Add(resolverTimeStamp);
 				}
 
-				int numAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+				int numAssetNodes = (int)CacheSerializerUtils.DecodeInt(ref bytes, ref offset);
 				fileAssetNode.AssetNodes = new List<AssetNode>(numAssetNodes);
 
 				for (var i = 0; i < numAssetNodes; i++)

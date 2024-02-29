@@ -45,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public string[] GetDependencyTypes()
 		{
-			return new[] {AssetToAssetAssetRefDependency.Name};
+			return new[] { AssetToAssetAssetRefDependency.Name };
 		}
 
 		public void SetValidGUIDs()
@@ -128,9 +128,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 					asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
 				}
 
+				if (asset == null)
+				{
+					Debug.LogError($"AddressableAssetReferenceResolver: Asset for {assetPath} was null");
+					return null;
+				}
+
 				var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
 				return new AssetDependencyResolverResult
-					{Id = assetId, NodeType = AssetNodeType.Name, DependencyType = AssetToAssetAssetRefDependency.Name};
+				{
+					Id = assetId, NodeType = AssetNodeType.Name, DependencyType = AssetToAssetAssetRefDependency.Name
+				};
 			}
 
 			return null;

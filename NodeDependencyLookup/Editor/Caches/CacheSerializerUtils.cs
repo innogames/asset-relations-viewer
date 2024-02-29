@@ -23,6 +23,26 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return (short) (bytes[offset++] + (bytes[offset++] << 8));
 		}
 
+		public static void EncodeInt(int value, ref byte[] bytes, ref int offset)
+		{
+			for (var k = 0; k < 4; ++k)
+			{
+				bytes[offset++] = (byte) (value >> (4 * k));
+			}
+		}
+
+		public static int DecodeInt(ref byte[] bytes, ref int offset)
+		{
+			int result = 0;
+
+			for (var k = 0; k < 4; ++k)
+			{
+				result += bytes[offset++] << (4 * k);
+			}
+
+			return result;
+		}
+
 		public static void EncodeLong(long value, ref byte[] bytes, ref int offset)
 		{
 			for (var k = 0; k < 8; ++k)
@@ -111,7 +131,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static void EncodeDependencies(List<Dependency> dependencies, ref byte[] bytes, ref int offset)
 		{
-			EncodeShort((short) dependencies.Count, ref bytes, ref offset);
+			EncodeInt(dependencies.Count, ref bytes, ref offset);
 
 			for (var k = 0; k < dependencies.Count; k++)
 			{
@@ -128,7 +148,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static List<Dependency> DecodeDependencies(ref byte[] bytes, ref int offset)
 		{
-			var numDependencies = DecodeShort(ref bytes, ref offset);
+			var numDependencies = DecodeInt(ref bytes, ref offset);
 			var dependencies = new List<Dependency>(numDependencies);
 
 			for (var k = 0; k < numDependencies; k++)

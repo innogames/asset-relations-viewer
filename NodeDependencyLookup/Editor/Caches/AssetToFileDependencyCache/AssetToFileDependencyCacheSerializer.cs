@@ -23,7 +23,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				CacheSerializerUtils.EncodeLong(fileToAssetsMapping.Timestamp, ref bytes, ref offset);
 				CacheSerializerUtils.EncodeString(fileToAssetsMapping.FileId, ref bytes, ref offset);
-				CacheSerializerUtils.EncodeShort((short) fileToAssetsMapping.FileNodes.Count, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeInt(fileToAssetsMapping.FileNodes.Count, ref bytes, ref offset);
 
 				foreach (var fileNode in fileToAssetsMapping.FileNodes)
 				{
@@ -54,7 +54,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				mapping.Timestamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 				mapping.FileId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 
-				int numFileNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+				int numFileNodes = CacheSerializerUtils.DecodeInt(ref bytes, ref offset);
 
 				mapping.FileNodes = new List<GenericDependencyMappingNode>(numFileNodes);
 

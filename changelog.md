@@ -1,6 +1,6 @@
 **3.0.0-pre.3**
-- Added more class comments
 - SerializedPropertyType.ManagedReference are now traversed so SerializeReferences are now working
+- Cache now handles files with over 32k subassets or dependencies without causing errors
 
 **3.0.0-pre.2**
 - Fix possible ```cs ArgumentException: An item with the same key has already been added``` which happened if a deleted file was referenced as a dependency

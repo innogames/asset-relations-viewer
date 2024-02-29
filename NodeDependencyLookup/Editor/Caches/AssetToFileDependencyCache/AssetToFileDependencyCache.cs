@@ -20,7 +20,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetToFileDependencyCache : IDependencyCache
 	{
-		private const string Version = "1.5.1";
+		private const string Version = "3.0.0";
 		private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
 
 		private readonly Dictionary<string, GenericDependencyMappingNode> _fileNodesDict =
