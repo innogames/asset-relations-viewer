@@ -31,7 +31,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
 		void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
 
-		public AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+		AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
 			ref string propertyPath, SerializedPropertyType type);
 	}
 

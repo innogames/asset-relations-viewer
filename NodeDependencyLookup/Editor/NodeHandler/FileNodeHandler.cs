@@ -72,22 +72,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return 0;
 			}
 
-			using var memoryStream = new MemoryStream();
-
-			var fileInfo = new FileInfo(path);
-			if (!fileInfo.Exists)
+			using (var memoryStream = new MemoryStream())
 			{
-				return null;
+				var fileInfo = new FileInfo(path);
+				if (!fileInfo.Exists)
+				{
+					return null;
+				}
+
+				using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+
+				using (var originalFileStream = fileInfo.OpenRead())
+				{
+					originalFileStream.CopyTo(compressionStream);
+				}
+
+				return memoryStream.Position;
 			}
-
-			using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
-
-			using (var originalFileStream = fileInfo.OpenRead())
-			{
-				originalFileStream.CopyTo(compressionStream);
-			}
-
-			return memoryStream.Position;
 		}
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
