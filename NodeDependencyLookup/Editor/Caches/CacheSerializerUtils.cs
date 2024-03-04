@@ -27,7 +27,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			for (var k = 0; k < 4; ++k)
 			{
-				bytes[offset++] = (byte) (value >> (4 * k));
+				bytes[offset++] = (byte) (value >> (8 * k));
 			}
 		}
 
@@ -37,7 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			for (var k = 0; k < 4; ++k)
 			{
-				result += bytes[offset++] << (4 * k);
+				result += bytes[offset++] << (8 * k);
 			}
 
 			return result;
