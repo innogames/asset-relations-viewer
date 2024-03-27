@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine
 {
@@ -37,10 +38,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine
 			EditorApplication.update -= MoveNext;
 		}
 
-		public bool IsRunning()
-		{
-			return isRunning;
-		}
+		public bool IsRunning() => isRunning;
 
 		private void MoveNext()
 		{
@@ -51,36 +49,30 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine
 			catch (Exception e)
 			{
 				Stop();
+				EditorApplication.update -= IterateCoroutine;
+				Debug.LogException(e);
 				onExceptionCallback?.Invoke(e);
 			}
 		}
 
 		private void IterateCoroutine()
 		{
-			try
-			{
-				if (coroutineStack.Count == 0)
-				{
-					EditorApplication.update -= IterateCoroutine;
-					return;
-				}
-
-				var enumerator = coroutineStack.Peek();
-
-				if (!enumerator.MoveNext())
-				{
-					coroutineStack.Pop();
-				}
-
-				if (enumerator.Current is IEnumerator childEnumerator)
-				{
-					coroutineStack.Push(childEnumerator);
-				}
-			}
-			catch (Exception e)
+			if (coroutineStack.Count == 0)
 			{
 				EditorApplication.update -= IterateCoroutine;
-				throw e;
+				return;
+			}
+
+			var enumerator = coroutineStack.Peek();
+
+			if (!enumerator.MoveNext())
+			{
+				coroutineStack.Pop();
+			}
+
+			if (enumerator.Current is IEnumerator childEnumerator)
+			{
+				coroutineStack.Push(childEnumerator);
 			}
 		}
 	}

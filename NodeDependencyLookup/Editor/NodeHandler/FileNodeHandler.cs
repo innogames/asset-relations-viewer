@@ -7,8 +7,8 @@ using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
 using UnityEditor;
-using UnityEngine;
 using UnityEditor.U2D;
+using UnityEngine;
 using UnityEngine.U2D;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -31,18 +31,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public long TimeStamp;
 		}
 
-		private readonly Dictionary<Node, string> nodeToArtifactPathLookup = new Dictionary<Node, string>();
+		private readonly Dictionary<Node, string> nodeToArtifactPathLookup = new();
 
-		private MethodInfo getPreviewTextureMethod;
-		private MethodInfo getAudioSizeMethod;
-		private MethodInfo getStorageMemorySizeMethod;
+		private readonly MethodInfo getPreviewTextureMethod;
+		private readonly MethodInfo getAudioSizeMethod;
+		private readonly MethodInfo getStorageMemorySizeMethod;
 
 		private readonly string audioClipTypeName = typeof(AudioClip).FullName;
 		private readonly string spriteTypeName = typeof(Sprite).FullName;
 		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup =
-			new ConcurrentDictionary<string, CachedData>();
+		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup = new();
 
 		public FileNodeHandler()
 		{
@@ -60,10 +59,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic);
 		}
 
-		public string GetHandledNodeType()
-		{
-			return FileNodeType.Name;
-		}
+		public string GetHandledNodeType() => FileNodeType.Name;
 
 		private static long? GetCompressedSize(string path)
 		{
@@ -130,11 +126,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (compressedSize != null)
 				{
-					packedAssetSize = (int) compressedSize.Value;
+					packedAssetSize = (int)compressedSize.Value;
 				}
 			}
 
-			var cachedData = new CachedData {Id = id, Size = packedAssetSize, TimeStamp = timeStamp};
+			var cachedData = new CachedData { Id = id, Size = packedAssetSize, TimeStamp = timeStamp };
 
 			if (updateNodeData)
 			{
@@ -168,12 +164,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(connection.Node.Id);
 					var path = AssetDatabase.GUIDToAssetPath(guid);
 					var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(path);
+
+					if (spriteAtlas == null)
+					{
+						continue;
+					}
+
 					var previewTextures =
-						getPreviewTextureMethod.Invoke(null, new object[] {spriteAtlas}) as Texture2D[];
+						getPreviewTextureMethod.Invoke(null, new object[] { spriteAtlas }) as Texture2D[];
 
 					foreach (var previewTexture in previewTextures)
 					{
-						size += Convert.ToInt32(getStorageMemorySizeMethod.Invoke(null, new object[] {previewTexture}));
+						size += Convert.ToInt32(
+							getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture }));
 					}
 				}
 			}
@@ -190,7 +193,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(connection.Node.Id);
 					var path = AssetDatabase.GUIDToAssetPath(guid);
 					var importer = AssetImporter.GetAtPath(path) as AudioImporter;
-					return (int) getAudioSizeMethod.Invoke(importer, new object[] { });
+					return (int)getAudioSizeMethod.Invoke(importer, new object[] { });
 				}
 			}
 
@@ -265,7 +268,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				var size = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 				var timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
-				cachedSizeLookup.TryAdd(id, new CachedData {Id = id, Size = (int) size, TimeStamp = timeStamp});
+				cachedSizeLookup.TryAdd(id, new CachedData { Id = id, Size = (int)size, TimeStamp = timeStamp });
 			}
 		}
 
@@ -306,9 +309,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return false;
 		}
 
-		private bool IsInResources(string path)
-		{
-			return path.Contains("/Resources/");
-		}
+		private bool IsInResources(string path) => path.Contains("/Resources/");
 	}
 }
