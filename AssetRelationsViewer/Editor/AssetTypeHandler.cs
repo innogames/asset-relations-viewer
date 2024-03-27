@@ -1,120 +1,116 @@
-using System;
 using System.Collections.Generic;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
-    public class AssetTypeHandler : ITypeHandler
-    {
-        private Object _selectedAsset;
-        private AssetRelationsViewerWindow _viewerWindow;
+	[UsedImplicitly]
+	public class AssetTypeHandler : ITypeHandler
+	{
+		private Object _selectedAsset;
+		private AssetRelationsViewerWindow _viewerWindow;
+		private readonly PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
 
-        private PrefValueBool _explorerSyncModePref = new PrefValueBool("DirtyOnChange", false);
+		public string GetHandledType()
+		{
+			return AssetNodeType.Name;
+		}
 
-        public string GetHandledType()
-        {
-            return AssetNodeType.Name;
-        }
+		public string GetSortingKey(string name)
+		{
+			return $"Asset {name}";
+		}
 
-        public string GetSortingKey(string name)
-        {
-            return $"Asset {name}";
-        }
+		public VisualizationNodeData CreateNodeCachedData(Node node)
+		{
+			return new AssetVisualizationNodeData(node);
+		}
 
-        public VisualizationNodeData CreateNodeCachedData(string id)
-        {
-            return new AssetVisualizationNodeData(id, GetHandledType());
-        }
+		public string GetNodeDisplayName(Node node)
+		{
+			return node.Name;
+		}
 
-        public void SelectInEditor(string id)
-        {
-            string guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
-            long fileId = long.Parse(NodeDependencyLookupUtility.GetFileIdFromAssetId(id));
+		public void SelectInEditor(string id)
+		{
+			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(id);
+			var fileId = long.Parse(NodeDependencyLookupUtility.GetFileIdFromAssetId(id));
 
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            Object[] allAssets = NodeDependencyLookupUtility.LoadAllAssetsAtPath(path);
+			var path = AssetDatabase.GUIDToAssetPath(guid);
+			var allAssets = NodeDependencyLookupUtility.LoadAllAssetsAtPath(path);
 
-            foreach (Object asset in allAssets)
-            {
-                if (asset == null)
-                {
-                    return;
-                }
-                
-                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string aguid, out long afileId);
+			foreach (var asset in allAssets)
+			{
+				if (asset == null)
+				{
+					return;
+				}
 
-                if (afileId == fileId)
-                {
-                    Selection.activeObject = asset;
-                    return;
-                }
-            }
-        }
+				AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var aguid, out long afileId);
 
-        public void OnGui()
-        {
-            DisplayFilterOptions();
-        }
+				if (afileId == fileId)
+				{
+					Selection.activeObject = asset;
+					return;
+				}
+			}
+		}
 
-        public void OnSelectAsset(string id, string type)
-        {
-            if (type == GetHandledType())
-            {
-                _selectedAsset = NodeDependencyLookupUtility.GetAssetById(id);
-            }
-            else
-            {
-                _selectedAsset = null;
-            }
-        }
+		public void OnGui()
+		{
+			DisplayFilterOptions();
+		}
 
-        public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
-            AssetRelationsViewerWindow window, INodeHandler nodeHandler)
-        {
-            _viewerWindow = window;
-            Selection.selectionChanged += HandleSyncToExplorer;
-        }
+		public void OnSelectAsset(string id, string type)
+		{
+			if (type == GetHandledType())
+			{
+				_selectedAsset = NodeDependencyLookupUtility.GetAssetById(id);
+			}
+			else
+			{
+				_selectedAsset = null;
+			}
+		}
 
-        public bool HandlesCurrentNode()
-        {
-            return _selectedAsset != null;
-        }
-        
-        private void HandleSyncToExplorer()
-        {
-            if (_explorerSyncModePref.GetValue())
-            {
-                _viewerWindow.OnAssetSelectionChanged();
-            }
-        }
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
+			AssetRelationsViewerWindow window)
+		{
+			_viewerWindow = window;
+			Selection.selectionChanged += HandleSyncToExplorer;
+		}
 
-        private void DisplayFilterOptions()
-        {
-            EditorGUILayout.BeginVertical();
+		public bool HandlesCurrentNode()
+		{
+			return _selectedAsset != null;
+		}
 
-            Object newSelectedAsset = EditorGUILayout.ObjectField(_selectedAsset, typeof(Object), false);
+		private void HandleSyncToExplorer()
+		{
+			if (_explorerSyncModePref.GetValue())
+			{
+				_viewerWindow.OnAssetSelectionChanged();
+			}
+		}
 
-            if (newSelectedAsset != _selectedAsset)
-            {
-                string fileId = NodeDependencyLookupUtility.GetAssetIdForAsset(newSelectedAsset);
-                _viewerWindow.ChangeSelection(fileId, GetHandledType());
+		private void DisplayFilterOptions()
+		{
+			EditorGUILayout.BeginVertical();
 
-                _selectedAsset = newSelectedAsset;
-            }
+			var newSelectedAsset = EditorGUILayout.ObjectField(_selectedAsset, typeof(Object), false);
 
-            EditorPrefUtilities.TogglePref(_explorerSyncModePref, "Sync to explorer:");
-            EditorGUILayout.EndVertical();
-        }
+			if (newSelectedAsset != _selectedAsset)
+			{
+				var fileId = NodeDependencyLookupUtility.GetAssetIdForAsset(newSelectedAsset);
+				_viewerWindow.ChangeSelection(fileId, GetHandledType());
 
-        private HashSet<string> CreateFilter(string filter)
-        {
-            if (string.IsNullOrEmpty(filter))
-                return null;
+				_selectedAsset = newSelectedAsset;
+			}
 
-            return new HashSet<string>(AssetDatabase.FindAssets(filter));
-        }
-    }
+			EditorPrefUtilities.TogglePref(_explorerSyncModePref, "Sync to explorer:");
+			EditorGUILayout.EndVertical();
+		}
+	}
 }

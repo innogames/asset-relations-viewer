@@ -1,48 +1,63 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// Thread to calculate the hierarchy size of nodes in the background.
+	/// The reason for this is that calculating the treesize can get very slow if the tree depth is very high.
+	/// For example in the case of bidirectional AddressableAssetGroup->AddressableAssetGroup dependencies.
+	/// </summary>
 	public class NodeSizeThread
 	{
-		private readonly Stack<VisualizationNodeData> stack = new Stack<VisualizationNodeData>();
-		private readonly AssetRelationsViewerWindow viewerWindow;
-		private readonly HashSet<string> traversedNodes = new HashSet<string>();
-		private Thread thread;
+		private readonly Stack<VisualizationNodeData> _stack = new Stack<VisualizationNodeData>();
+		private Thread _thread;
+		private NodeDependencyLookupContext _context;
 
-		public NodeSizeThread(AssetRelationsViewerWindow window)
+		public NodeSizeThread(NodeDependencyLookupContext context)
 		{
-			viewerWindow = window;
+			_context = context;
 		}
 
-		public void Start() 
+		public void Start()
 		{
-			thread = new Thread(ThreadProc);
-			thread.Name = "HierarchySizeThread";
-			thread.Start();
+			_thread = new Thread(ThreadProc)
+			{
+				Name = "HierarchySizeThread"
+			};
+			_thread.Start();
 		}
 
 		public void Kill()
 		{
-			thread?.Abort();
-			stack.Clear();
+			_thread?.Abort();
+			_stack.Clear();
 		}
 
 		public void EnqueueNodeData(VisualizationNodeData nodeData)
 		{
-			viewerWindow.GetCachedOwnSizeForNode(nodeData);
-			stack.Push(nodeData);
+			_stack.Push(nodeData);
 		}
-		
-		private void ThreadProc() {
-			while(true)
+
+		private void ThreadProc()
+		{
+			var flattedHierarchy = new HashSet<Node>();
+
+			while (true)
 			{
-				while (stack.Count > 0)
+				while (_stack.Count > 0)
 				{
-					viewerWindow.CalculateTreeSizeForNode(stack.Pop(), traversedNodes);
+					var visualizationNodeData = _stack.Pop();
+					if (visualizationNodeData != null)
+					{
+						visualizationNodeData.HierarchySize =
+							NodeDependencyLookupUtility.GetTreeSize(visualizationNodeData.Node, _context,
+								flattedHierarchy);
+					}
 				}
-                    
-				Thread.Sleep(25);
+
+				Thread.Sleep(5);
 			}
 		}
 	}

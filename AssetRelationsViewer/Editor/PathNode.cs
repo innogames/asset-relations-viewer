@@ -14,54 +14,54 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		public static int NodeHeight = 16;
 
-		public string Name = string.Empty;
-		public int TextLength;
-		public PathSegmentType Type;
-		public List<PathNode> Children = new List<PathNode>();
-		public int Height;
-		public int ChildrenHeight;
-		public string DependencyType;
-		public VisualizationNode TargetNode;
+		private readonly string _name;
+		private readonly int _textLength;
+		private readonly PathSegmentType _type;
+		private readonly List<PathNode> _children = new List<PathNode>();
+		private readonly NodeVisualizationNode _targetNode;
+		private int _height;
+		private int _childrenHeight;
+		public readonly string DependencyType;
 
 		public float PosX;
 		public float PosY;
-
 		public int Width;
 
 		public PathNode(string name, PathSegmentType type, string dependencyType)
 		{
-			Name = name;
-			Type = type;
+			_name = name;
+			_type = type;
+
 			DependencyType = dependencyType;
-			TextLength = GetTextLength(name, GUI.skin.font);
+			_textLength = GetTextLength(name, GUI.skin.font);
 		}
 
 		public static void AddPath(PathNode node, PathSegment[] segments, string type)
 		{
-			PathNode currentNode = node;
-			
-			foreach (PathSegment segment in segments)
-			{
-				string name = GetPathSegmentName(segment);
+			var currentNode = node;
 
-				if (!currentNode.Children.Any(n => n.Name == name))
+			foreach (var segment in segments)
+			{
+				var name = GetPathSegmentName(segment);
+
+				if (currentNode._children.All(n => n._name != name))
 				{
-					currentNode.Children.Add(new PathNode(name, segment.Type, type));
+					currentNode._children.Add(new PathNode(name, segment.Type, type));
 				}
 
-				currentNode = currentNode.Children.Find(n => n.Name == name && n.TargetNode == null);
+				currentNode = currentNode._children.Find(n => n._name == name && n._targetNode == null);
 			}
 		}
 
-		public static string GetPathSegmentName(PathSegment segment)
+		private static string GetPathSegmentName(PathSegment segment)
 		{
-			string name = segment.Name.Replace(".Array.data", "");
+			var name = segment.Name.Replace(".Array.data", "");
 
 			if (segment.Type == PathSegmentType.Property)
 			{
 				return ObjectNames.NicifyVariableName(name);
 			}
-			
+
 			return name;
 		}
 
@@ -73,84 +73,93 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void CalculatePositionData(int px, int py, HashSet<PathNode> targetNodes)
 		{
-			int totalHeight = ChildrenHeight;
-			int currentHeight = 0;
+			var totalHeight = _childrenHeight;
+			var currentHeight = 0;
 
 			PosX = px;
 			PosY = py;
 
-			int width = TextLength + 16;
-			int maxChildWidth = 0;
+			var width = _textLength + 16;
+			var maxChildWidth = 0;
 
-			if (Children.Count == 0)
+			if (_children.Count == 0)
 			{
 				targetNodes.Add(this);
 			}
 
-			foreach (PathNode nodeChild in Children)
+			foreach (var nodeChild in _children)
 			{
-				int childHeight = nodeChild.Height;
-				int offset = currentHeight - (int)((totalHeight - childHeight) * 0.5);
+				var childHeight = nodeChild._height;
+				var offset = currentHeight - (int) ((totalHeight - childHeight) * 0.5);
 
-				int eX = px + width;
-				int eY = py + offset;
+				var eX = px + width;
+				var eY = py + offset;
 
 				nodeChild.CalculatePositionData(eX, eY, targetNodes);
 				maxChildWidth = maxChildWidth > nodeChild.Width ? maxChildWidth : nodeChild.Width;
 
-				currentHeight += nodeChild.Height;
+				currentHeight += nodeChild._height;
 			}
 
 			Width = width + maxChildWidth;
 		}
 
-		public static void DrawPathNodeRec(float px, float py, PathNode node, INodeDisplayDataProvider colorProvider)
+		private static void DrawPathNodeRec(float px, float py, PathNode node, INodeDisplayDataProvider colorProvider)
 		{
 			DrawPathSegment(node.PosX + px, node.PosY + py, node);
 
-			foreach (PathNode child in node.Children)
+			foreach (var child in node._children)
 			{
 				DrawPathNodeRec(px, py, child, colorProvider);
-				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node.TextLength, node.PosY + py, child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
+				AssetRelationsViewerWindow.DrawConnection(node.PosX + px + node._textLength, node.PosY + py,
+					child.PosX + px, child.PosY + py, colorProvider.GetConnectionColorForType(child.DependencyType));
 			}
 		}
 
 		public static int CalculateNodeHeight(PathNode node)
 		{
-			int height = 0;
+			var height = 0;
 
-			foreach (PathNode nodeChild in node.Children)
+			foreach (var nodeChild in node._children)
 			{
 				height += CalculateNodeHeight(nodeChild);
 			}
 
-			node.ChildrenHeight = height;
-			node.Height = Math.Max(NodeHeight, height);
-			return node.Height;
+			node._childrenHeight = height;
+			node._height = Math.Max(NodeHeight, height);
+			return node._height;
 		}
 
-		public static void DrawPathSegment(float px, float py, PathNode node)
+		private static void DrawPathSegment(float px, float py, PathNode node)
 		{
-			Color color = Color.black;
+			var color = Color.black;
 
-			switch (node.Type)
+			switch (node._type)
 			{
-				case PathSegmentType.GameObject: color = new Color(0.1f, 0.1f, 0.2f, 0.7f); break;
-				case PathSegmentType.Component: color = new Color(0.1f, 0.4f, 0.2f, 0.7f); break;
-				case PathSegmentType.Property: color = new Color(0.3f, 0.2f, 0.2f, 0.7f); break;
-				case PathSegmentType.Unknown: color = new Color(0.3f, 0.3f, 0.3f, 0.7f); break;
+				case PathSegmentType.GameObject:
+					color = new Color(0.1f, 0.1f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Component:
+					color = new Color(0.1f, 0.4f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Property:
+					color = new Color(0.3f, 0.2f, 0.2f, 0.7f);
+					break;
+				case PathSegmentType.Unknown:
+					color = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+					break;
 			}
 
-			EditorGUI.DrawRect(new Rect(px, py, node.TextLength, NodeHeight - 2), color);
-			EditorGUI.LabelField(new Rect(px, py, node.TextLength + 6, NodeHeight), node.Name);
+			EditorGUI.DrawRect(new Rect(px, py, node._textLength, NodeHeight - 2), color);
+			EditorGUI.LabelField(new Rect(px, py, node._textLength + 6, NodeHeight), node._name);
 		}
 
-		public static int GetTextLength(string text, Font font)
+		private static int GetTextLength(string text, Font font)
 		{
-			int length = 0;
+			var length = 0;
 			CharacterInfo info;
 
-			foreach (char c in text)
+			foreach (var c in text)
 			{
 				font.GetCharacterInfo(c, out info);
 				length += info.advance;

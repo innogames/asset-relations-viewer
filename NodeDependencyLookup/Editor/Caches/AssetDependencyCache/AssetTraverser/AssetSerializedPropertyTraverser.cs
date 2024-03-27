@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
@@ -8,238 +7,119 @@ using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
+	/// <summary>
+	/// AssetTraverser which uses <see cref="SerializedObject"/> to find references in the components
+	/// </summary>
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private class ReflectionStackItem
+		private readonly Stack<PathSegment> pathSegmentStack = new Stack<PathSegment>();
+
+		private readonly HashSet<Type> excludedTypes = new HashSet<Type>
 		{
-			public string fieldName;
-			public int arrayIndex;
-			public FieldInfo fieldInfo;
-			public object value;
-			public Type type;
-		}
-		
-		private const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public;
-		private Dictionary<string, List<SerializedPropertyTraverserSubSystem>> assetIdToResolver = new Dictionary<string, List<SerializedPropertyTraverserSubSystem>>();
-		private readonly ReflectionStackItem[] ReflectionStack = new ReflectionStackItem[128];
-		private Dictionary<Type, bool> isReflectableCache = new Dictionary<Type, bool>();
+			typeof(Transform),
+			typeof(RectTransform),
+			typeof(CanvasRenderer),
+			typeof(TextAsset),
+			typeof(AudioClip)
+		};
 
-		public void Search()
-		{
-			for (int i = 0; i < 128; ++i)
-			{
-				ReflectionStack[i] = new ReflectionStackItem();
-			}
-
-			int j = 0;
-			foreach (KeyValuePair<string, List<SerializedPropertyTraverserSubSystem>> pair in assetIdToResolver)
-			{
-				Object asset = NodeDependencyLookupUtility.GetAssetById(pair.Key);
-
-				if (asset == null)
-				{
-					continue;
-				}
-				
-				if (EditorUtility.DisplayCancelableProgressBar("Finding dependencies", asset.name, j++ / (float)assetIdToResolver.Count))
-				{
-					throw new DependencyUpdateAbortedException();
-				}
-				
-				Traverse(pair.Key, asset, new Stack<PathSegment>());
-			}
-		}
-
-		public void Clear()
-		{
-			assetIdToResolver.Clear();
-		}
+		private PropertyInfo unsafeModeMethod;
 
 		public void Initialize()
 		{
+			var type = typeof(SerializedProperty);
+			unsafeModeMethod = type.GetProperty("unsafeMode",
+				BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance);
 		}
 
-		public void AddAssetId(string key, SerializedPropertyTraverserSubSystem resolver)
+		public void Search(ResolverDependencySearchContext searchContext)
 		{
-			if (!assetIdToResolver.ContainsKey(key))
+			if (searchContext.Asset == null)
 			{
-				assetIdToResolver.Add(key, new List<SerializedPropertyTraverserSubSystem>());
+				return;
 			}
 
-			assetIdToResolver[key].Add(resolver);
+			pathSegmentStack.Clear();
+			Traverse(searchContext, searchContext.Asset, pathSegmentStack);
 		}
 
-		protected override void TraverseObject(string id, Object obj, Stack<PathSegment> stack, bool onlyOverriden)
+		protected override void TraverseObject(ResolverDependencySearchContext searchContext, Object obj,
+			bool onlyOverriden, Stack<PathSegment> stack)
 		{
 			// this can happen if the linked asset doesnt exist anymore
 			if (obj == null)
 			{
 				return;
 			}
-			
-			SerializedObject serializedObject = new SerializedObject(obj);
-			SerializedProperty property = serializedObject.GetIterator();
 
-			Type objType = obj.GetType();
+			var objType = obj.GetType();
 
-			if (!isReflectableCache.TryGetValue(objType, out bool isReflectable))
+			if (excludedTypes.Contains(objType))
 			{
-				isReflectable = objType.GetFields(Flags).Length > 0;
-				isReflectableCache[objType] = isReflectable;
+				return;
 			}
 
-			ReflectionStackItem rootItem = ReflectionStack[0];
-			rootItem.value = obj;
-			rootItem.type = objType;
+			var serializedObject = new SerializedObject(obj);
+			var property = serializedObject.GetIterator();
 
-			Type type = typeof(SerializedProperty);
-			type.GetProperty("unsafeMode", BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance).SetValue(property, true);
+			unsafeModeMethod.SetValue(property, true);
 			property.Next(true);
 
 			SerializedPropertyType propertyType;
-
-			List<SerializedPropertyTraverserSubSystem> resolver = assetIdToResolver[id];
 
 			do
 			{
 				propertyType = property.propertyType;
 
-				if (propertyType != SerializedPropertyType.ObjectReference && propertyType != SerializedPropertyType.Generic)
+				if (propertyType != SerializedPropertyType.ObjectReference &&
+				    propertyType != SerializedPropertyType.Generic &&
+				    propertyType != SerializedPropertyType.ManagedReference)
 				{
 					continue;
 				}
 
 				if (!onlyOverriden || property.prefabOverride)
 				{
-					string propertyPath = property.propertyPath;
-					
-					if (!isReflectable)
-					{
-						if (propertyType == SerializedPropertyType.ObjectReference)
-						{
-							TraverseProperty(resolver, id, property.objectReferenceValue, propertyType, propertyPath, stack);
-						}
-						
-						continue;
-					}
-
-					string modifiedPath = propertyPath.Replace(".Array.data[", "[");
-					int stackIndex = propertyType == SerializedPropertyType.Generic ? UpdateStack(modifiedPath, ReflectionStack) : -1;
-
-					object generic = stackIndex != -1 ? ReflectionStack[stackIndex].value : (propertyType == SerializedPropertyType.ObjectReference ? property.objectReferenceValue : null);
-
-					if (generic == null)
-					{
-						continue;
-					}
-					
-					TraverseProperty(resolver, id, generic, propertyType, propertyPath, stack);
+					TraverseProperty(searchContext, property, propertyType, property.propertyPath, stack);
 				}
-			} while (property.Next(propertyType == SerializedPropertyType.Generic));
+			} while (property.Next(propertyType == SerializedPropertyType.Generic || propertyType == SerializedPropertyType.ManagedReference));
+
+			serializedObject.Dispose();
 		}
 
-		private int UpdateStack(string path, ReflectionStackItem[] stack)
+		protected override void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
 		{
-			int subIndex = 0;
-			int tokenCount = 0;
-			
-			for (int i = 0; i < path.Length; ++i)
+			foreach (var resolver in searchContext.Resolvers)
 			{
-				if (path[i] == '.')
-				{
-					subIndex = i + 1;
-					tokenCount++;
-				}
-			}
-
-			int stackPos = tokenCount + 1;
-			
-			ref ReflectionStackItem parent = ref stack[stackPos - 1];
-
-			if (parent.type == null)
-				return -1;
-			
-			ref ReflectionStackItem item = ref stack[stackPos];
-
-			string elementName = path.Substring(subIndex);
-			item.fieldName = elementName;
-			item.arrayIndex = -1;
-
-			int arrayStartIndex = elementName.LastIndexOf('[');
-
-			if (arrayStartIndex != -1)
-			{
-				int arrayEndIndex = elementName.LastIndexOf(']');
-				int length = arrayEndIndex - arrayStartIndex - 1;
-				string index = elementName.Substring(arrayStartIndex + 1, length);
-				item.arrayIndex = System.Convert.ToInt32(index);
-				item.fieldName = elementName.Substring(0, arrayStartIndex);
-			}
-
-			item.fieldInfo = parent.type.GetField( item.fieldName , Flags);
-
-			if (item.fieldInfo == null || parent.value == null)
-				return -1;
-
-			item.value = item.fieldInfo.GetValue(parent.value);
-
-			if (item.value == null)
-				return -1;
-
-			Type itemType = item.value.GetType();
-
-			item.type = itemType;
-			
-			if (item.value != null && item.arrayIndex != -1)
-			{
-				IList genericList = item.value as IList;
-
-				if (genericList == null)
-				{
-					return -1;
-				}
-
-				item.type = genericList.GetType().IsGenericType ? item.type.GetGenericArguments()[0] : item.type.GetElementType();
-				item.value = genericList[item.arrayIndex];
-			}
-
-			return tokenCount + 1;
-		}
-
-		protected override void TraversePrefab(string id, Object obj, Stack<PathSegment> stack)
-		{
-			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[id])
-			{
-				subSystem.TraversePrefab(id, obj, stack);
+				resolver.TraversePrefab(searchContext, obj, stack);
 			}
 		}
 
-		protected override void TraversePrefabVariant(string id, Object obj, Stack<PathSegment> stack)
+		protected override void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj,
+			Stack<PathSegment> stack)
 		{
-			if (!assetIdToResolver.ContainsKey(id))
+			foreach (var resolver in searchContext.Resolvers)
 			{
-				Debug.LogErrorFormat("AssetSerializedPropertyTraverser: could not find guid {0} in resolver list", id);
-			}
-			
-			foreach (SerializedPropertyTraverserSubSystem subSystem in assetIdToResolver[id])
-			{
-				subSystem.TraversePrefabVariant(id, obj, stack);
+				resolver.TraversePrefabVariant(searchContext, obj, stack);
 			}
 		}
 
-		private void TraverseProperty(List<SerializedPropertyTraverserSubSystem> resolvers, string assetId, object obj, SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
+		private void TraverseProperty(ResolverDependencySearchContext searchContext, SerializedProperty property,
+			SerializedPropertyType type, string propertyPath, Stack<PathSegment> stack)
 		{
-			foreach (SerializedPropertyTraverserSubSystem subSystem in resolvers)
+			foreach (var resolver in searchContext.Resolvers)
 			{
-				SerializedPropertyTraverserSubSystem.Result result = subSystem.GetDependency(assetId, obj, propertyPath, type);
-				
-				if (result == null || assetId == result.Id)
+				var result = resolver.GetDependency(ref searchContext.AssetId, ref property, ref propertyPath, type);
+
+				if (result == null || searchContext.AssetId == result.Id)
 				{
 					continue;
 				}
-			
+
 				stack.Push(new PathSegment(propertyPath, PathSegmentType.Property));
-				subSystem.AddDependency(assetId, new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
+				searchContext.AddDependency(resolver,
+					new Dependency(result.Id, result.DependencyType, result.NodeType, stack.ToArray()));
 				stack.Pop();
 			}
 		}

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -10,17 +11,28 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		DependencyType GetDependencyTypeForId(string typeId);
 	}
 
+	public class AssetDependencyResolverResult
+	{
+		public string Id;
+		public string DependencyType;
+		public string NodeType;
+	}
+
 	/// <summary>
 	/// A ICustomAssetDependencyResolver is a class which enables to show relations between assets that are not found by unity AssetDatabase.GetDependencies() function
-	/// A usecase for this would be the atlases in NGUI where you maybe want to see that there is a relation between the atlas and the textures which it is using as a raw input.
+	/// A use case for this would be the atlases in NGUI where you maybe want to see that there is a relation between the atlas and the textures which it is using as a raw input.
 	/// Otherwise the textures maybe would appear as not being used by anything even though they are a source for an atlas.
 	/// </summary>
 	public interface IAssetDependencyResolver : IDependencyResolver
 	{
 		void SetValidGUIDs();
-		void Initialize(AssetDependencyCache cache, HashSet<string> changedAssets);
-		void GetDependenciesForId(string fileId, List<Dependency> dependencies);
+		void Initialize(AssetDependencyCache cache);
 		bool IsGuidValid(string path);
+		void TraversePrefab(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
+		void TraversePrefabVariant(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack);
+
+		AssetDependencyResolverResult GetDependency(ref string sourceAssetId, ref SerializedProperty property,
+			ref string propertyPath, SerializedPropertyType type);
 	}
 
 	/// <summary>
@@ -40,18 +52,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Name = name;
 		}
 
-		// The color it is using (for the Asset Relation Viewer)
+		/// The color it is using (for the Asset Relation Viewer)
 		public readonly Color Colour;
 
-		// Indirect dependencies might be assets another asset is build on (NGUI texture atlas for example)
+		/// Indirect dependencies might be assets another asset is build on (NGUI texture atlas for example)
 		public readonly bool IsIndirect;
 
-		// A hard reference marks that the bundle should be loaded together 
+		/// A hard reference marks that the bundle should be loaded together
 		public readonly bool IsHard;
-		
-		// Discription of the connection type that will be displayed in the AssetRelationsViewer
+
+		/// Description of the connection type that will be displayed in the AssetRelationsViewer
 		public readonly string Description;
 
 		public readonly string Name;
+
+		public virtual bool IsHardConnection(Node source, Node target)
+		{
+			return IsHard;
+		}
 	}
 }

@@ -13,18 +13,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		protected Texture2D _assetPreview = null;
 		protected Texture2D _thumbNail = null;
 
-		public string Name;
-		public string TypeName;
-		
-		public string Id;
-		public string Type;
-		public string Key;
-
+		public Node Node;
 		public ITypeHandler TypeHandler;
-		public INodeHandler NodeHandler;
-		
+
 		public int HierarchySize = -1;
-		public int OwnSize = 0;
 		public bool IsEditorAsset = false;
 		public bool IsPackedToApp = false;
 		public bool IsMissing = false;
@@ -34,7 +26,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public string GetSortingKey()
 		{
-			return TypeHandler.GetSortingKey(Name);
+			return TypeHandler.GetSortingKey(Node.Name);
 		}
 	}
 }

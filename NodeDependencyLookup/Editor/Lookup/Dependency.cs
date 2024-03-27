@@ -1,15 +1,15 @@
-﻿
-namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
+﻿namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
 	/// <summary>
 	/// A dependency from one node to the other
 	/// </summary>
 	public class Dependency
 	{
-		public string NodeType;
-		public string Id;
-		public string DependencyType;
-		public PathSegment[] PathSegments;
+		public readonly string NodeType;
+		public readonly string Id;
+		public readonly string Key;
+		public readonly string DependencyType;
+		public readonly PathSegment[] PathSegments;
 
 		public Dependency(string id, string dependencyType, string nodeType, PathSegment[] pathSegments)
 		{
@@ -17,6 +17,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			DependencyType = dependencyType;
 			PathSegments = pathSegments;
 			NodeType = nodeType;
+			Key = NodeDependencyLookupUtility.GetNodeKey(id, nodeType);
 		}
 	}
 }
