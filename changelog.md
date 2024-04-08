@@ -1,3 +1,29 @@
+**3.0.0**
+- SerializedPropertyType.ManagedReference are now traversed so SerializeReferences are now working
+- Cache now handles files with over 32k subassets or dependencies without causing errors
+
+**3.0.0-pre.2**
+- Fix possible ```cs ArgumentException: An item with the same key has already been added``` which happened if a deleted file was referenced as a dependency
+
+**3.0.0-pre.1**
+- Unity Addressables are now supported in the base package, the additional repo is not required anymore!
+- Removed any reflection code and fully rely on SerializedProperties
+- Node Search calculation is now done in seperate thread
+- API changes to INodeHandler and IAssetDependencyResolver to simplify implementations
+- Sizes of FileNodes and AssetNodes are now cached for faster loading
+- Added async update functionality using Enumerators
+- Removed support for Unity 2018 and below
+
+**2.0.0**
+- Removed IsExisting info from nodes since caches now need to delete nodes if they are saved but not existing anymore on update from their node list
+- Added use of Span from Unity 2021 onwards where previously as lot of garbage was created due to strings
+- Node name, type and type information is now directly stored inside the Node class itself
+- Added functions to NodeDependencyLookupUtility to get all node sizes, names and type information
+- Sprites file sizes are not taken into account anymore if they are part of a SpriteAtlases
+- Sizes of SpriteAtlases and AudioClips are now calculated correctly
+- Sped up creation of large dependency trees in ARV
+- AssetRelationsViewer can now be opened without updating or loading any caches
+
 **1.5.2**
 - Remove warning
 

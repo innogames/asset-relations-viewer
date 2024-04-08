@@ -1,47 +1,49 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	/**
-	 * Serializer for the AssetDependencyCache
-	 * Since all json solutions where to slow and the structure is quite simple it was fastest to manually write it into a byte array
-	 */
+	/// <summary>
+	/// Serializer for the AssetDependencyCache
+	/// Since all json solutions where to slow and the structure is quite simple it was fastest to manually write it into a byte array
+	/// </summary>
 	public class AssetDependencyCacheSerializer
 	{
-		public const string EOF = "EndOfSerializedAssetDependencyCache";
+		private const string EOF = "EndOfSerializedAssetDependencyCache";
 
 		public static byte[] Serialize(FileToAssetNode[] fileToAssetNodes)
 		{
-			byte[] bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
-			int offset = 0;
-			
+			var bytes = new byte[CacheSerializerUtils.ARRAY_SIZE_OFFSET];
+			var offset = 0;
+
 			CacheSerializerUtils.EncodeLong(fileToAssetNodes.Length, ref bytes, ref offset);
 
-			foreach (FileToAssetNode fileToAssetNode in fileToAssetNodes)
+			foreach (var fileToAssetNode in fileToAssetNodes)
 			{
 				CacheSerializerUtils.EncodeString(fileToAssetNode.FileId, ref bytes, ref offset);
-				CacheSerializerUtils.EncodeShort((short)fileToAssetNode.ResolverTimeStamps.Count, ref bytes, ref offset);
+				CacheSerializerUtils.EncodeShort((short) fileToAssetNode.ResolverTimeStamps.Count, ref bytes,
+					ref offset);
 
-				for (int i = 0; i < fileToAssetNode.ResolverTimeStamps.Count; ++i)
+				for (var i = 0; i < fileToAssetNode.ResolverTimeStamps.Count; ++i)
 				{
-					FileToAssetNode.ResolverTimeStamp resolverTimeStamp = fileToAssetNode.ResolverTimeStamps[i];
+					var resolverTimeStamp = fileToAssetNode.ResolverTimeStamps[i];
 					CacheSerializerUtils.EncodeString(resolverTimeStamp.ResolverId, ref bytes, ref offset);
 					CacheSerializerUtils.EncodeLong(resolverTimeStamp.TimeStamp, ref bytes, ref offset);
 				}
-				
-				CacheSerializerUtils.EncodeShort((short)fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
 
-				for (int j = 0; j < fileToAssetNode.AssetNodes.Count; ++j)
+				CacheSerializerUtils.EncodeInt(fileToAssetNode.AssetNodes.Count, ref bytes, ref offset);
+
+				for (var j = 0; j < fileToAssetNode.AssetNodes.Count; ++j)
 				{
-					AssetNode assetNode = fileToAssetNode.AssetNodes[j];
+					var assetNode = fileToAssetNode.AssetNodes[j];
 					CacheSerializerUtils.EncodeString(assetNode.Id, ref bytes, ref offset);
-					
-					CacheSerializerUtils.EncodeShort((short)assetNode.ResolverDatas.Count, ref bytes, ref offset);
+
+					CacheSerializerUtils.EncodeShort((short) assetNode.ResolverDatas.Count, ref bytes, ref offset);
 
 					for (var i = 0; i < assetNode.ResolverDatas.Count; i++)
 					{
-						AssetNode.ResolverData resolverData = assetNode.ResolverDatas[i];
+						var resolverData = assetNode.ResolverDatas[i];
 
 						CacheSerializerUtils.EncodeString(resolverData.ResolverId, ref bytes, ref offset);
 						CacheSerializerUtils.EncodeDependencies(resolverData.Dependencies, ref bytes, ref offset);
@@ -50,45 +52,46 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 			}
-			
+
 			CacheSerializerUtils.EncodeString(EOF, ref bytes, ref offset);
 
 			return bytes;
 		}
-		
+
 		public static FileToAssetNode[] Deserialize(byte[] bytes)
 		{
-			int offset = 0;
-			int numFileToAssetNodes = (int)CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
-			
-			FileToAssetNode[] fileToAssetNodes = new FileToAssetNode[numFileToAssetNodes];
+			var offset = 0;
+			var numFileToAssetNodes = (int) CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
-			for (int n = 0; n < numFileToAssetNodes; ++n)
+			var fileToAssetNodes = new FileToAssetNode[numFileToAssetNodes];
+
+			for (var n = 0; n < numFileToAssetNodes; ++n)
 			{
-				string fileId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-				FileToAssetNode fileAssetNode = new FileToAssetNode{FileId = fileId};
+				var fileId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+				var fileAssetNode = new FileToAssetNode {FileId = fileId};
 				int resolverTimeStampLength = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
 
 				for (var i = 0; i < resolverTimeStampLength; i++)
 				{
-					FileToAssetNode.ResolverTimeStamp resolverTimeStamp = new FileToAssetNode.ResolverTimeStamp();
+					var resolverTimeStamp = new FileToAssetNode.ResolverTimeStamp();
 					resolverTimeStamp.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 					resolverTimeStamp.TimeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 					fileAssetNode.ResolverTimeStamps.Add(resolverTimeStamp);
 				}
 
-				int numAssetNodes = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
+				int numAssetNodes = (int)CacheSerializerUtils.DecodeInt(ref bytes, ref offset);
+				fileAssetNode.AssetNodes = new List<AssetNode>(numAssetNodes);
 
 				for (var i = 0; i < numAssetNodes; i++)
 				{
-					string assetId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-					AssetNode assetNode = new AssetNode(assetId);
+					var assetId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+					var assetNode = new AssetNode(assetId);
 					int numResolverDatas = CacheSerializerUtils.DecodeShort(ref bytes, ref offset);
 
-					for (int j = 0; j < numResolverDatas; ++j)
+					for (var j = 0; j < numResolverDatas; ++j)
 					{
-						AssetNode.ResolverData data = new AssetNode.ResolverData();
-						
+						var data = new AssetNode.ResolverData();
+
 						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 						data.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
 						assetNode.ResolverDatas.Add(data);
@@ -96,11 +99,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					fileAssetNode.AssetNodes.Add(assetNode);
 				}
-				
+
 				fileToAssetNodes[n] = fileAssetNode;
 			}
-			
-			string eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+
+			var eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 			if (!eof.Equals(EOF))
 			{
 				Debug.LogError("AssetDependencyCache cache file to be corrupted. Rebuilding cache required");

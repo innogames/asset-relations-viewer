@@ -1,15 +1,19 @@
-﻿using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+﻿using System.IO;
+using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using JetBrains.Annotations;
 using UnityEditor;
-using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
+	/// <summary>
+	/// TypeHandler for File nodes.
+	/// Displays GUI for the type as well as handles asset selection
+	/// </summary>
+	[UsedImplicitly]
 	public class FileTypeHandler : ITypeHandler
 	{
 		private Object _selectedAsset;
-		private AssetRelationsViewerWindow _viewerWindow;
-		private FileNodeHandler _nodeHandler;
 
 		public string GetHandledType()
 		{
@@ -21,9 +25,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			return $"File {name}";
 		}
 
-		public VisualizationNodeData CreateNodeCachedData(string id)
+		public VisualizationNodeData CreateNodeCachedData(Node node)
 		{
-			return new FileVisualizationNodeData(id, GetHandledType());
+			return new FileVisualizationNodeData(node);
+		}
+
+		public string GetNodeDisplayName(Node node)
+		{
+			return Path.GetFileName(node.Name);
 		}
 
 		public void SelectInEditor(string id)
@@ -45,20 +54,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		public void OnSelectAsset(string id, string type)
 		{
-			if (type == GetHandledType())
-			{
-				_selectedAsset = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id));
-			}
-			else
-			{
-				_selectedAsset = null;
-			}
+			_selectedAsset = type == GetHandledType() ? AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(id)) : null;
 		}
 
-		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext, AssetRelationsViewerWindow window, INodeHandler nodeHandler)
+		public void InitContext(NodeDependencyLookupContext nodeDependencyLookupContext,
+			AssetRelationsViewerWindow window)
 		{
-			_viewerWindow = window;
-			_nodeHandler = nodeHandler as FileNodeHandler;
 		}
 
 		public bool HandlesCurrentNode()

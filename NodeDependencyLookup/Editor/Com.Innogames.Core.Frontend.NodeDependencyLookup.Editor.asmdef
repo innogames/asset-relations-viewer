@@ -1,6 +1,6 @@
 {
     "name": "Com.Innogames.Core.Frontend.NodeDependencyLookup.Editor",
-    "references": [],
+    "references": ["GUID:8a4f26c08a33c404e86793dafe29a9d2"],
     "includePlatforms": [
         "Editor"
     ],

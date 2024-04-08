@@ -2,81 +2,32 @@
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
-	public class FileToAssetNode : IIdentifyable
-	{
-		public class ResolverTimeStamp
-		{
-			public string ResolverId;
-			public long TimeStamp;
-		}
-		
-		public string FileId;
-		public List<AssetNode> AssetNodes = new List<AssetNode>();
-
-		public string Id => FileId;
-
-		public List<ResolverTimeStamp> ResolverTimeStamps = new List<ResolverTimeStamp>();
-
-
-		public AssetNode GetAssetNode(string id)
-		{
-			foreach (AssetNode assetNode in AssetNodes)
-			{
-				if (assetNode.Id == id)
-				{
-					return assetNode;
-				}
-			}
-
-			AssetNode newAssetNode = new AssetNode(id){Existing = true};
-			AssetNodes.Add(newAssetNode);
-			return newAssetNode;
-		}
-		
-		public ResolverTimeStamp GetResolverTimeStamp(string id)
-		{
-			foreach (ResolverTimeStamp resolverTimeStamp in ResolverTimeStamps)
-			{
-				if (resolverTimeStamp.ResolverId == id)
-				{
-					return resolverTimeStamp;
-				}
-			}
-
-			ResolverTimeStamp newTimestamp = new ResolverTimeStamp{ResolverId = id};
-			ResolverTimeStamps.Add(newTimestamp);
-
-			return newTimestamp;
-		}
-	}
-	
-	/**
-	 * Stores a relation and contains a list of dependency nodes and a list of referencer nodes
-	 */
+	/// <summary>
+	/// Stores a relation and contains a list of dependency nodes and a list of referencer nodes
+	/// </summary>
 	public class AssetNode : IDependencyMappingNode
 	{
 		public class ResolverData
 		{
 			public string ResolverId;
-			public List<Dependency> Dependencies = new List<Dependency>();
+			public List<Dependency> Dependencies;
 		}
 
-		public string AssetId;
-		
-		public string Id{get { return AssetId; }}
-		public string Type{get { return AssetNodeType.Name; }}
-		public bool Existing { get; set; }
-		
-		public List<ResolverData> ResolverDatas = new List<ResolverData>();
+		public string Id { get; }
+		public string Key { get; }
+		public string Type => AssetNodeType.Name;
+
+		public readonly List<ResolverData> ResolverDatas = new List<ResolverData>(2);
 
 		public AssetNode(string assetId)
 		{
-			AssetId = assetId;
+			Id = assetId;
+			Key = NodeDependencyLookupUtility.GetNodeKey(Id, Type);
 		}
 
 		public ResolverData GetResolverData(string id)
 		{
-			foreach (ResolverData resolverData in ResolverDatas)
+			foreach (var resolverData in ResolverDatas)
 			{
 				if (resolverData.ResolverId == id)
 				{
@@ -84,7 +35,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 			}
 
-			ResolverData newResolver = new ResolverData();
+			var newResolver = new ResolverData();
 			newResolver.ResolverId = id;
 
 			ResolverDatas.Add(newResolver);
@@ -94,18 +45,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public List<Dependency> GetDependenciesForResolverUsages(Dictionary<string, CreatedResolver> resolverUsages)
 		{
-			List<Dependency> result = new List<Dependency>();
+			var result = new List<Dependency>();
 
-			foreach (ResolverData data in ResolverDatas)
+			foreach (var data in ResolverDatas)
 			{
 				if (!resolverUsages.ContainsKey(data.ResolverId))
 				{
 					continue;
 				}
 
-				CreatedResolver dependencyCache = resolverUsages[data.ResolverId];
+				var dependencyCache = resolverUsages[data.ResolverId];
 
-				foreach (Dependency dependency in data.Dependencies)
+				foreach (var dependency in data.Dependencies)
 				{
 					if (dependencyCache.DependencyTypes.Contains(dependency.DependencyType))
 					{
