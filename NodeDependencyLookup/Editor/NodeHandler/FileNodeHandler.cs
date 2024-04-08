@@ -31,7 +31,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public long TimeStamp;
 		}
 
-		private readonly Dictionary<Node, string> nodeToArtifactPathLookup = new();
+		private readonly Dictionary<Node, string> nodeToArtifactPathLookup = new Dictionary<Node, string>();
 
 		private readonly MethodInfo getPreviewTextureMethod;
 		private readonly MethodInfo getAudioSizeMethod;
@@ -41,7 +41,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly string spriteTypeName = typeof(Sprite).FullName;
 		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup = new();
+		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup = new ConcurrentDictionary<string, CachedData>();
 
 		public FileNodeHandler()
 		{

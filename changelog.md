@@ -1,4 +1,4 @@
-**3.0.0-pre.3**
+**3.0.0**
 - SerializedPropertyType.ManagedReference are now traversed so SerializeReferences are now working
 - Cache now handles files with over 32k subassets or dependencies without causing errors
 
