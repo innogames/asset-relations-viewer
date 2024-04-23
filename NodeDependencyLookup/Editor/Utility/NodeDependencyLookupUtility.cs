@@ -443,7 +443,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static Object[] LoadAllAssetsAtPath(string path)
 		{
-			if (path.EndsWith(".unity"))
+			if (path.EndsWith(".unity", StringComparison.Ordinal))
 			{
 				return new[] { AssetDatabase.LoadMainAssetAtPath(path) };
 			}

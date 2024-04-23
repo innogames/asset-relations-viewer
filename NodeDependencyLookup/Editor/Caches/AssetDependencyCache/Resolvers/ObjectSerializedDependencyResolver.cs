@@ -103,7 +103,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(value);
 			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
 
-			var isUnityAsset = guid.StartsWith("0000000");
+			var isUnityAsset = guid.StartsWith("0000000", StringComparison.Ordinal);
 			var isScriptableObject = value is ScriptableObject;
 
 			var isMainAsset = AssetDatabase.IsMainAsset(value);

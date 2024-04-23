@@ -229,13 +229,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var path = AssetDatabase.GUIDToAssetPath(node.Id);
-			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000");
+			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000", StringComparison.Ordinal);
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
 		{
 			var path = AssetDatabase.GUIDToAssetPath(id);
-			return path.Contains("/Editor/");
+			return path.Contains("/Editor/", StringComparison.Ordinal);
 		}
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
@@ -301,14 +301,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool IsSceneAndPacked(string path)
 		{
-			if (Path.GetExtension(path).Equals(".unity"))
+			if (Path.GetExtension(path).Equals(".unity", StringComparison.Ordinal))
 			{
-				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path));
+				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
 			}
 
 			return false;
 		}
 
-		private bool IsInResources(string path) => path.Contains("/Resources/");
+		private bool IsInResources(string path) => path.Contains("/Resources/", StringComparison.Ordinal);
 	}
 }

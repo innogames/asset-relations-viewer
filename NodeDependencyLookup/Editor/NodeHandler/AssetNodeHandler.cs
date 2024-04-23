@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using UnityEditor;
-using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -88,13 +89,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id));
-			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000");
+			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000", StringComparison.Ordinal);
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
 		{
 			var path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(id));
-			return path.Contains("/Editor/");
+			return path.Contains("/Editor/", StringComparison.Ordinal);
 		}
 
 		public void InitNodeCreation()
@@ -272,9 +273,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool IsSceneAndPacked(string path)
 		{
-			if (Path.GetExtension(path).Equals(".unity"))
+			if (Path.GetExtension(path).Equals(".unity", StringComparison.Ordinal))
 			{
-				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path));
+				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
 			}
 
 			return false;
@@ -282,7 +283,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool IsInResources(string path)
 		{
-			return path.Contains("/Resources/");
+			return path.Contains("/Resources/", StringComparison.Ordinal);
 		}
 	}
 }
