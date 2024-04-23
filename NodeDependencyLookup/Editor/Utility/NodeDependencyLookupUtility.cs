@@ -559,25 +559,23 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			where T : IIdentifyable
 		{
 			var pathsLookup = new HashSet<string>(paths);
+			var deletedNodes = new HashSet<T>();
 
-			int lastValidIndex = list.Length - 1;
-			for (int i = list.Length - 1; i >= 0; i--)
+			foreach (var listItem in list)
 			{
-				var listItem = list[i];
 				var filePath = AssetDatabase.GUIDToAssetPath(listItem.Id);
 				if (!pathsLookup.Contains(filePath))
 				{
-					// Move invalid item to the end of the valid list
-					var validItem = list[lastValidIndex];
-					list[lastValidIndex] = listItem;
-					list[i] = validItem;
-					lastValidIndex--;
+					deletedNodes.Add(listItem);
 				}
 			}
-			
-			var newList = new T[lastValidIndex + 1];
-			Array.Copy(list, newList, lastValidIndex + 1);
-			list = newList;
+
+			if (deletedNodes.Count > 0)
+			{
+				var fileToAssetNodesLists = list.ToList();
+				fileToAssetNodesLists.RemoveAll(deletedNodes.Contains);
+				list = fileToAssetNodesLists.ToArray();
+			}
 		}
 
 		public static RelationType InvertRelationType(RelationType relationType)
