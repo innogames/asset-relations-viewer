@@ -239,7 +239,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (Path.GetExtension(path).Equals(".asset") || Path.GetExtension(path).Equals(".anim"))
+			if (Path.GetExtension(path).Equals(".asset", StringComparison.Ordinal) 
+			    || Path.GetExtension(path).Equals(".anim", StringComparison.Ordinal))
 			{
 				return path;
 			}
@@ -270,7 +271,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (var artifactPath in paths)
 			{
-				if (artifactPath.EndsWith(".info"))
+				if (artifactPath.EndsWith(".info", StringComparison.Ordinal))
 					continue;
 
 				return Path.GetFullPath(artifactPath);
@@ -295,12 +296,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static bool IsNodePackedToApp(Node node, NodeDependencyLookupContext stateContext,
 			Dictionary<string, bool> checkedPackedStates)
 		{
-			if (checkedPackedStates.ContainsKey(node.Key))
+			if (!checkedPackedStates.TryAdd(node.Key, false))
 			{
 				return checkedPackedStates[node.Key];
 			}
-
-			checkedPackedStates.Add(node.Key, false);
 
 			var nodeHandler = stateContext.NodeHandlerLookup[node.Type];
 
@@ -341,12 +340,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static void UpdateOwnFileSizeDependenciesForNode(Node node, NodeDependencyLookupContext context,
 			HashSet<Node> calculatedNodes)
 		{
-			if (calculatedNodes.Contains(node))
+			if (!calculatedNodes.Add(node))
 			{
 				return;
 			}
 
-			calculatedNodes.Add(node);
 			GetNodeHandler(node, context).CalculateOwnFileDependencies(node, context, calculatedNodes);
 		}
 
@@ -376,12 +374,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			if (traversedNodes.Contains(node))
+			if (!traversedNodes.Add(node))
 			{
 				return;
 			}
-
-			traversedNodes.Add(node);
 
 			foreach (var connection in node.Dependencies)
 			{
@@ -394,12 +390,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static string GetGuidFromAssetId(string id)
 		{
-			return id.Split('_')[0];
+			int separatorIndex = id.IndexOf('_');
+			if (separatorIndex == -1)
+			{
+				return id;
+			}
+			return id.Substring(0, separatorIndex);
 		}
 
 		public static string GetFileIdFromAssetId(string id)
 		{
-			return id.Split('_')[1];
+			return id.Substring(id.IndexOf('_') + 1);
 		}
 
 		public static string GetAssetIdForAsset(Object asset)
@@ -453,20 +454,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static string[] GetAllAssetPathes(bool unityBuiltin)
 		{
 			var pathes = AssetDatabase.GetAllAssetPaths();
-			var pathList = new List<string>();
-
-			foreach (var path in pathes)
+			if(!unityBuiltin)
 			{
-				pathList.Add(path);
+				return pathes;
 			}
 
-			if (unityBuiltin)
-			{
-				pathList.Add("Resources/unity_builtin_extra");
-				pathList.Add("Library/unity default resources");
-			}
+			var pathList = new string[pathes.Length + 2];
+			Array.Copy(pathes, pathList, pathes.Length);
 
-			return pathList.ToArray();
+			pathList[pathList.Length - 2] = "Resources/unity_builtin_extra";
+			pathList[pathList.Length - 1] = "Library/unity default resources";
+
+			return pathList;
 		}
 
 		public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
@@ -560,23 +559,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			where T : IIdentifyable
 		{
 			var pathesLookup = new HashSet<string>(pathes);
-			var deletedNodes = new HashSet<T>();
 
-			foreach (var listItem in list)
+			int lastValidIndex = list.Length - 1;
+			for (int i = list.Length - 1; i >= 0; i--)
 			{
+				var listItem = list[i];
 				var filePath = AssetDatabase.GUIDToAssetPath(listItem.Id);
 				if (!pathesLookup.Contains(filePath))
 				{
-					deletedNodes.Add(listItem);
+					// Move invalid item to the end of the valid list
+					var validItem = list[lastValidIndex];
+					list[lastValidIndex] = listItem;
+					list[i] = validItem;
+					lastValidIndex--;
 				}
 			}
-
-			if (deletedNodes.Count > 0)
-			{
-				var fileToAssetNodesLists = list.ToList();
-				fileToAssetNodesLists.RemoveAll(deletedNodes.Contains);
-				list = fileToAssetNodesLists.ToArray();
-			}
+			
+			var newList = new T[lastValidIndex + 1];
+			Array.Copy(list, newList, lastValidIndex + 1);
+			list = newList;
 		}
 
 		public static RelationType InvertRelationType(RelationType relationType)

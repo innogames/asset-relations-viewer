@@ -208,7 +208,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 			else
 			{
-				_fileToAssetsMappings = new FileToAssetsMapping[0];
+				_fileToAssetsMappings = Array.Empty<FileToAssetsMapping>();
 			}
 
 			_isLoaded = true;
