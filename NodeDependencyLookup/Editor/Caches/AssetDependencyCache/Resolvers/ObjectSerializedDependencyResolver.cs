@@ -37,7 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 	/// <summary>
 	/// Resolver for resolving Object references by using the SerializedPropertySearcher
-	/// This one provided hierarchy and property pathes but is most likely slower than the SimpleObjectResolver
+	/// This one provided hierarchy and property paths but is most likely slower than the SimpleObjectResolver
 	/// </summary>
 	public class ObjectSerializedDependencyResolver : IAssetDependencyResolver
 	{

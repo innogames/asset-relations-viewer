@@ -53,11 +53,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.DependencyTypes.Contains(connectionType);
 		}
 
-		public static long[] GetTimeStampsForFiles(string[] pathes)
+		public static long[] GetTimeStampsForFiles(string[] paths)
 		{
-			var timestamps = new long[pathes.Length];
+			var timestamps = new long[paths.Length];
 
-			Parallel.For(0, pathes.Length, index => { timestamps[index] = GetTimeStampForPath(pathes[index]); });
+			Parallel.For(0, paths.Length, index => { timestamps[index] = GetTimeStampForPath(paths[index]); });
 
 			return timestamps;
 		}
@@ -451,16 +451,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return AssetDatabase.LoadAllAssetsAtPath(path);
 		}
 
-		public static string[] GetAllAssetPathes(bool unityBuiltin)
+		public static string[] GetAllAssetPaths(bool unityBuiltin)
 		{
-			var pathes = AssetDatabase.GetAllAssetPaths();
+			var paths = AssetDatabase.GetAllAssetPaths();
 			if(!unityBuiltin)
 			{
-				return pathes;
+				return paths;
 			}
 
-			var pathList = new string[pathes.Length + 2];
-			Array.Copy(pathes, pathList, pathes.Length);
+			var pathList = new string[paths.Length + 2];
+			Array.Copy(paths, pathList, paths.Length);
 
 			pathList[pathList.Length - 2] = "Resources/unity_builtin_extra";
 			pathList[pathList.Length - 1] = "Library/unity default resources";
@@ -555,17 +555,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #endif
 		}
 
-		public static void RemoveNonExistingFilesFromIdentifyableList<T>(string[] pathes, ref T[] list)
+		public static void RemoveNonExistingFilesFromIdentifyableList<T>(string[] paths, ref T[] list)
 			where T : IIdentifyable
 		{
-			var pathesLookup = new HashSet<string>(pathes);
+			var pathsLookup = new HashSet<string>(paths);
 
 			int lastValidIndex = list.Length - 1;
 			for (int i = list.Length - 1; i >= 0; i--)
 			{
 				var listItem = list[i];
 				var filePath = AssetDatabase.GUIDToAssetPath(listItem.Id);
-				if (!pathesLookup.Contains(filePath))
+				if (!pathsLookup.Contains(filePath))
 				{
 					// Move invalid item to the end of the valid list
 					var validItem = list[lastValidIndex];

@@ -112,7 +112,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		private IEnumerator FindDependenciesForChangedFilesForResolvers(CacheUpdateSettings settings,
-			List<IAssetDependencyResolver> resolvers, string[] pathes, long[] timestamps,
+			List<IAssetDependencyResolver> resolvers, string[] paths, long[] timestamps,
 			FileToAssetNode[] fileToAssetNodes)
 		{
 			var list = RelationLookup.ConvertToDictionary(fileToAssetNodes);
@@ -120,9 +120,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var cleaner = new CacheUpdateResourcesCleaner();
 
-			for (int i = 0, k = 0; i < pathes.Length; ++i)
+			for (int i = 0, k = 0; i < paths.Length; ++i)
 			{
-				var path = pathes[i];
+				var path = paths[i];
 				var guid = AssetDatabase.AssetPathToGUID(path);
 
 				resolversToExecute.Clear();
@@ -156,7 +156,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					k++;
 					list.Remove(guid);
 					FindDependenciesForResolvers(resolversToExecute, path, timestamps[i], list,
-						(float) i / pathes.Length);
+						(float) i / paths.Length);
 				}
 
 				if (k % 200 == 0)
@@ -233,18 +233,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
 			Profiler.EndSample();
 
-			var pathes = NodeDependencyLookupUtility.GetAllAssetPathes(true);
+			var paths = NodeDependencyLookupUtility.GetAllAssetPaths(true);
 
-			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(pathes, ref _fileToAssetNodes);
-			yield return GetDependenciesForAssets(cacheUpdateSettings, pathes, _createdDependencyCache);
+			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(paths, ref _fileToAssetNodes);
+			yield return GetDependenciesForAssets(cacheUpdateSettings, paths, _createdDependencyCache);
 		}
 
-		private IEnumerator GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] pathes,
+		private IEnumerator GetDependenciesForAssets(CacheUpdateSettings cacheUpdateSettings, string[] paths,
 			CreatedDependencyCache createdDependencyCache)
 		{
 			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Checking file timestamps", 0);
 			Profiler.BeginSample("TimeStamps");
-			var timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(pathes);
+			var timestamps = NodeDependencyLookupUtility.GetTimeStampsForFiles(paths);
 			Profiler.EndSample();
 
 			_hierarchyTraverser.Initialize();
@@ -266,7 +266,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.Initialize(this);
 			}
 
-			yield return FindDependenciesForChangedFilesForResolvers(cacheUpdateSettings, resolvers, pathes, timestamps,
+			yield return FindDependenciesForChangedFilesForResolvers(cacheUpdateSettings, resolvers, paths, timestamps,
 				_fileToAssetNodes);
 		}
 

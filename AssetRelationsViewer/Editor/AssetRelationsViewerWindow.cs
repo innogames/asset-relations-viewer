@@ -35,7 +35,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			public readonly PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
 			public readonly PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
 			public readonly PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
-			public readonly PrefValueBool ShowPropertyPathes = new PrefValueBool("ARV_ShowPropertyPathes", true);
+			public readonly PrefValueBool ShowPropertyPaths = new PrefValueBool("ARV_ShowPropertyPaths", true);
 			public readonly PrefValueBool AlignNodes = new PrefValueBool("ARV_AlignNodes", true);
 			public readonly PrefValueBool HideFilteredNodes = new PrefValueBool("ARV_HideFilteredNodes", true);
 			public readonly PrefValueBool MergeRelations = new PrefValueBool("ARV_MergeRelations", true);
@@ -672,7 +672,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			if (_miscFoldout)
 			{
-				EditorPrefUtilities.TogglePref(_nodeDisplayOptions.ShowPropertyPathes, "Show Property Pathes",
+				EditorPrefUtilities.TogglePref(_nodeDisplayOptions.ShowPropertyPaths, "Show Property Paths",
 					b => InvalidateNodeStructure());
 				EditorPrefUtilities.TogglePref(_nodeDisplayOptions.AlignNodes, "Align Nodes",
 					b => InvalidateTreeVisualization());
@@ -1770,7 +1770,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void AddBidirConnection(RelationType relationType, VisualizationNodeBase node,
 			VisualizationNodeBase target, List<VisualizationConnection.Data> datas, bool isRecursion)
 		{
-			if (_nodeDisplayOptions.ShowPropertyPathes)
+			if (_nodeDisplayOptions.ShowPropertyPaths)
 			{
 				var pathVisualizationNode = new PathVisualizationNode();
 
