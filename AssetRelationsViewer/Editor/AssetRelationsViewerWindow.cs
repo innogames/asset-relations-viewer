@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
@@ -8,6 +9,7 @@ using Com.Innogames.Core.Frontend.NodeDependencyLookup.EditorCoroutine;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
+using Debug = UnityEngine.Debug;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -578,11 +580,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				if (EditorUtility.DisplayDialog("Clear cache",
 					    "This will clear the cache and might take a while to recompute. Continue?", "Yes", "No"))
 				{
+					Stopwatch sw = Stopwatch.StartNew();
 					AssetDatabase.SaveAssets();
 					NodeDependencyLookupUtility.ClearCachedContexts();
 					NodeDependencyLookupUtility.ClearCacheFiles();
 					_nodeDependencyLookupContext.CreatedCaches.Clear();
-					ReloadContext();
+					ReloadContext(onFinished: () =>
+					{
+						Debug.Log($"Finished clearing cache & updating in {sw.Elapsed:g}");
+					});
 				}
 			}
 
@@ -1210,13 +1216,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 		}
 
-		private void ReloadContext(bool updateCache = true)
+		private void ReloadContext(bool updateCache = true, Action onFinished = null)
 		{
-			ReloadContext(CreateCacheUsageList(updateCache));
+			ReloadContext(CreateCacheUsageList(updateCache), onFinished:onFinished);
 		}
 
 		private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
-			bool partialUpdate = true, bool fastUpdate = false)
+			bool partialUpdate = true, bool fastUpdate = false, Action onFinished = null)
 		{
 			if (_isUpdatingCache)
 			{
@@ -1225,7 +1231,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			var coroutine = new EditorCoroutineWithExceptionHandling();
 			coroutine.Start(
-				ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate),
+				ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate, onFinished),
 				exception =>
 				{
 					_isUpdatingCache = false;
@@ -1234,12 +1240,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 
 		private IEnumerator ReloadContextEnumerator(ResolverUsageDefinitionList resolverUsageDefinitionList,
-			bool updateCache = true, bool partialUpdate = true, bool fastUpdate = false)
+			bool updateCache = true, bool partialUpdate = true, bool fastUpdate = false, Action onFinished = null)
 		{
 			Refresh();
 			yield return LoadDependencyCacheInternal(resolverUsageDefinitionList, updateCache, partialUpdate,
 				fastUpdate);
 			ChangeSelection(_selectedNodeId, _selectedNodeType);
+			if (onFinished != null)
+			{
+				onFinished.Invoke();
+			}
 		}
 
 		private void PrepareDrawTree(Node rootNode)
