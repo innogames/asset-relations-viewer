@@ -104,10 +104,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var eof = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
-			if (!eof.Equals(EOF))
+			if (!eof.Equals(EOF, StringComparison.Ordinal))
 			{
 				Debug.LogError("AssetDependencyCache cache file to be corrupted. Rebuilding cache required");
-				return new FileToAssetNode[0];
+				return Array.Empty<FileToAssetNode>();
 			}
 
 			return fileToAssetNodes;

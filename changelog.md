@@ -1,3 +1,7 @@
+**3.0.1**
+- Improve string comparison and allocations for faster processing
+- Cleanup naming "pathes" -> "paths"
+
 **3.0.0**
 - SerializedPropertyType.ManagedReference are now traversed so SerializeReferences are now working
 - Cache now handles files with over 32k subassets or dependencies without causing errors
@@ -8,7 +12,7 @@
 **3.0.0-pre.1**
 - Unity Addressables are now supported in the base package, the additional repo is not required anymore!
 - Removed any reflection code and fully rely on SerializedProperties
-- Node Search calculation is now done in seperate thread
+- Node Search calculation is now done in separate thread
 - API changes to INodeHandler and IAssetDependencyResolver to simplify implementations
 - Sizes of FileNodes and AssetNodes are now cached for faster loading
 - Added async update functionality using Enumerators

@@ -185,7 +185,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					if (value is Component)
 					{
 						var propertyPath = serializedProperty.propertyPath;
-						var exclude = propertyPath.StartsWith("m_Children.") || propertyPath == "m_Father";
+						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal) 
+						              || propertyPath == "m_Father";
 
 						if (!exclude)
 						{

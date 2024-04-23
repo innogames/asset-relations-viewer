@@ -53,11 +53,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.DependencyTypes.Contains(connectionType);
 		}
 
-		public static long[] GetTimeStampsForFiles(string[] pathes)
+		public static long[] GetTimeStampsForFiles(string[] paths)
 		{
-			var timestamps = new long[pathes.Length];
+			var timestamps = new long[paths.Length];
 
-			Parallel.For(0, pathes.Length, index => { timestamps[index] = GetTimeStampForPath(pathes[index]); });
+			Parallel.For(0, paths.Length, index => { timestamps[index] = GetTimeStampForPath(paths[index]); });
 
 			return timestamps;
 		}
@@ -239,7 +239,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (Path.GetExtension(path).Equals(".asset") || Path.GetExtension(path).Equals(".anim"))
+			if (Path.GetExtension(path).Equals(".asset", StringComparison.Ordinal) 
+			    || Path.GetExtension(path).Equals(".anim", StringComparison.Ordinal))
 			{
 				return path;
 			}
@@ -270,7 +271,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (var artifactPath in paths)
 			{
-				if (artifactPath.EndsWith(".info"))
+				if (artifactPath.EndsWith(".info", StringComparison.Ordinal))
 					continue;
 
 				return Path.GetFullPath(artifactPath);
@@ -295,12 +296,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static bool IsNodePackedToApp(Node node, NodeDependencyLookupContext stateContext,
 			Dictionary<string, bool> checkedPackedStates)
 		{
-			if (checkedPackedStates.ContainsKey(node.Key))
+			if (!checkedPackedStates.TryAdd(node.Key, false))
 			{
 				return checkedPackedStates[node.Key];
 			}
-
-			checkedPackedStates.Add(node.Key, false);
 
 			var nodeHandler = stateContext.NodeHandlerLookup[node.Type];
 
@@ -341,12 +340,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static void UpdateOwnFileSizeDependenciesForNode(Node node, NodeDependencyLookupContext context,
 			HashSet<Node> calculatedNodes)
 		{
-			if (calculatedNodes.Contains(node))
+			if (!calculatedNodes.Add(node))
 			{
 				return;
 			}
 
-			calculatedNodes.Add(node);
 			GetNodeHandler(node, context).CalculateOwnFileDependencies(node, context, calculatedNodes);
 		}
 
@@ -376,12 +374,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			if (traversedNodes.Contains(node))
+			if (!traversedNodes.Add(node))
 			{
 				return;
 			}
-
-			traversedNodes.Add(node);
 
 			foreach (var connection in node.Dependencies)
 			{
@@ -394,12 +390,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static string GetGuidFromAssetId(string id)
 		{
-			return id.Split('_')[0];
+			int separatorIndex = id.IndexOf('_');
+			if (separatorIndex == -1)
+			{
+				return id;
+			}
+			return id.Substring(0, separatorIndex);
 		}
 
 		public static string GetFileIdFromAssetId(string id)
 		{
-			return id.Split('_')[1];
+			return id.Substring(id.IndexOf('_') + 1);
 		}
 
 		public static string GetAssetIdForAsset(Object asset)
@@ -442,7 +443,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static Object[] LoadAllAssetsAtPath(string path)
 		{
-			if (path.EndsWith(".unity"))
+			if (path.EndsWith(".unity", StringComparison.Ordinal))
 			{
 				return new[] { AssetDatabase.LoadMainAssetAtPath(path) };
 			}
@@ -450,23 +451,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return AssetDatabase.LoadAllAssetsAtPath(path);
 		}
 
-		public static string[] GetAllAssetPathes(bool unityBuiltin)
+		public static string[] GetAllAssetPaths(bool unityBuiltin)
 		{
-			var pathes = AssetDatabase.GetAllAssetPaths();
-			var pathList = new List<string>();
-
-			foreach (var path in pathes)
+			var paths = AssetDatabase.GetAllAssetPaths();
+			if(!unityBuiltin)
 			{
-				pathList.Add(path);
+				return paths;
 			}
 
-			if (unityBuiltin)
-			{
-				pathList.Add("Resources/unity_builtin_extra");
-				pathList.Add("Library/unity default resources");
-			}
+			var pathList = new string[paths.Length + 2];
+			Array.Copy(paths, pathList, paths.Length);
 
-			return pathList.ToArray();
+			pathList[pathList.Length - 2] = "Resources/unity_builtin_extra";
+			pathList[pathList.Length - 1] = "Library/unity default resources";
+
+			return pathList;
 		}
 
 		public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
@@ -556,16 +555,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 #endif
 		}
 
-		public static void RemoveNonExistingFilesFromIdentifyableList<T>(string[] pathes, ref T[] list)
+		public static void RemoveNonExistingFilesFromIdentifyableList<T>(string[] paths, ref T[] list)
 			where T : IIdentifyable
 		{
-			var pathesLookup = new HashSet<string>(pathes);
+			var pathsLookup = new HashSet<string>(paths);
 			var deletedNodes = new HashSet<T>();
 
 			foreach (var listItem in list)
 			{
 				var filePath = AssetDatabase.GUIDToAssetPath(listItem.Id);
-				if (!pathesLookup.Contains(filePath))
+				if (!pathsLookup.Contains(filePath))
 				{
 					deletedNodes.Add(listItem);
 				}

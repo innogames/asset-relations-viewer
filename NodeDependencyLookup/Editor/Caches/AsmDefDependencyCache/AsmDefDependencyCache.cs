@@ -80,9 +80,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		private bool TryGetRefPathFromGUID(string reference, Dictionary<string, string> nameToFileMapping,
 			out string refPath)
 		{
-			if (reference.StartsWith("GUID:"))
+			if (reference.StartsWith("GUID:", StringComparison.Ordinal))
 			{
-				refPath = AssetDatabase.GUIDToAssetPath(reference.Split(':')[1]);
+				refPath = AssetDatabase.GUIDToAssetPath(reference.Substring("GUID:".Length));
 			}
 			else if (!nameToFileMapping.TryGetValue(reference, out refPath))
 			{

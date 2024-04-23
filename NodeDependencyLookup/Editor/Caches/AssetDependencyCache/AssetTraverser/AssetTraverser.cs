@@ -59,7 +59,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var path = AssetDatabase.GetAssetPath(sceneAsset);
 
-			if (path.StartsWith("Packages"))
+			if (path.StartsWith("Packages", StringComparison.Ordinal))
 			{
 				return;
 			}
