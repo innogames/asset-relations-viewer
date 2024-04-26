@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.U2D;
@@ -41,7 +42,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly string spriteTypeName = typeof(Sprite).FullName;
 		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup = new ConcurrentDictionary<string, CachedData>();
+		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup =
+			new ConcurrentDictionary<string, CachedData>();
 
 		public FileNodeHandler()
 		{
@@ -89,6 +91,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
+			InitializeOwnFileSize(node);
+		}
+
+		private void InitializeOwnFileSize(Node node)
+		{
+			if (node.OwnSize.Size != -1)
+			{
+				return;
+			}
+
 			var isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
 			var contributesToTreeSize = !isSpriteOfSpriteAtlas;
 
@@ -102,6 +114,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		{
+			CalculateOwnFileSize(node, updateNodeData);
+		}
+
+		private void CalculateOwnFileSize(Node node, bool updateNodeData)
 		{
 			var id = node.Id;
 			var packedAssetSize = 0;
@@ -229,7 +246,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var path = AssetDatabase.GUIDToAssetPath(node.Id);
-			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000", StringComparison.Ordinal);
+			return IsSceneAndPacked(path) || IsInResources(path) ||
+				node.Id.StartsWith("0000000", StringComparison.Ordinal);
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
@@ -240,8 +258,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
+			var node = new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
+
+			InitializeOwnFileSize(node);
+
+			if (update)
+			{
+				Task.Run(() => CalculateOwnFileSize(node, true));
+			}
+			else
+			{
+				CalculateOwnFileSize(node, false);
+			}
+
 			wasCached = false;
-			return new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
+			return node;
 		}
 
 		private string GetCachePath()
@@ -303,7 +334,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (Path.GetExtension(path).Equals(".unity", StringComparison.Ordinal))
 			{
-				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
+				return EditorBuildSettings.scenes.Any(scene =>
+					scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
 			}
 
 			return false;

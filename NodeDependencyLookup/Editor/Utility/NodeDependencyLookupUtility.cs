@@ -3,12 +3,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 #if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
@@ -60,6 +62,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Parallel.For(0, paths.Length, index => { timestamps[index] = GetTimeStampForPath(paths[index]); });
 
 			return timestamps;
+		}
+
+		public static Dictionary<string, long> GetTimeStampsForFilesDictionary(string[] pathes)
+		{
+			var timestamps = GetTimeStampsForFiles(pathes);
+			var result = new Dictionary<string, long>();
+
+			for (var i = 0; i < pathes.Length; i++)
+			{
+				result.Add(pathes[i], timestamps[i]);
+			}
+
+			return result;
 		}
 
 		public static long GetTimeStampForFileId(string fileId)
@@ -120,6 +135,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 		}
 
+		private class ChangedAssetCacheData
+		{
+			public string Path;
+			public long TimeStamp;
+			public List<IAssetBasedDependencyCache> Caches = new List<IAssetBasedDependencyCache>();
+		}
+
 		private static IEnumerator LoadDependenciesForCachesInternal(NodeDependencyLookupContext stateContext,
 			ResolverUsageDefinitionList resolverUsageDefinitionList, bool isPartialUpdate, bool isFastUpdate,
 			string fileDirectory)
@@ -138,8 +160,156 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var caches = stateContext.GetCaches();
 			var needsDataUpdate = false;
+			var assetBasedDependencyCaches = new List<IAssetBasedDependencyCache>();
+
+			if (isFastUpdate)
+			{
+				foreach (var pair in stateContext.nodeDictionary)
+				{
+					pair.Value.ResetRelationInformation();
+				}
+			}
+			else
+			{
+				stateContext.nodeDictionary.Clear();
+			}
+
+			foreach (var pair in stateContext.NodeHandlerLookup)
+			{
+				pair.Value.InitNodeCreation();
+			}
 
 			foreach (var cacheUsage in caches)
+			{
+				if (cacheUsage.ResolverUsages.Count == 0)
+				{
+					continue;
+				}
+
+				var cache = cacheUsage.Cache;
+				var cacheType = cache.GetType();
+
+				if (!resolverUsageDefinitionList.IsCacheActive(cacheType) ||
+				    !(cacheUsage.Cache is IAssetBasedDependencyCache assetBasedDependencyCache))
+				{
+					continue;
+				}
+
+				var updateInfo = resolverUsageDefinitionList.GetUpdateStateForCache(cacheType);
+
+				if (updateInfo.Load)
+				{
+					Profiler.BeginSample($"Load cache: {cacheUsage.Cache.GetType().Name}");
+					cache.Load(fileDirectory);
+					cacheUsage.IsLoaded = true;
+					Profiler.EndSample();
+				}
+
+				assetBasedDependencyCaches.Add(assetBasedDependencyCache);
+				assetBasedDependencyCache.PreUpdate();
+			}
+
+			var changedPaths = new Dictionary<string, ChangedAssetCacheData>();
+
+			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
+			{
+				var updateInfo =
+					resolverUsageDefinitionList.GetUpdateStateForCache(assetBasedDependencyCache.GetType());
+
+				if (!updateInfo.Update)
+				{
+					continue;
+				}
+
+				var toBeUpdatedAssetPaths = assetBasedDependencyCache.GetChangedAssetPaths();
+
+				foreach (var (path, timeStamp) in toBeUpdatedAssetPaths)
+				{
+					if (!changedPaths.ContainsKey(path))
+					{
+						changedPaths.Add(path,
+							new ChangedAssetCacheData
+							{
+								Path = path, Caches = new List<IAssetBasedDependencyCache>(), TimeStamp = timeStamp
+							});
+					}
+
+					changedPaths[path].Caches.Add(assetBasedDependencyCache);
+				}
+			}
+
+			var entries = new List<AssetListEntry>();
+			var i = 0;
+
+			var stopwatch = new Stopwatch();
+			stopwatch.Start();
+
+			foreach (var pair in changedPaths)
+			{
+				entries.Clear();
+				var changedAssetCacheData = pair.Value;
+				var path = changedAssetCacheData.Path;
+				AddAssetsToList(entries, path);
+
+				foreach (var cache in changedAssetCacheData.Caches)
+				{
+					var nodes = cache.UpdateAssets(path, changedAssetCacheData.TimeStamp, entries);
+
+					foreach (var node in nodes)
+					{
+						RelationLookup.GetOrCreateNode(node.Id, node.Type, node.Key, stateContext.nodeDictionary,
+							stateContext, true, out _);
+					}
+				}
+
+				if (EditorUtility.DisplayCancelableProgressBar("Finding dependencies in Assets/Files", path,
+					    (float)i / changedPaths.Count))
+				{
+					throw new DependencyUpdateAbortedException();
+				}
+
+				if (stopwatch.ElapsedMilliseconds > 5000)
+				{
+					stopwatch.Reset();
+					stopwatch.Start();
+					yield return null;
+				}
+
+				i++;
+			}
+
+			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
+			{
+				var updateInfo =
+					resolverUsageDefinitionList.GetUpdateStateForCache(assetBasedDependencyCache.GetType());
+
+				if (!updateInfo.Update)
+				{
+					continue;
+				}
+
+				assetBasedDependencyCache.PostUpdate();
+			}
+
+			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
+			{
+				var updateInfo =
+					resolverUsageDefinitionList.GetUpdateStateForCache(assetBasedDependencyCache.GetType());
+
+				if (!updateInfo.Update || !updateInfo.Save)
+				{
+					continue;
+				}
+
+				Profiler.BeginSample($"Save cache: {assetBasedDependencyCache.GetType().Name}");
+				assetBasedDependencyCache.Save(fileDirectory);
+				Profiler.EndSample();
+				yield return null;
+			}
+
+			//RelationLookup.GetOrCreateNode()
+
+			/*foreach (var cacheUsage in caches)
 			{
 				if (cacheUsage.ResolverUsages.Count == 0)
 				{
@@ -182,7 +352,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					Debug.LogErrorFormat("{0} could not be updated", cache.GetType().FullName);
 				}
-			}
+			}*/
 
 			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary,
 				isFastUpdate, needsDataUpdate);
@@ -239,8 +409,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 
-			if (Path.GetExtension(path).Equals(".asset", StringComparison.Ordinal) 
-			    || Path.GetExtension(path).Equals(".anim", StringComparison.Ordinal))
+			if (Path.GetExtension(path).Equals(".asset", StringComparison.Ordinal) ||
+			    Path.GetExtension(path).Equals(".anim", StringComparison.Ordinal))
 			{
 				return path;
 			}
@@ -283,10 +453,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return null;
 		}
 
-		private static string GetAssetDatabaseVersion1LibraryDataPath(string guid)
-		{
-			return Application.dataPath + "../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
-		}
+		private static string GetAssetDatabaseVersion1LibraryDataPath(string guid) => Application.dataPath +
+			"../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
 
 		/// <summary>
 		/// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources
@@ -334,10 +502,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return false;
 		}
 
-		private static INodeHandler GetNodeHandler(Node node, NodeDependencyLookupContext context)
-		{
-			return context.NodeHandlerLookup[node.Type];
-		}
+		private static INodeHandler GetNodeHandler(Node node, NodeDependencyLookupContext context) =>
+			context.NodeHandlerLookup[node.Type];
 
 		public static void UpdateOwnFileSizeDependenciesForNode(Node node, NodeDependencyLookupContext context,
 			HashSet<Node> calculatedNodes)
@@ -392,7 +558,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static string GetGuidFromAssetId(string id)
 		{
-			int separatorIndex = id.IndexOf('_');
+			var separatorIndex = id.IndexOf('_');
 			if (separatorIndex == -1)
 			{
 				return id;
@@ -400,10 +566,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return id.Substring(0, separatorIndex);
 		}
 
-		public static string GetFileIdFromAssetId(string id)
-		{
-			return id.Substring(id.IndexOf('_') + 1);
-		}
+		public static string GetFileIdFromAssetId(string id) => id.Substring(id.IndexOf('_') + 1);
 
 		public static string GetAssetIdForAsset(Object asset)
 		{
@@ -456,7 +619,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static string[] GetAllAssetPaths(bool unityBuiltin)
 		{
 			var paths = AssetDatabase.GetAllAssetPaths();
-			if(!unityBuiltin)
+			if (!unityBuiltin)
 			{
 				return paths;
 			}
@@ -472,10 +635,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
 		{
-			Profiler.BeginSample($"AddAssetsToList Load {path}");
+			//Profiler.BeginSample($"AddAssetsToList Load {path}");
 			var mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
 			var allAssets = LoadAllAssetsAtPath(path);
-			Profiler.EndSample();
+			//Profiler.EndSample();
 
 			for (var i = 0; i < allAssets.Length; i++)
 			{
@@ -528,10 +691,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return result;
 		}
 
-		public static T InstantiateClass<T>(Type type) where T : class
-		{
-			return Activator.CreateInstance(type) as T;
-		}
+		public static T InstantiateClass<T>(Type type) where T : class => Activator.CreateInstance(type) as T;
 
 		public static string GetNodeKey(string id, string type)
 		{

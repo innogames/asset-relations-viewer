@@ -38,17 +38,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			public readonly Dictionary<string, NameAndType> Assets = new Dictionary<string, NameAndType>();
 		}
 
-		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup =
-			new Dictionary<string, SerializedNodeData>();
+		private readonly Dictionary<string, SerializedNodeData> _cachedNodeDataLookup = new Dictionary<string, SerializedNodeData>();
 
 		private readonly Dictionary<string, long> _cachedTimeStamps = new Dictionary<string, long>(64 * 1024);
 		private readonly Dictionary<string, FileData> _fileDataMapping = new Dictionary<string, FileData>();
 		private readonly List<AssetListEntry> _assetList = new List<AssetListEntry>(1024);
 
-		public string GetHandledNodeType()
-		{
-			return AssetNodeType.Name;
-		}
+		public string GetHandledNodeType() => AssetNodeType.Name;
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
 		{
@@ -70,7 +66,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 
-				NodeDependencyLookupUtility.UpdateOwnFileSizeDependenciesForNode(dependency.Node, context, calculatedNodes);
+				NodeDependencyLookupUtility.UpdateOwnFileSizeDependenciesForNode(dependency.Node, context,
+					calculatedNodes);
 				var ownNodeSize = dependency.Node.OwnSize;
 				ownNodeSize.ContributesToTreeSize = false;
 
@@ -78,7 +75,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize { Size = 0, ContributesToTreeSize = false };
 		}
 
 		public bool IsNodePackedToApp(Node node, bool alwaysExcluded = false)
@@ -135,7 +132,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				var timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
 				_cachedNodeDataLookup.Add(id,
-					new SerializedNodeData {Id = id, Type = type, Name = name, TimeStamp = timeStamp});
+					new SerializedNodeData { Id = id, Type = type, Name = name, TimeStamp = timeStamp });
 			}
 		}
 
@@ -201,7 +198,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			GetNameAndType(path, id, out var name, out var concreteType);
 			var cachedSerializedNodeData = new SerializedNodeData
-				{Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp};
+				{ Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp };
 
 			if (!wasCached)
 			{
@@ -231,14 +228,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				foreach (var entry in _assetList)
 				{
 					GetNameAndTypeForAsset(entry.Asset, entry.AssetId, path, out name, out type);
-					assetData.Assets.Add(entry.AssetId, new NameAndType {Name = name, Type = type});
+					assetData.Assets.Add(entry.AssetId, new NameAndType { Name = name, Type = type });
 				}
 
 				_fileDataMapping.Add(guid, assetData);
 			}
 
 			if (_fileDataMapping.TryGetValue(guid, out var value) &&
-			    value.Assets.TryGetValue(assetId, out NameAndType nameAndType))
+			    value.Assets.TryGetValue(assetId, out var nameAndType))
 			{
 				name = nameAndType.Name;
 				type = nameAndType.Type;
@@ -281,9 +278,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return false;
 		}
 
-		private bool IsInResources(string path)
-		{
-			return path.Contains("/Resources/");
-		}
+		private bool IsInResources(string path) => path.Contains("/Resources/");
 	}
 }

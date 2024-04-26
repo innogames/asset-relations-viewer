@@ -12,17 +12,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public string AssetId = string.Empty;
 		public List<IAssetDependencyResolver> Resolvers;
 
-		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies =
-			new Dictionary<IAssetDependencyResolver, List<Dependency>>();
+		public Dictionary<IAssetDependencyResolver, List<Dependency>> ResolverDependencies = new Dictionary<IAssetDependencyResolver, List<Dependency>>();
 
-		public void SetResolvers(List<IAssetDependencyResolver> resolvers)
+		public ResolverDependencySearchContext Set(Object asset, string assetId,
+			List<IAssetDependencyResolver> resolvers)
 		{
+			Asset = asset;
+			AssetId = assetId;
 			Resolvers = resolvers;
 			ResolverDependencies.Clear();
 			foreach (var resolver in resolvers)
 			{
 				ResolverDependencies.Add(resolver, new List<Dependency>());
 			}
+
+			return this;
 		}
 
 		public void AddDependency(IAssetDependencyResolver resolver, Dependency dependency)
