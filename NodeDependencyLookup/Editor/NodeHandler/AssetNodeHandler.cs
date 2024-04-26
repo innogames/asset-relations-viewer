@@ -95,7 +95,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public bool IsNodeEditorOnly(string id, string type)
 		{
 			var path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(id));
-			return path.Contains("/Editor/", StringComparison.Ordinal);
+			return path.Contains("/Editor/");
 		}
 
 		public void InitNodeCreation()
@@ -283,7 +283,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool IsInResources(string path)
 		{
-			return path.Contains("/Resources/", StringComparison.Ordinal);
+			return path.Contains("/Resources/");
 		}
 	}
 }

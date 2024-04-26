@@ -1,3 +1,6 @@
+**3.0.2**
+- Regression from 3.0.1 - Revert changes that are not 2019.4 compatible
+
 **3.0.1**
 - Improve string comparison and allocations for faster processing
 - Cleanup naming "pathes" -> "paths"

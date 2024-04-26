@@ -296,10 +296,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static bool IsNodePackedToApp(Node node, NodeDependencyLookupContext stateContext,
 			Dictionary<string, bool> checkedPackedStates)
 		{
-			if (!checkedPackedStates.TryAdd(node.Key, false))
+			if (checkedPackedStates.ContainsKey(node.Key))
 			{
 				return checkedPackedStates[node.Key];
 			}
+
+			checkedPackedStates.Add(node.Key, false);
 
 			var nodeHandler = stateContext.NodeHandlerLookup[node.Type];
 
