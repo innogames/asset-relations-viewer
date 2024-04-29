@@ -72,12 +72,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var resolvedNodes = new List<IDependencyMappingNode>(16 * 1024);
 			var cacheUpdateSettings = stateContext.CacheUpdateSettings;
 
-			// Init Name and Type information for node handlers
-			/*foreach (var pair in stateContext.NodeHandlerLookup)
-			{
-				pair.Value.InitNodeCreation();
-			}*/
-
 			foreach (var dependencyCache in dependencyCaches)
 			{
 				var cache = dependencyCache.Cache;
@@ -163,18 +157,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			yield return NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext,
 				updateNodeData);
-
-			if (updateNodeData)
-			{
-				foreach (var pair in stateContext.NodeHandlerLookup)
-				{
-					EditorUtility.DisplayProgressBar("RelationLookup",
-						$"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
-					pair.Value.SaveCaches();
-				}
-			}
-
-			EditorUtility.ClearProgressBar();
 		}
 
 		private static void DisplayNodeCreationProgress(Node node, float percentage)

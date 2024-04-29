@@ -221,17 +221,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 
+				needsDataUpdate = true;
+
 				var toBeUpdatedAssetPaths = assetBasedDependencyCache.GetChangedAssetPaths();
 
 				foreach (var (path, timeStamp) in toBeUpdatedAssetPaths)
 				{
 					if (!changedPaths.ContainsKey(path))
 					{
-						changedPaths.Add(path,
-							new ChangedAssetCacheData
-							{
-								Path = path, Caches = new List<IAssetBasedDependencyCache>(), TimeStamp = timeStamp
-							});
+						changedPaths.Add(path, new ChangedAssetCacheData
+						{
+							Path = path, Caches = new List<IAssetBasedDependencyCache>(), TimeStamp = timeStamp
+						});
 					}
 
 					changedPaths[path].Caches.Add(assetBasedDependencyCache);
@@ -356,6 +357,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary,
 				isFastUpdate, needsDataUpdate);
+
+			if (needsDataUpdate)
+			{
+				foreach (var pair in stateContext.NodeHandlerLookup)
+				{
+					EditorUtility.DisplayProgressBar("RelationLookup",
+						$"Saving NodeHandler cache: {pair.Value.GetType().Name}", 0);
+					pair.Value.SaveCaches();
+				}
+			}
+
+			EditorUtility.ClearProgressBar();
 		}
 
 		public static Dictionary<string, INodeHandler> BuildNodeHandlerLookup()
