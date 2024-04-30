@@ -100,21 +100,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public bool CanUpdate() => !Application.isPlaying && !EditorApplication.isCompiling;
 
-		public List<(string, long)> GetChangedAssetPaths()
+		public List<string> GetChangedAssetPaths(string[] allPathes, long[] pathTimestamps)
 		{
-			var changedAssetPaths = new List<(string, long)>();
+			var changedAssetPaths = new List<string>();
 
 			var list = RelationLookup.ConvertToDictionary(_fileToAssetNodes);
-			var paths = NodeDependencyLookupUtility.GetAllAssetPaths(true);
-			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(paths, ref _fileToAssetNodes);
+			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(allPathes, ref _fileToAssetNodes);
 
-			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Getting file timestamps", 0);
-			var timestampLookup = NodeDependencyLookupUtility.GetTimeStampsForFilesDictionary(paths);
 			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Checking changed files", 0);
 
-			foreach (var path in paths)
+			for (var i = 0; i < allPathes.Length; i++)
 			{
-				var timestamp = timestampLookup[path];
+				var path = allPathes[i];
+				var timestamp = pathTimestamps[i];
 				var guid = AssetDatabase.AssetPathToGUID(path);
 				var changed = false;
 
@@ -140,7 +138,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (changed)
 				{
-					changedAssetPaths.Add((path, timestamp));
+					changedAssetPaths.Add(path);
 				}
 			}
 

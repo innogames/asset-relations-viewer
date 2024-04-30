@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -6,7 +7,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		void PreAssetUpdate();
 		void PostAssetUpdate();
-		List<(string, long)> GetChangedAssetPaths();
+		List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps);
 
 		List<IDependencyMappingNode>
 			UpdateAssetsForPath(string path, long timeStamp, List<AssetListEntry> assetEntries);

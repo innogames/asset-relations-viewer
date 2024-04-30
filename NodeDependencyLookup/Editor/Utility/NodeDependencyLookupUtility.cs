@@ -55,7 +55,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				resolver.DependencyTypes.Contains(connectionType);
 		}
 
-		public static long[] GetTimeStampsForFiles(string[] paths)
+		public static long[] GetTimeStampsForFilePaths(string[] paths)
 		{
 			var timestamps = new long[paths.Length];
 
@@ -64,14 +64,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return timestamps;
 		}
 
-		public static Dictionary<string, long> GetTimeStampsForFilesDictionary(string[] pathes)
+		public static Dictionary<string, long> GetTimeStampsForFilesDictionary(string[] paths, long[] timeStamps)
 		{
-			var timestamps = GetTimeStampsForFiles(pathes);
 			var result = new Dictionary<string, long>();
 
-			for (var i = 0; i < pathes.Length; i++)
+			for (var i = 0; i < paths.Length; i++)
 			{
-				result.Add(pathes[i], timestamps[i]);
+				result.Add(paths[i], timeStamps[i]);
 			}
 
 			return result;
@@ -138,7 +137,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private class ChangedAssetCacheData
 		{
 			public string Path;
-			public long TimeStamp;
 			public List<IAssetBasedDependencyCache> Caches = new List<IAssetBasedDependencyCache>();
 		}
 
@@ -209,6 +207,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var changedPaths = new Dictionary<string, ChangedAssetCacheData>();
+			var allPaths = GetAllAssetPaths(true);
+			var pathTimeStamps = GetTimeStampsForFilePaths(allPaths);
+			var timeStampsForFilesDictionary = GetTimeStampsForFilesDictionary(allPaths, pathTimeStamps);
 
 			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
 			{
@@ -224,15 +225,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				needsDataUpdate = true;
 
-				var toBeUpdatedAssetPaths = assetBasedDependencyCache.GetChangedAssetPaths();
+				var toBeUpdatedAssetPaths = assetBasedDependencyCache.GetChangedAssetPaths(allPaths, pathTimeStamps);
 
-				foreach (var (path, timeStamp) in toBeUpdatedAssetPaths)
+				foreach (var path in toBeUpdatedAssetPaths)
 				{
 					if (!changedPaths.ContainsKey(path))
 					{
 						changedPaths.Add(path, new ChangedAssetCacheData
 						{
-							Path = path, Caches = new List<IAssetBasedDependencyCache>(), TimeStamp = timeStamp
+							Path = path,
+							Caches = new List<IAssetBasedDependencyCache>()
 						});
 					}
 
@@ -257,7 +259,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				foreach (var cache in changedAssetCacheData.Caches)
 				{
-					var dependencyMappingNodes = cache.UpdateAssetsForPath(path, changedAssetCacheData.TimeStamp, entries);
+					var timeStamp = timeStampsForFilesDictionary[path];
+					var dependencyMappingNodes = cache.UpdateAssetsForPath(path, timeStamp, entries);
 
 					foreach (var dependencyMappingNode in dependencyMappingNodes)
 					{
@@ -274,7 +277,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					throw new DependencyUpdateAbortedException();
 				}
 
-				if (stopwatch.ElapsedMilliseconds > 5000)
+				if (stopwatch.ElapsedMilliseconds > 1000)
 				{
 					stopwatch.Restart();
 					yield return null;

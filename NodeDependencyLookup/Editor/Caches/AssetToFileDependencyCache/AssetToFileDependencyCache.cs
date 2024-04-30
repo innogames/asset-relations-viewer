@@ -39,21 +39,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			_createdDependencyCache = createdDependencyCache;
 		}
 
-		public List<(string, long)> GetChangedAssetPaths()
+		public List<string> GetChangedAssetPaths(string[] allPathes, long[] pathTimestamps)
 		{
-			var changedAssetPaths = new List<(string, long)>();
-			var paths = NodeDependencyLookupUtility.GetAllAssetPaths(true);
+			var changedAssetPaths = new List<string>();
 			var fileToAssetMappingDictionary = RelationLookup.ConvertToDictionary(_fileToAssetsMappings);
 
-			Profiler.BeginSample("TimeStamps");
-			var timeStampLookup = NodeDependencyLookupUtility.GetTimeStampsForFilesDictionary(paths);
-			Profiler.EndSample();
-
-			foreach (var path in paths)
+			for (var i = 0; i < allPathes.Length; i++)
 			{
+				var path = allPathes[i];
+				var timeStamp = pathTimestamps[i];
+
 				var guid = AssetDatabase.AssetPathToGUID(path);
 				var changed = false;
-				var timeStamp = timeStampLookup[path];
 
 				if (fileToAssetMappingDictionary.TryGetValue(guid, out var fileToAssetsMapping))
 				{
@@ -69,7 +66,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (changed)
 				{
-					changedAssetPaths.Add((path, timeStamp));
+					changedAssetPaths.Add(path);
 				}
 			}
 

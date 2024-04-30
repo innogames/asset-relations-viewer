@@ -21,7 +21,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	/// AddressableAssetGroup -> Asset -> File -> AddressableAssetGroup
 	/// </summary>
 	[UsedImplicitly]
-	public class FileToAddressableAssetGroupTempCache : IDependencyCache
+	public class FileToAddressableAssetGroupTempCache : IAssetBasedDependencyCache
 	{
 		private const string Version = "2.0.0";
 		private const string FileName = "FileToAddressableGroupDependencyCacheData_" + Version + ".cache";
@@ -30,6 +30,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		private Dictionary<string, GenericDependencyMappingNode> _lookup =
 			new Dictionary<string, GenericDependencyMappingNode>();
+
+		private readonly List<string> _guidsInGroups = new List<string>();
+		private readonly Dictionary<string, AddressableAssetGroup> _guidToGroup =
+			new Dictionary<string, AddressableAssetGroup>();
+
+		private List<GenericDependencyMappingNode> _mappingNodes = new List<GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
@@ -46,60 +52,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			if (!shouldUpdate && _nodes.Length > 0)
-			{
-				yield break;
-			}
-
-			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
-
-			if (settings == null)
-			{
-				yield break;
-			}
-
-			var resolverUpdateInfo = resolverUsages.GetUpdateStateForResolver(typeof(AddressableAssetGroupResolver));
-			var assetToFileLookup = new RelationLookup.RelationsLookup();
-			yield return RelationLookup.GetAssetToFileLookup(cacheUpdateSettings, resolverUpdateInfo,
-				assetToFileLookup);
-
-			_lookup.Clear();
-			_nodes = Array.Empty<GenericDependencyMappingNode>();
-
-			var nodes = new List<GenericDependencyMappingNode>();
-
-			for (var i = 0; i < settings.groups.Count; ++i)
-			{
-				var group = settings.groups[i];
-				EditorUtility.DisplayProgressBar("FileToAddressableAssetGroupTempCache",
-					$"Getting dependencies for {group.Name}", i / (float) settings.groups.Count);
-
-				foreach (var addressableAssetEntry in group.entries)
-				{
-					var entries = new List<AddressableAssetEntry>();
-					addressableAssetEntry.GatherAllAssets(entries, true, true, false);
-
-					foreach (var assetEntry in entries)
-					{
-						var fileNode = assetToFileLookup.GetNode(assetEntry.guid, FileNodeType.Name);
-
-						if (fileNode == null)
-						{
-							continue;
-						}
-
-						var node = new GenericDependencyMappingNode(fileNode.Id, FileNodeType.Name);
-						node.Dependencies.Add(new Dependency(group.Name, FileToAddressableGroupDependency.Name,
-							AddressableAssetGroupNodeType.Name,
-							new[] {new PathSegment("AssetGroup", PathSegmentType.Property)}));
-
-						nodes.Add(node);
-						_lookup.Add(node.Id, node);
-					}
-				}
-			}
-
-			_nodes = nodes.ToArray();
+			// Nothing to do
+			yield return null;
 		}
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
@@ -141,6 +95,82 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public Type GetResolverType()
 		{
 			return typeof(IAddressableAssetToGroupResolver);
+		}
+
+		public void PreAssetUpdate()
+		{
+			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+
+			if (settings == null)
+			{
+				Debug.LogWarning(
+					"Could not find UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings. Please add Addressable Settings if you use the AddressableGroup -> Asset resolver");
+				return;
+			}
+
+			for (var i = 0; i < settings.groups.Count; ++i)
+			{
+				var group = settings.groups[i];
+				EditorUtility.DisplayProgressBar("FileToAddressableAssetGroupTempCache",
+					$"Preparing {group.Name}", i / (float) settings.groups.Count);
+
+				foreach (var addressableAssetEntry in group.entries)
+				{
+					var entries = new List<AddressableAssetEntry>();
+					addressableAssetEntry.GatherAllAssets(entries, true, true, false);
+
+					foreach (var assetEntry in entries)
+					{
+						_guidsInGroups.Add(assetEntry.guid);
+						_guidToGroup.Add(assetEntry.guid, group);
+					}
+				}
+			}
+		}
+
+		public void PostAssetUpdate()
+		{
+			foreach (var node in _mappingNodes)
+			{
+				_lookup.Add(node.Id, node);
+			}
+
+			_nodes = _mappingNodes.ToArray();
+		}
+
+		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps)
+		{
+			var result = new List<string>();
+
+			foreach (var guid in _guidsInGroups)
+			{
+				result.Add(AssetDatabase.GUIDToAssetPath(guid));
+			}
+
+			return result;
+		}
+
+		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
+			List<AssetListEntry> assetEntries)
+		{
+			var result = new List<IDependencyMappingNode>();
+
+			if (assetEntries.Count == 0)
+			{
+				return result;
+			}
+
+			var guid = AssetDatabase.AssetPathToGUID(path);
+			var group = _guidToGroup[guid];
+
+			var node = new GenericDependencyMappingNode(guid, FileNodeType.Name);
+			node.Dependencies.Add(new Dependency(group.Name, FileToAddressableGroupDependency.Name,
+				AddressableAssetGroupNodeType.Name,
+				new[] {new PathSegment("AssetGroup", PathSegmentType.Property)}));
+
+			_mappingNodes.Add(node);
+
+			return result;
 		}
 	}
 
