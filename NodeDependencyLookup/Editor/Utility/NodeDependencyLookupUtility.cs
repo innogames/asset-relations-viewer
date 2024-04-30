@@ -276,8 +276,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (stopwatch.ElapsedMilliseconds > 5000)
 				{
-					stopwatch.Reset();
-					stopwatch.Start();
+					stopwatch.Restart();
 					yield return null;
 				}
 

@@ -197,6 +197,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			_resolversToExecute.Clear();
 			var guid = AssetDatabase.AssetPathToGUID(path);
+			_tmpFileToAssetNodesLookup.Remove(guid);
 
 			foreach (var resolver in _tmpResolvers)
 			{
@@ -208,7 +209,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (var entry in assetEntries)
 			{
-				_tmpFileToAssetNodesLookup.Remove(guid);
 				_hierarchyTraverser.Search(_searchContext.Set(entry.Asset, entry.AssetId, _tmpResolvers));
 
 				foreach (var resolver in _resolversToExecute)
