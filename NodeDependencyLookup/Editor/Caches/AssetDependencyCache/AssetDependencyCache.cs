@@ -158,7 +158,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			yield return null;
 		}
 
-		public void PreUpdate()
+		public void PreAssetUpdate()
 		{
 			_hierarchyTraverser.Initialize();
 			_tmpResolvers.Clear();
@@ -185,12 +185,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			_tmpFileToAssetNodesLookup = RelationLookup.ConvertToDictionary(_fileToAssetNodes);
 		}
 
-		public void PostUpdate()
+		public void PostAssetUpdate()
 		{
 			_fileToAssetNodes = _tmpFileToAssetNodesLookup.Values.ToArray();
 		}
 
-		public List<IDependencyMappingNode> UpdateAssets(string path, long timeStamp, List<AssetListEntry> assetEntries)
+		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
+			List<AssetListEntry> assetEntries)
 		{
 			var result = new List<IDependencyMappingNode>();
 

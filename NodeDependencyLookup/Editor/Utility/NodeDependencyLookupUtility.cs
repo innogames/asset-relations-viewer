@@ -206,7 +206,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				assetBasedDependencyCaches.Add(assetBasedDependencyCache);
-				assetBasedDependencyCache.PreUpdate();
 			}
 
 			var changedPaths = new Dictionary<string, ChangedAssetCacheData>();
@@ -220,6 +219,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					continue;
 				}
+
+				assetBasedDependencyCache.PreAssetUpdate();
 
 				needsDataUpdate = true;
 
@@ -245,21 +246,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var stopwatch = new Stopwatch();
 			stopwatch.Start();
 
+			var taskList = new List<Task>();
+
 			foreach (var pair in changedPaths)
 			{
 				entries.Clear();
 				var changedAssetCacheData = pair.Value;
 				var path = changedAssetCacheData.Path;
-				AddAssetsToList(entries, path);
+				AddAssetsOfPathToList(entries, path);
 
 				foreach (var cache in changedAssetCacheData.Caches)
 				{
-					var nodes = cache.UpdateAssets(path, changedAssetCacheData.TimeStamp, entries);
+					var dependencyMappingNodes = cache.UpdateAssetsForPath(path, changedAssetCacheData.TimeStamp, entries);
 
-					foreach (var node in nodes)
+					foreach (var dependencyMappingNode in dependencyMappingNodes)
 					{
-						RelationLookup.GetOrCreateNode(node.Id, node.Type, node.Key, stateContext.nodeDictionary,
-							stateContext, true, out _);
+						var node = RelationLookup.GetOrCreateNode(dependencyMappingNode.Id, dependencyMappingNode.Type, dependencyMappingNode.Key,
+							stateContext.nodeDictionary, stateContext, true, out _);
+
+						stateContext.NodeHandlerLookup[node.Type].CalculatePrecalculatableAsyncDataWhileCacheExecution(node, taskList);
 					}
 				}
 
@@ -279,6 +284,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				i++;
 			}
 
+			var taskArray = taskList.ToArray();
+
+			while (!Task.WaitAll(taskArray, 100))
+			{
+				yield return null;
+			}
+
 			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
 			{
 				var updateInfo =
@@ -289,7 +301,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 
-				assetBasedDependencyCache.PostUpdate();
+				assetBasedDependencyCache.PostAssetUpdate();
 			}
 
 			foreach (var assetBasedDependencyCache in assetBasedDependencyCaches)
@@ -307,8 +319,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				Profiler.EndSample();
 				yield return null;
 			}
-
-			//RelationLookup.GetOrCreateNode()
 
 			/*foreach (var cacheUsage in caches)
 			{
@@ -357,6 +367,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary,
 				isFastUpdate, needsDataUpdate);
+
+            yield return CalculateAllNodeSizes(stateContext.nodeDictionary.Values.ToList(), stateContext,
+				needsDataUpdate);
 
 			if (needsDataUpdate)
 			{
@@ -646,7 +659,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return pathList;
 		}
 
-		public static void AddAssetsToList(List<AssetListEntry> assetList, string path)
+		public static void AddAssetsOfPathToList(List<AssetListEntry> assetList, string path)
 		{
 			//Profiler.BeginSample($"AddAssetsToList Load {path}");
 			var mainAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
@@ -766,7 +779,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return RelationType.DEPENDENCY;
 		}
 
-		public static IEnumerator CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context,
+		private static IEnumerator CalculateAllNodeSizes(List<Node> nodes, NodeDependencyLookupContext context,
 			bool updateNodeData = true)
 		{
 			if (nodes.Count == 0)
@@ -796,7 +809,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				Parallel.For(0, nodes.Count, i =>
 				{
 					currentNode = nodes[i];
-					GetNodeHandler(nodes[i], context).CalculateOwnFileSize(nodes[i], context, updateNodeData);
+					GetNodeHandler(nodes[i], context).CalculateOwnFileSizeParallel(nodes[i], context, updateNodeData);
 					count++;
 				});
 			});

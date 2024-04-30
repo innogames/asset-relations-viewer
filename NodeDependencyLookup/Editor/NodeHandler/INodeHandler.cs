@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -10,13 +11,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		/// Returns which node types the handler handlers. For example "Asset"
 		string GetHandledNodeType();
 
-		/// Initialized the filesize calculation of the node. Since the <see cref="CalculateOwnFileSize"/> function is running on multiple threads do calls to Unity functions here.
+		/// Initialized the filesize calculation of the node. Since the <see cref="CalculateOwnFileSizeParallel"/> function is running on multiple threads do calls to Unity functions here.
 		void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData);
 
 		/// Updates the filesize of the node. This is running in parallel on multiple threads
-		void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData);
+		void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext context, bool updateNodeData);
 
-		/// After <see cref="CalculateOwnFileSize"/> has been run do any node dependency related filesize calculations here
+		/// After <see cref="CalculateOwnFileSizeParallel"/> has been run do any node dependency related filesize calculations here
 		void CalculateOwnFileDependencies(Node node, NodeDependencyLookupContext context,
 			HashSet<Node> calculatedNodes);
 
@@ -31,6 +32,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		/// Creates a node and will return it. Each implementation if the <see cref="INodeHandler"/> Is responsible for creating a node and using cached data for speed up.
 		Node CreateNode(string id, string type, bool update, out bool wasCached);
+
+		void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList);
 
 		/// Safe any caches that we used for speeding up the Node creation.
 		void SaveCaches();

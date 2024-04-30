@@ -63,30 +63,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string GetHandledNodeType() => FileNodeType.Name;
 
-		private static long? GetCompressedSize(string path)
+		public void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList)
 		{
-			if (string.IsNullOrEmpty(path))
+			TryAddNodeLibraryPath(node);
+
+			if (node.CompressedSizeCalculationStarted)
 			{
-				return 0;
+				return;
 			}
 
-			using (var memoryStream = new MemoryStream())
-			{
-				var fileInfo = new FileInfo(path);
-				if (!fileInfo.Exists)
-				{
-					return null;
-				}
-
-				using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
-
-				using (var originalFileStream = fileInfo.OpenRead())
-				{
-					originalFileStream.CopyTo(compressionStream);
-				}
-
-				return memoryStream.Position;
-			}
+			var task = Task.Run(() => CalculateCompressedSize(node, true));
+			taskList.Add(task);
 		}
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
@@ -96,30 +83,39 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private void InitializeOwnFileSize(Node node)
 		{
-			if (node.OwnSize.Size != -1)
+			TryAddNodeLibraryPath(node);
+
+			var size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
+
+			var isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
+			var contributesToTreeSize = !isSpriteOfSpriteAtlas;
+			node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
+			node.OwnSize.Size += size;
+		}
+
+		private void TryAddNodeLibraryPath(Node node)
+		{
+			if (!nodeToArtifactPathLookup.ContainsKey(node))
+			{
+				var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
+				nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
+			}
+		}
+
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext context, bool updateNodeData)
+		{
+			CalculateCompressedSize(node, updateNodeData);
+		}
+
+		private void CalculateCompressedSize(Node node, bool updateNodeData)
+		{
+			if (node.CompressedSizeCalculationStarted)
 			{
 				return;
 			}
 
-			var isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
-			var contributesToTreeSize = !isSpriteOfSpriteAtlas;
+			node.CompressedSizeCalculationStarted = true;
 
-			var size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
-
-			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
-			nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
-
-			node.OwnSize.Size = size;
-			node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
-		}
-
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
-		{
-			CalculateOwnFileSize(node, updateNodeData);
-		}
-
-		private void CalculateOwnFileSize(Node node, bool updateNodeData)
-		{
 			var id = node.Id;
 			var packedAssetSize = 0;
 			var wasCached = cachedSizeLookup.TryGetValue(id, out var cachedValue);
@@ -187,13 +183,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						continue;
 					}
 
-					var previewTextures =
-						getPreviewTextureMethod.Invoke(null, new object[] { spriteAtlas }) as Texture2D[];
-
-					foreach (var previewTexture in previewTextures)
+					if (getPreviewTextureMethod.Invoke(null, new object[] { spriteAtlas }) is Texture2D[] previewTextures)
 					{
-						size += Convert.ToInt32(
-							getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture }));
+						foreach (var previewTexture in previewTextures)
+						{
+							size += Convert.ToInt32(
+								getStorageMemorySizeMethod.Invoke(null, new object[] {previewTexture}));
+						}
 					}
 				}
 			}
@@ -215,6 +211,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			return 0;
+		}
+
+		private static long? GetCompressedSize(string path)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				return 0;
+			}
+
+			using (var memoryStream = new MemoryStream())
+			{
+				var fileInfo = new FileInfo(path);
+				if (!fileInfo.Exists)
+				{
+					return null;
+				}
+
+				using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+
+				using (var originalFileStream = fileInfo.OpenRead())
+				{
+					originalFileStream.CopyTo(compressionStream);
+				}
+
+				return memoryStream.Position;
+			}
 		}
 
 		private bool IsSpriteOfSpriteAtlas(Node node)
@@ -259,17 +281,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
 			var node = new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
-
-			InitializeOwnFileSize(node);
-
-			if (update)
-			{
-				Task.Run(() => CalculateOwnFileSize(node, true));
-			}
-			else
-			{
-				CalculateOwnFileSize(node, false);
-			}
 
 			wasCached = false;
 			return node;

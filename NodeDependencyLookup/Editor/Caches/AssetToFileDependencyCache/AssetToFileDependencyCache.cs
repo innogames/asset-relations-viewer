@@ -76,19 +76,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return changedAssetPaths;
 		}
 
-		public void PreUpdate()
+		public void PreAssetUpdate()
 		{
 			_fileToAssetMappingLookup = RelationLookup.ConvertToDictionary(_fileToAssetsMappings);
 			// TODO
 			//NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(paths, ref _fileToAssetsMappings);
 		}
 
-		public void PostUpdate()
+		public void PostAssetUpdate()
 		{
 			_fileToAssetsMappings = _fileToAssetMappingLookup.Values.ToArray();
 		}
 
-		public List<IDependencyMappingNode> UpdateAssets(string path, long timeStamp, List<AssetListEntry> assetEntries)
+		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
+			List<AssetListEntry> assetEntries)
 		{
 			var result = new List<IDependencyMappingNode>();
 

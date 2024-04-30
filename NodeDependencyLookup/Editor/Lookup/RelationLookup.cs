@@ -154,9 +154,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					yield return null;
 				}
 			}
-
-			yield return NodeDependencyLookupUtility.CalculateAllNodeSizes(nodeDictionary.Values.ToList(), stateContext,
-				updateNodeData);
 		}
 
 		private static void DisplayNodeCreationProgress(Node node, float percentage)

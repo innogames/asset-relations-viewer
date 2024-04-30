@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEditor;
 #if UNITY_2021_3_OR_NEWER
 using UnityEditor.SceneManagement;
@@ -185,7 +186,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					if (value is Component)
 					{
 						var propertyPath = serializedProperty.propertyPath;
-						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal) 
+						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal)
 						              || propertyPath == "m_Father";
 
 						if (!exclude)
@@ -298,7 +299,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
 			// nothing to do
 		}
@@ -346,6 +347,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			wasCached = false;
 			return new Node(id, type, name, concreteType);
+		}
+
+		public void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList)
+		{
+			// Nothing to do
 		}
 
 		public void InitNodeCreation()

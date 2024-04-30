@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Com.Innogames.Core.Frontend.AssetRelationsViewer;
 using JetBrains.Annotations;
 using UnityEditor;
@@ -141,7 +142,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			// nothing to do
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
 			// nothing to do
 		}
@@ -231,6 +232,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			wasCached = false;
 			return new Node(id, type, name, concreteType);
+		}
+
+		public void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList)
+		{
+			// Nothing to do
 		}
 
 		public void InitNodeCreation()
