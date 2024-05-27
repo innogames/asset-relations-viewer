@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
@@ -23,44 +25,35 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	/// DependencyCache to store connections from an AddressableAssetGroup to an Asset
 	/// </summary>
 	[UsedImplicitly]
-	public class AddressableGroupToAssetTempCache : IAssetBasedDependencyCache
+	public class AddressableGroupToAssetTempCache : AddressableGroupBaseCache, IDependencyCache
 	{
 		private const string Version = "2.0.0";
 		private const string FileName = "AddressableGroupToAssetDependencyCacheData_" + Version + ".cache";
+		private const string HashesFileName = "AddressableGroupToAssetDependencyCacheDataHashes_" + Version + ".cache";
 
-		private GenericDependencyMappingNode[] Nodes = Array.Empty<GenericDependencyMappingNode>();
-
-		private Dictionary<string, GenericDependencyMappingNode> Lookup =
-			new Dictionary<string, GenericDependencyMappingNode>();
+		private GenericDependencyMappingNode[] _nodes = Array.Empty<GenericDependencyMappingNode>();
 
 		private CreatedDependencyCache _createdDependencyCache;
 		private readonly List<string> _guidsInGroups = new List<string>();
 		private readonly Dictionary<string, AddressableAssetGroup> _guidToGroup =
 			new Dictionary<string, AddressableAssetGroup>();
 
-		private readonly Dictionary<AddressableAssetGroup, GenericDependencyMappingNode> _groupDependencies =
-			new Dictionary<AddressableAssetGroup, GenericDependencyMappingNode>();
-
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
 			_createdDependencyCache = createdDependencyCache;
 		}
 
-		public bool CanUpdate()
-		{
-			return !Application.isPlaying;
-		}
+		public bool CanUpdate() => !Application.isPlaying;
 
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			// Nothing to do
 			yield return null;
 		}
 
 		public void AddExistingNodes(List<IDependencyMappingNode> nodes)
 		{
-			foreach (var node in Nodes)
+			foreach (var node in _nodes)
 			{
 				nodes.Add(node);
 			}
@@ -71,7 +64,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AddressableAssetGroupResolver.Id,
 				    AddressableGroupToAssetDependency.Name))
 			{
-				return Lookup[id].Dependencies;
+				return _dependencyLookup[id].Dependencies;
 			}
 
 			return new List<Dependency>();
@@ -81,26 +74,29 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		{
 			var path = Path.Combine(directory, FileName);
 
-			Nodes = CacheSerializerUtils.LoadGenericLookup(path);
-			Lookup = CacheSerializerUtils.GenerateIdLookup(Nodes);
+			_nodes = CacheSerializerUtils.LoadGenericMapping(path);
+			_dependencyLookup = CacheSerializerUtils.GenerateIdLookup(_nodes);
+			LoadGroupHashes(directory, HashesFileName);
 		}
 
 		public void Save(string directory)
 		{
-			CacheSerializerUtils.SaveGenericMapping(directory, FileName, Nodes);
+			CacheSerializerUtils.SaveGenericMapping(directory, FileName, _nodes);
+			LoadGroupHashes(directory, HashesFileName);
 		}
 
 		public void InitLookup()
 		{
 		}
 
-		public Type GetResolverType()
-		{
-			return typeof(IAddressableGroupResolver);
-		}
+		public Type GetResolverType() => typeof(IAddressableGroupResolver);
 
+		/// <summary>
+		/// Find all groups and their assets that need to be updated
+		/// </summary>
 		public void PreAssetUpdate()
 		{
+			_groupsToBeUpdated.Clear();
 			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
 
 			if (settings == null)
@@ -110,11 +106,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				return;
 			}
 
+			var stringBuilder = new StringBuilder();
+
 			for (var i = 0; i < settings.groups.Count; ++i)
 			{
+				stringBuilder.Clear();
 				var group = settings.groups[i];
-				EditorUtility.DisplayProgressBar("AddressableAssetGroupTempCache",
-					$"Preparing {group.Name}", i / (float) settings.groups.Count);
+				var groupName = group.Name;
+
+				EditorUtility.DisplayProgressBar("AddressableAssetGroupTempCache", $"Preparing {groupName}",
+					i / (float)settings.groups.Count);
 
 				foreach (var addressableAssetEntry in group.entries)
 				{
@@ -125,26 +126,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 					{
 						_guidsInGroups.Add(assetEntry.guid);
 						_guidToGroup.Add(assetEntry.guid, group);
+
+						stringBuilder.Append(assetEntry.guid);
 					}
 				}
+
+				UpdateHashLookupsForGroup(groupName, stringBuilder.ToString());
 			}
 		}
 
-		public void PostAssetUpdate()
-		{
-			var nodes = new List<GenericDependencyMappingNode>();
-
-			foreach (var pair in _groupDependencies)
-			{
-				var node = pair.Value;
-				nodes.Add(node);
-				Lookup.Add(node.Id, node);
-			}
-
-			Nodes = nodes.ToArray();
-		}
-
-		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp, List<AssetListEntry> assetEntries)
+		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
+			List<AssetListEntry> assetEntries)
 		{
 			var result = new List<IDependencyMappingNode>();
 
@@ -155,29 +147,39 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 			var guid = AssetDatabase.AssetPathToGUID(path);
 			var group = _guidToGroup[guid];
+			var groupName = group.Name;
 
-			if (!_groupDependencies.ContainsKey(group))
+			if (!_dependencyLookup.ContainsKey(groupName))
 			{
-				_groupDependencies.Add(group,
+				_dependencyLookup.Add(groupName,
 					new GenericDependencyMappingNode(group.Name, AddressableAssetGroupNodeType.Name));
 			}
 
-			var genericDependencyMappingNode = _groupDependencies[group];
+			var genericDependencyMappingNode = _dependencyLookup[groupName];
 			var componentName = "GroupUsage " + genericDependencyMappingNode.Dependencies.Count;
 
-			genericDependencyMappingNode.Dependencies.Add(new Dependency(assetEntries[0].AssetId, AddressableGroupToAssetDependency.Name,
-				AssetNodeType.Name, new[] {new PathSegment(componentName, PathSegmentType.Property)}));
+			genericDependencyMappingNode.Dependencies.Add(new Dependency(assetEntries[0].AssetId,
+				AddressableGroupToAssetDependency.Name, AssetNodeType.Name,
+				new[] { new PathSegment(componentName, PathSegmentType.Property) }));
 
 			return result;
 		}
 
-		public List<string> GetChangedAssetPaths(string[] allPathes, long[] timeStamps)
+		public void PostAssetUpdate()
+		{
+			_nodes = _dependencyLookup.Values.ToArray();
+		}
+
+		public List<string> GetChangedAssetPaths(string[] allPaths, long[] timeStamps)
 		{
 			var result = new List<string>();
 
 			foreach (var guid in _guidsInGroups)
 			{
-				result.Add(AssetDatabase.GUIDToAssetPath(guid));
+				if (_groupsToBeUpdated.Contains(_guidToGroup[guid].Name))
+				{
+					result.Add(AssetDatabase.GUIDToAssetPath(guid));
+				}
 			}
 
 			return result;
@@ -192,7 +194,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	{
 		public const string Id = "AddressableAssetGroupResolver";
 
-		private readonly string[] _connectionTypes = {AddressableGroupToAssetDependency.Name};
+		private readonly string[] _connectionTypes = { AddressableGroupToAssetDependency.Name };
 
 		private const string ConnectionTypeDescription =
 			"Dependencies from the AddressableAssetGroup to its containing assets";
@@ -200,19 +202,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		private static readonly DependencyType _dependencyType = new DependencyType("AddressableAssetGroup->Asset",
 			new Color(0.85f, 0.65f, 0.55f), false, true, ConnectionTypeDescription);
 
-		public string[] GetDependencyTypes()
-		{
-			return _connectionTypes;
-		}
+		public string[] GetDependencyTypes() => _connectionTypes;
 
-		public string GetId()
-		{
-			return Id;
-		}
+		public string GetId() => Id;
 
-		public DependencyType GetDependencyTypeForId(string typeId)
-		{
-			return _dependencyType;
-		}
+		public DependencyType GetDependencyTypeForId(string typeId) => _dependencyType;
 	}
 }

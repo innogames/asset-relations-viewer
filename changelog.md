@@ -1,3 +1,7 @@
+**4.0.0**
+- Change the cache update logic from "each cache updates for all assets" to "each asset updates every cache" which improves the async mode to be as fast as non async.
+- Async update is now the default to improve memory consumption by over 3x
+
 **3.0.2**
 - Regression from 3.0.1 - Revert changes that are not 2019.4 compatible
 

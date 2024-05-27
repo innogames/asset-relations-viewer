@@ -17,7 +17,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// <summary>
 	/// Cache to find get mapping of assets to the file the asset is included in
 	/// </summary>
-	public class AssetToFileDependencyCache : IAssetBasedDependencyCache
+	public class AssetToFileDependencyCache : IDependencyCache
 	{
 		private const string Version = "3.0.0";
 		private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";

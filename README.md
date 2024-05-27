@@ -243,9 +243,8 @@ Even calling CG.Collect() several time during the search does not help.
 <br/><br/>
 For example, the peak memory consumption of a full update on our live project increases ~10GB when doing a full dependency search.
 With the async approach this is only increasing ~3GB.
+This option is enabled by default.
 <br/><br/>
-This however is at the cost of increased execution times of about 2x.
-The reason for this is that Unity in this case automatically unloads unused assets (which are needed multiple times later) between frames and cleans up memory in general.
 
 # Troubleshooting
 There can be cases where no tree is shown in the AssetRelationsViewer
@@ -298,6 +297,20 @@ Executing this would result in the following output<br/>
 <b>[GameObject]BaseProductions is directly referenced by [GameObject]ProductionTabContent</b>
 
 For this script to work in your own project the name and type of the asset in AssetDatabase.FindAssets() needs to be adapted accordingly to an asset that exists in your project.
+
+For reduced memory consumption also <b>NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync();</b> can be used if executed in an Enumerator.
+The package provides the <b>EditorCoroutineWithExceptionHandling</b> for starting a coroutine in the editor with exception handling.
+
+```c#
+var coroutine = new EditorCoroutineWithExceptionHandling();
+coroutine.Start(YOUR_COROUTINE_THAT_CALLS_NodeDependencyLookupUtility.LoadDependencyLookupForCachesAsync(),
+	exception =>
+	{
+		EditorUtility.ClearProgressBar();
+		throw exception;
+	});
+```
+
 
 # Addons
 Support to display different connection and node types can be added by addons.

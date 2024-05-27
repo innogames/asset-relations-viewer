@@ -177,7 +177,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return lookup;
 		}
 
-		public static GenericDependencyMappingNode[] LoadGenericLookup(string path)
+		public static GenericDependencyMappingNode[] LoadGenericMapping(string path)
 		{
 			if (!File.Exists(path))
 			{
@@ -218,6 +218,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				bytes = EnsureSize(bytes, offset);
 			}
 
+			SaveBytes(bytes, directory, fileName);
+		}
+
+		public static void SaveBytes(byte[] bytes, string directory, string fileName)
+		{
 			var path = Path.Combine(directory, fileName);
 
 			if (!Directory.Exists(directory))

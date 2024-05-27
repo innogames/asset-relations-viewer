@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,29 +29,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		private AddressableGroupNodeHandler _nodeHandler;
 
-		private int m_dropDownIndex = 0;
+		private int m_dropDownIndex;
 
 		private AssetRelationsViewerWindow _viewerWindow;
 
-		public string GetHandledType()
-		{
-			return AddressableAssetGroupNodeType.Name;
-		}
+		public string GetHandledType() => AddressableAssetGroupNodeType.Name;
 
-		public string GetSortingKey(string name)
-		{
-			return $"AddressableAssetGroup {name}";
-		}
+		public string GetSortingKey(string name) => $"AddressableAssetGroup {name}";
 
-		public VisualizationNodeData CreateNodeCachedData(Node node)
-		{
-			return new AddressableGroupVisualizationNodeData();
-		}
+		public VisualizationNodeData CreateNodeCachedData(Node node) => new AddressableGroupVisualizationNodeData();
 
-		public string GetNodeDisplayName(Node node)
-		{
-			return node.Name;
-		}
+		public string GetNodeDisplayName(Node node) => node.Name;
 
 		public void SelectInEditor(string id)
 		{
@@ -62,28 +49,22 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		{
 			_viewerWindow = viewerWindow;
 
-			var nodes = new HashSet<string>();
+			var bundleNodes = new HashSet<string>();
+			var allNodes = context.RelationsLookup.GetAllNodes();
 
-			foreach (var pair in context.CreatedCaches)
+			foreach (var node in allNodes)
 			{
-				var resolvedNodes = new List<IDependencyMappingNode>();
-				pair.Value.Cache.AddExistingNodes(resolvedNodes);
-
-				foreach (var node in resolvedNodes)
+				if (node.Type == AddressableAssetGroupNodeType.Name)
 				{
-					if (node.Type == AddressableAssetGroupNodeType.Name)
-						nodes.Add(node.Id);
+					bundleNodes.Add(node.Id);
 				}
 			}
 
-			_nodes = nodes.ToArray();
-			_filteredNodes = nodes.ToArray();
+			_nodes = bundleNodes.ToArray();
+			_filteredNodes = bundleNodes.ToArray();
 		}
 
-		public bool HandlesCurrentNode()
-		{
-			return !string.IsNullOrEmpty(_selectedGroupId);
-		}
+		public bool HandlesCurrentNode() => !string.IsNullOrEmpty(_selectedGroupId);
 
 		public void OnGui()
 		{
@@ -132,17 +113,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	[UsedImplicitly]
 	public class AddressableGroupNodeHandler : INodeHandler
 	{
-		public string GetHandledNodeType()
-		{
-			return AddressableAssetGroupNodeType.Name;
-		}
+		public string GetHandledNodeType() => AddressableAssetGroupNodeType.Name;
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
 			// nothing to do
 		}
 
-		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext,
+			bool updateNodeData)
 		{
 			// nothing to do
 		}
@@ -168,7 +147,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				}
 			}
 
-			node.OwnSize = new Node.NodeSize {Size = size, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize { Size = size, ContributesToTreeSize = false };
 		}
 
 		private void GetTreeNodes(Node node, Node rootGroupNode, NodeDependencyLookupContext stateContext,
@@ -215,15 +194,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			}
 		}
 
-		public bool IsNodePackedToApp(Node node, bool alwaysExclude)
-		{
-			return true;
-		}
+		public bool IsNodePackedToApp(Node node, bool alwaysExclude) => true;
 
-		public bool IsNodeEditorOnly(string id, string type)
-		{
-			return false;
-		}
+		public bool IsNodeEditorOnly(string id, string type) => false;
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{

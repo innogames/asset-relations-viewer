@@ -13,7 +13,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// <summary>
 	/// Cache to store all dependencies of assets to other assets
 	/// </summary>
-	public class AssetDependencyCache : IAssetBasedDependencyCache
+	public class AssetDependencyCache : IDependencyCache
 	{
 		private const string Version = "3.0.0";
 		private const string FileName = "AssetDependencyCacheData";

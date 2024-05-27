@@ -1,15 +1,16 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using UnityEditor;
-#if UNITY_2021_3_OR_NEWER
+﻿#if UNITY_2021_3_OR_NEWER
 using UnityEditor.SceneManagement;
 #else
 using UnityEditor.Experimental.SceneManagement;
 #endif
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -21,7 +22,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		private struct TraverseValues
 		{
-			public HashSet<UnityEngine.Object> SceneObjects;
+			public HashSet<Object> SceneObjects;
 		}
 
 		private CreatedDependencyCache _createdDependencyCache;
@@ -63,32 +64,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
 		{
-			_lookup.Clear();
-
-			var stack = new Stack<PathSegment>();
-			var traverseValues = new TraverseValues();
-			traverseValues.SceneObjects = new HashSet<UnityEngine.Object>();
-
-			var rootGameObjects = GetRootGameObjects();
-
-			foreach (var gameObject in rootGameObjects)
-			{
-				FindAllGameObjects(gameObject, traverseValues);
-			}
-
-			foreach (var gameObject in rootGameObjects)
-			{
-				TraverseGameObject(gameObject, stack, traverseValues);
-			}
-
-			_nodes = new IDependencyMappingNode[_lookup.Count];
-			var count = 0;
-
-			foreach (var pair in _lookup)
-			{
-				_nodes[count++] = pair.Value;
-			}
-
 			yield return null;
 		}
 
@@ -243,6 +218,51 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			return _lookup[id];
 		}
+
+		public void PreAssetUpdate()
+		{
+			_lookup.Clear();
+
+			var stack = new Stack<PathSegment>();
+			var traverseValues = new TraverseValues();
+			traverseValues.SceneObjects = new HashSet<Object>();
+
+			var rootGameObjects = GetRootGameObjects();
+
+			foreach (var gameObject in rootGameObjects)
+			{
+				FindAllGameObjects(gameObject, traverseValues);
+			}
+
+			foreach (var gameObject in rootGameObjects)
+			{
+				TraverseGameObject(gameObject, stack, traverseValues);
+			}
+
+			_nodes = new IDependencyMappingNode[_lookup.Count];
+			var count = 0;
+
+			foreach (var pair in _lookup)
+			{
+				_nodes[count++] = pair.Value;
+			}
+		}
+
+		public void PostAssetUpdate()
+		{
+		}
+
+		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps)
+		{
+			// Nothing to do here
+			return new List<string>();
+		}
+
+		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
+			List<AssetListEntry> assetEntries)
+		{
+			return new List<IDependencyMappingNode>();
+		}
 	}
 
 	public interface IInSceneDependencyResolver : IDependencyResolver
@@ -299,7 +319,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
 		}
 
-		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext,
+			bool updateNodeData)
 		{
 			// nothing to do
 		}
