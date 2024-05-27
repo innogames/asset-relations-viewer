@@ -17,11 +17,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 	[UsedImplicitly]
 	public class AsmDefDependencyCache : IDependencyCache
 	{
+		private const string Version = "4.0.0";
+		private const string FileName = "AsmDefDependencyCacheData_" + Version + ".cache";
+
 		[UsedImplicitly]
 		private class AsmDefJson
 		{
-			public string name = string.Empty;
-			public string[] references = Array.Empty<string>();
+			public string name;
+			public string[] references;
 		}
 
 		[UsedImplicitly]
@@ -30,9 +33,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			public string reference;
 		}
 
-		private IDependencyMappingNode[] _nodes = Array.Empty<IDependencyMappingNode>();
+		private GenericDependencyMappingNode[] _nodes = Array.Empty<GenericDependencyMappingNode>();
 
-		private readonly List<IDependencyMappingNode> _nodeList = new List<IDependencyMappingNode>();
+		private List<GenericDependencyMappingNode> _nodeList = new List<GenericDependencyMappingNode>();
 
 		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup =
 			new Dictionary<string, GenericDependencyMappingNode>();
@@ -46,10 +49,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			_createdDependencyCache = createdDependencyCache;
 		}
 
-		public bool CanUpdate()
-		{
-			return true;
-		}
+		public bool CanUpdate() => true;
 
 		public IEnumerator Update(CacheUpdateSettings cacheUpdateSettings, ResolverUsageDefinitionList resolverUsages,
 			bool shouldUpdate)
@@ -59,18 +59,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		private Dictionary<string, string> GenerateAsmDefFileMapping()
 		{
-			var nameToFileMapping = new Dictionary<string, string>();
-
+			var nameToFilePathMapping = new Dictionary<string, string>();
 			var guids = AssetDatabase.FindAssets("t:asmdef");
 
 			foreach (var guid in guids)
 			{
 				var path = AssetDatabase.GUIDToAssetPath(guid);
 				var asmdef = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-				nameToFileMapping.Add(JsonUtility.FromJson<AsmDefJson>(asmdef.text).name, path);
+				var asmDefJson = JsonUtility.FromJson<AsmDefJson>(asmdef.text);
+				var asmDefName = asmDefJson.name;
+				nameToFilePathMapping.Add(asmDefName, path);
 			}
 
-			return nameToFileMapping;
+			return nameToFilePathMapping;
 		}
 
 		private bool TryGetRefPathFromGUID(string reference, Dictionary<string, string> nameToFileMapping,
@@ -93,15 +94,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			return true;
 		}
 
-		private void AddAsmDef(TextAsset asset, List<IDependencyMappingNode> nodes,
+		private void AddAsmDef(TextAsset asset, List<GenericDependencyMappingNode> nodes,
 			Dictionary<string, string> nameToFileMapping)
 		{
+			var g = 0;
 			var asmDefJson = JsonUtility.FromJson<AsmDefJson>(asset.text);
 
 			var node = new GenericDependencyMappingNode(NodeDependencyLookupUtility.GetAssetIdForAsset(asset),
 				AssetNodeType.Name);
 
-			var g = 0;
+			if (asmDefJson.references == null)
+			{
+				asmDefJson.references = Array.Empty<string>();
+			}
 
 			foreach (var reference in asmDefJson.references)
 			{
@@ -122,14 +127,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 				var componentName = "Ref " + g++;
 
 				node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
-					new[] {new PathSegment(componentName, PathSegmentType.Property)}));
+					new[] { new PathSegment(componentName, PathSegmentType.Property) }));
 			}
 
 			nodes.Add(node);
 			_lookup.Add(node.Id, node);
 		}
 
-		private void AddAsmRef(TextAsset asset, List<IDependencyMappingNode> nodes,
+		private void AddAsmRef(TextAsset asset, List<GenericDependencyMappingNode> nodes,
 			Dictionary<string, string> nameToFileMapping)
 		{
 			var asmRefJson = JsonUtility.FromJson<AsmRefJson>(asset.text);
@@ -154,7 +159,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			var componentName = "Ref";
 
 			node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
-				new[] {new PathSegment(componentName, PathSegmentType.Property)}));
+				new[] { new PathSegment(componentName, PathSegmentType.Property) }));
 
 			nodes.Add(node);
 			_lookup.Add(node.Id, node);
@@ -181,10 +186,18 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		public void Load(string directory)
 		{
+			_nodeList = CacheSerializerUtils.LoadGenericMapping(Path.Combine(directory, FileName)).ToList();
+			_nodes = _nodeList.ToArray();
+
+			foreach (var node in _nodes)
+			{
+				_lookup.Add(node.Id, node);
+			}
 		}
 
 		public void Save(string directory)
 		{
+			CacheSerializerUtils.SaveGenericMapping(directory, FileName, _nodeList.ToArray());
 		}
 
 		public void InitLookup()
@@ -193,6 +206,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		public void PreAssetUpdate()
 		{
+			_nodeList.Clear();
 			_lookup.Clear();
 			_nameToFileMapping = GenerateAsmDefFileMapping();
 		}
@@ -205,21 +219,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps)
 		{
 			return allPaths.Where(path =>
-			{
-				var ext = Path.GetExtension(path);
-				return ext.Equals(".asmdef", StringComparison.OrdinalIgnoreCase) ||
-				       ext.Equals(".asmref", StringComparison.OrdinalIgnoreCase);
-			}).ToList();
+				{
+					var ext = Path.GetExtension(path);
+					return ext.Equals(".asmdef", StringComparison.OrdinalIgnoreCase) ||
+						ext.Equals(".asmref", StringComparison.OrdinalIgnoreCase);
+				})
+				.ToList();
 		}
 
 		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
 			List<AssetListEntry> assetEntries)
 		{
 			var result = new List<IDependencyMappingNode>();
-
 			var entry = assetEntries[0];
 			var entryAsset = entry.Asset as TextAsset;
-
 			var extension = Path.GetExtension(path);
 
 			if (extension.EndsWith(".asmdef", StringComparison.OrdinalIgnoreCase))
@@ -232,14 +245,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 				AddAsmRef(entryAsset, _nodeList, _nameToFileMapping);
 			}
 
-			// TODO
 			return result;
 		}
 
-		public Type GetResolverType()
-		{
-			return typeof(IAsmDefDependencyResolver);
-		}
+		public Type GetResolverType() => typeof(IAsmDefDependencyResolver);
 
 		public interface IAsmDefDependencyResolver : IDependencyResolver
 		{
@@ -249,25 +258,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		{
 			private const string ConnectionTypeDescription = "Dependencies between AssemblyDefinitions";
 
-			private static DependencyType asmdefDependencyType = new DependencyType("AsmDef->AsmDef",
+			private static readonly DependencyType asmdefDependencyType = new DependencyType("AsmDef->AsmDef",
 				new Color(0.9f, 0.9f, 0.5f), false, true, ConnectionTypeDescription);
 
 			public const string Id = "AsmdefDependencyResolver";
 
 			public string[] GetDependencyTypes()
 			{
-				return new[] {AsmdefToAsmdefDependency.Name};
+				return new[] { AsmdefToAsmdefDependency.Name };
 			}
 
-			public string GetId()
-			{
-				return Id;
-			}
+			public string GetId() => Id;
 
-			public DependencyType GetDependencyTypeForId(string typeId)
-			{
-				return asmdefDependencyType;
-			}
+			public DependencyType GetDependencyTypeForId(string typeId) => asmdefDependencyType;
 		}
 	}
 }
