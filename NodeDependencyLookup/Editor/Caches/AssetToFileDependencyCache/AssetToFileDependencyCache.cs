@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 {
@@ -39,14 +38,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			_createdDependencyCache = createdDependencyCache;
 		}
 
-		public List<string> GetChangedAssetPaths(string[] allPathes, long[] pathTimestamps)
+		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps)
 		{
 			var changedAssetPaths = new List<string>();
 			var fileToAssetMappingDictionary = RelationLookup.ConvertToDictionary(_fileToAssetsMappings);
 
-			for (var i = 0; i < allPathes.Length; i++)
+			for (var i = 0; i < allPaths.Length; i++)
 			{
-				var path = allPathes[i];
+				var path = allPaths[i];
 				var timeStamp = pathTimestamps[i];
 
 				var guid = AssetDatabase.AssetPathToGUID(path);
@@ -73,11 +72,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return changedAssetPaths;
 		}
 
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
+			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(allPaths, ref _fileToAssetsMappings);
 			_fileToAssetMappingLookup = RelationLookup.ConvertToDictionary(_fileToAssetsMappings);
-			// TODO
-			//NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(paths, ref _fileToAssetsMappings);
 		}
 
 		public void PostAssetUpdate()

@@ -94,7 +94,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		/// <summary>
 		/// Find all groups and their assets that need to be updated
 		/// </summary>
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
 			_groupsToBeUpdated.Clear();
 			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;

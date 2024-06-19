@@ -204,7 +204,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		{
 		}
 
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
 			_nodeList.Clear();
 			_lookup.Clear();

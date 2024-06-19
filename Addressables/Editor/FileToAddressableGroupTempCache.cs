@@ -91,7 +91,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public Type GetResolverType() => typeof(IAddressableAssetToGroupResolver);
 
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
 			var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
 

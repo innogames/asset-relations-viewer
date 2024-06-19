@@ -103,9 +103,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public List<string> GetChangedAssetPaths(string[] allPathes, long[] pathTimestamps)
 		{
 			var changedAssetPaths = new List<string>();
-
 			var list = RelationLookup.ConvertToDictionary(_fileToAssetNodes);
-			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(allPathes, ref _fileToAssetNodes);
 
 			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Checking changed files", 0);
 
@@ -156,8 +154,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			yield return null;
 		}
 
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
+			NodeDependencyLookupUtility.RemoveNonExistingFilesFromIdentifyableList(allPaths, ref _fileToAssetNodes);
+
 			_hierarchyTraverser.Initialize();
 			_tmpResolvers.Clear();
 

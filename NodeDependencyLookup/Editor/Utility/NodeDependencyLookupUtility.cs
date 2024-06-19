@@ -52,7 +52,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var resolverUsagesLookup = createdCache.ResolverUsagesLookup;
 			return resolverUsagesLookup.TryGetValue(id, out var resolver) &&
-			       resolver.DependencyTypes.Contains(connectionType);
+				resolver.DependencyTypes.Contains(connectionType);
 		}
 
 		private static long[] GetTimeStampsForFilePaths(string[] paths)
@@ -214,8 +214,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private static IEnumerator ExecuteAssetUpdate(NodeDependencyLookupContext stateContext,
 			Dictionary<string, ChangedAssetCacheData> changedPaths,
-			Dictionary<string, long> timeStampsForFilesDictionary,
-			List<Task> taskList)
+			Dictionary<string, long> timeStampsForFilesDictionary, List<Task> taskList)
 		{
 			var entries = new List<AssetListEntry>();
 			var i = 0;
@@ -238,8 +237,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					foreach (var dependencyMappingNode in dependencyMappingNodes)
 					{
 						var node = RelationLookup.GetOrCreateNode(dependencyMappingNode.Id, dependencyMappingNode.Type,
-							dependencyMappingNode.Key,
-							stateContext.nodeDictionary, stateContext, true, out _);
+							dependencyMappingNode.Key, stateContext.nodeDictionary, stateContext, true, out _);
 
 						stateContext.NodeHandlerLookup[node.Type]
 							.CalculatePrecalculatableAsyncDataWhileCacheExecution(node, taskList);
@@ -247,7 +245,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				}
 
 				if (EditorUtility.DisplayCancelableProgressBar("Finding dependencies in Assets/Files", path,
-					    (float) i / changedPaths.Count))
+					    (float)i / changedPaths.Count))
 				{
 					throw new DependencyUpdateAbortedException();
 				}
@@ -267,8 +265,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			foreach (var loadedCache in loadedCaches)
 			{
-				var updateInfo =
-					resolverUsageDefinitionList.GetUpdateStateForCache(loadedCache.GetType());
+				var updateInfo = resolverUsageDefinitionList.GetUpdateStateForCache(loadedCache.GetType());
 
 				if (!updateInfo.Update || !updateInfo.Save)
 				{
@@ -312,8 +309,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		private static Dictionary<string, ChangedAssetCacheData> GetCacheChangedPathLookup(
-			ResolverUsageDefinitionList resolverUsageDefinitionList,
-			List<IDependencyCache> loadedCaches, string[] allPaths, long[] pathTimeStamps, ref bool needsDataSave)
+			ResolverUsageDefinitionList resolverUsageDefinitionList, List<IDependencyCache> loadedCaches,
+			string[] allPaths, long[] pathTimeStamps, ref bool needsDataSave)
 		{
 			var changedPaths = new Dictionary<string, ChangedAssetCacheData>();
 
@@ -327,7 +324,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 
-				assetBasedDependencyCache.PreAssetUpdate();
+				assetBasedDependencyCache.PreAssetUpdate(allPaths);
 
 				needsDataSave = true;
 
@@ -352,8 +349,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		}
 
 		private static List<IDependencyCache> LoadCaches(ResolverUsageDefinitionList resolverUsageDefinitionList,
-			string fileDirectory,
-			List<CreatedDependencyCache> caches)
+			string fileDirectory, List<CreatedDependencyCache> caches)
 		{
 			var loadedCaches = new List<IDependencyCache>();
 
@@ -424,7 +420,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			if (!string.IsNullOrEmpty(fullpath) && File.Exists(fullpath))
 			{
 				var info = new FileInfo(fullpath);
-				return (int) info.Length;
+				return (int)info.Length;
 			}
 
 			return 0;
@@ -564,7 +560,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return size;
 		}
 
-		public static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext context,
+		private static void TraverseHardDependencyNodesRecNoFlattened(Node node, NodeDependencyLookupContext context,
 			HashSet<Node> traversedNodes)
 		{
 			if (node == null)
@@ -641,7 +637,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (path.EndsWith(".unity", StringComparison.Ordinal))
 			{
-				return new[] {AssetDatabase.LoadMainAssetAtPath(path)};
+				return new[] { AssetDatabase.LoadMainAssetAtPath(path) };
 			}
 
 			return AssetDatabase.LoadAllAssetsAtPath(path);
@@ -689,7 +685,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (!(mainAsset is GameObject) || AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset))
 				{
 					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long fileID);
-					assetList.Add(new AssetListEntry {AssetId = $"{guid}_{fileID}", Asset = asset});
+					assetList.Add(new AssetListEntry { AssetId = $"{guid}_{fileID}", Asset = asset });
 				}
 			}
 		}
@@ -799,7 +795,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (i % 5000 == 0)
 				{
 					EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}",
-						i / (float) nodes.Count);
+						i / (float)nodes.Count);
 					yield return null;
 				}
 			}
@@ -820,7 +816,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			while (!compressedSizeTask.IsCompleted)
 			{
 				EditorUtility.DisplayProgressBar("Updating all node sizes compressed",
-					$"[{currentNode.Type}] {currentNode.Name}", count / (float) nodes.Count);
+					$"[{currentNode.Type}] {currentNode.Name}", count / (float)nodes.Count);
 				yield return null;
 			}
 
@@ -836,7 +832,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				if (i % 1000 == 0)
 				{
 					EditorUtility.DisplayProgressBar("Updating all node sizes", $"[{node.Type}] {node.Name}",
-						i / (float) nodes.Count);
+						i / (float)nodes.Count);
 				}
 			}
 

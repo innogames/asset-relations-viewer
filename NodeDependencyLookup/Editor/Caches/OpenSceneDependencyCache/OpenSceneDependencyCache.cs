@@ -37,10 +37,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			_createdDependencyCache = createdDependencyCache;
 		}
 
-		public bool CanUpdate()
-		{
-			return true;
-		}
+		public bool CanUpdate() => true;
 
 		public static GameObject[] GetRootGameObjects()
 		{
@@ -48,7 +45,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (currentPrefabStage != null)
 			{
-				return new[] {currentPrefabStage.prefabContentsRoot};
+				return new[] { currentPrefabStage.prefabContentsRoot };
 			}
 
 			var rootGameObjects = new List<GameObject>();
@@ -101,10 +98,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			// nothing to do
 		}
 
-		public Type GetResolverType()
-		{
-			return typeof(IInSceneDependencyResolver);
-		}
+		public Type GetResolverType() => typeof(IInSceneDependencyResolver);
 
 		private void FindAllGameObjects(GameObject go, TraverseValues traverseValues)
 		{
@@ -161,8 +155,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					if (value is Component)
 					{
 						var propertyPath = serializedProperty.propertyPath;
-						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal)
-						              || propertyPath == "m_Father";
+						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal) ||
+							propertyPath == "m_Father";
 
 						if (!exclude)
 						{
@@ -189,15 +183,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						{
 							stack.Push(new PathSegment(componentValue.GetType().Name, PathSegmentType.Unknown));
 							node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
-								InSceneNodeType.Name,
-								stack.ToArray()));
+								InSceneNodeType.Name, stack.ToArray()));
 							stack.Pop();
 						}
 						else
 						{
 							node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
-								InSceneNodeType.Name,
-								stack.ToArray()));
+								InSceneNodeType.Name, stack.ToArray()));
 						}
 
 						stack.Pop();
@@ -219,7 +211,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return _lookup[id];
 		}
 
-		public void PreAssetUpdate()
+		public void PreAssetUpdate(string[] allPaths)
 		{
 			_lookup.Clear();
 
@@ -252,17 +244,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 		}
 
-		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps)
-		{
+		public List<string> GetChangedAssetPaths(string[] allPaths, long[] pathTimestamps) =>
 			// Nothing to do here
-			return new List<string>();
-		}
+			new List<string>();
 
 		public List<IDependencyMappingNode> UpdateAssetsForPath(string path, long timeStamp,
-			List<AssetListEntry> assetEntries)
-		{
-			return new List<IDependencyMappingNode>();
-		}
+			List<AssetListEntry> assetEntries) =>
+			new List<IDependencyMappingNode>();
 	}
 
 	public interface IInSceneDependencyResolver : IDependencyResolver
@@ -274,25 +262,19 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const string ConnectionTypeDescription =
 			"Dependencies between GameObjects in the currently opened scene/prefab";
 
-		private static DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject",
+		private static readonly DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject",
 			new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
 
 		public const string Id = "InSceneDependencyResolver";
 
 		public string[] GetDependencyTypes()
 		{
-			return new[] {InSceneConnectionType.Name};
+			return new[] { InSceneConnectionType.Name };
 		}
 
-		public string GetId()
-		{
-			return Id;
-		}
+		public string GetId() => Id;
 
-		public DependencyType GetDependencyTypeForId(string typeId)
-		{
-			return InSceneType;
-		}
+		public DependencyType GetDependencyTypeForId(string typeId) => InSceneType;
 	}
 
 	public class InSceneNodeType
@@ -307,16 +289,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 	public class InSceneDependencyNodeHandler : INodeHandler
 	{
-		private Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
+		private readonly Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
 
-		public string GetHandledNodeType()
-		{
-			return InSceneNodeType.Name;
-		}
+		public string GetHandledNodeType() => InSceneNodeType.Name;
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
-			node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize { Size = 0, ContributesToTreeSize = false };
 		}
 
 		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext stateContext,
@@ -331,15 +310,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			// nothing to do
 		}
 
-		public bool IsNodePackedToApp(Node node, bool alwaysExcluded)
-		{
-			return false;
-		}
+		public bool IsNodePackedToApp(Node node, bool alwaysExcluded) => false;
 
-		public bool IsNodeEditorOnly(string id, string type)
-		{
-			return false;
-		}
+		public bool IsNodeEditorOnly(string id, string type) => false;
 
 		public void BuildHashToGameObjectMapping()
 		{
