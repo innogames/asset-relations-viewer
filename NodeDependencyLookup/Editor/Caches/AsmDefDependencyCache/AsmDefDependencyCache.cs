@@ -188,6 +188,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		{
 			_nodeList = CacheSerializerUtils.LoadGenericMapping(Path.Combine(directory, FileName)).ToList();
 			_nodes = _nodeList.ToArray();
+			_lookup.Clear();
 
 			foreach (var node in _nodes)
 			{

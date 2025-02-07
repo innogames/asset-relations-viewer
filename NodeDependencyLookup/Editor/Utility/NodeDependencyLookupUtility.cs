@@ -187,11 +187,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			var taskList = new List<Task>();
 			yield return ExecuteAssetUpdate(stateContext, changedPaths, timeStampsForFilesDictionary, taskList);
+			taskList.RemoveAll(task => task.IsCompleted);
+			var unfinishedTasks = taskList.ToArray();
 
-			var taskArray = taskList.ToArray();
-
-			while (!Task.WaitAll(taskArray, 100))
+			var stopWatch = Stopwatch.StartNew();
+			var waitLimitMS = 60000;
+			
+			while (!Task.WaitAll(unfinishedTasks, 100))
 			{
+				if (stopWatch.ElapsedMilliseconds > waitLimitMS)
+				{
+					Debug.LogError("Asset Async Task step took too long for some reason. Aborting.");
+					yield break;
+				}
+				
 				yield return null;
 			}
 

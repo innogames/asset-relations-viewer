@@ -157,7 +157,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private static int GetTextLength(string text, Font font)
 		{
 			var length = 0;
-			CharacterInfo info;
+			CharacterInfo info; 
+			
+			font.RequestCharactersInTexture(text);
 
 			foreach (var c in text)
 			{
