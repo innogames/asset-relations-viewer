@@ -29,6 +29,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public NodeSize OwnSize = new NodeSize {Size = -1};
 
+		internal bool CompressedSizeCalculationStarted;
+
 		public Node(string id, string type, string name, string concreteType)
 		{
 			Id = id;

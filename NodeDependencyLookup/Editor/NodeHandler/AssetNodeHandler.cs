@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEditor;
 using Object = UnityEngine.Object;
@@ -45,17 +46,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly Dictionary<string, FileData> _fileDataMapping = new Dictionary<string, FileData>();
 		private readonly List<AssetListEntry> _assetList = new List<AssetListEntry>(1024);
 
-		public string GetHandledNodeType()
-		{
-			return AssetNodeType.Name;
-		}
+		public string GetHandledNodeType() => AssetNodeType.Name;
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
 		{
 			// nothing to do
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext context, bool updateNodeData)
 		{
 			// nothing to do
 		}
@@ -70,7 +68,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					continue;
 				}
 
-				NodeDependencyLookupUtility.UpdateOwnFileSizeDependenciesForNode(dependency.Node, context, calculatedNodes);
+				NodeDependencyLookupUtility.UpdateOwnFileSizeDependenciesForNode(dependency.Node, context,
+					calculatedNodes);
 				var ownNodeSize = dependency.Node.OwnSize;
 				ownNodeSize.ContributesToTreeSize = false;
 
@@ -78,7 +77,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return;
 			}
 
-			node.OwnSize = new Node.NodeSize {Size = 0, ContributesToTreeSize = false};
+			node.OwnSize = new Node.NodeSize { Size = 0, ContributesToTreeSize = false };
 		}
 
 		public bool IsNodePackedToApp(Node node, bool alwaysExcluded = false)
@@ -89,7 +88,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var path = AssetDatabase.GUIDToAssetPath(NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id));
-			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000", StringComparison.Ordinal);
+			return IsSceneAndPacked(path) || IsInResources(path) ||
+				node.Id.StartsWith("0000000", StringComparison.Ordinal);
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
@@ -101,6 +101,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void InitNodeCreation()
 		{
 			LoadNodeDataCache();
+		}
+
+		public void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList)
+		{
+			// Nothing to do
 		}
 
 		public void SaveCaches()
@@ -135,7 +140,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				var timeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 
 				_cachedNodeDataLookup.Add(id,
-					new SerializedNodeData {Id = id, Type = type, Name = name, TimeStamp = timeStamp});
+					new SerializedNodeData { Id = id, Type = type, Name = name, TimeStamp = timeStamp });
 			}
 		}
 
@@ -201,7 +206,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			GetNameAndType(path, id, out var name, out var concreteType);
 			var cachedSerializedNodeData = new SerializedNodeData
-				{Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp};
+				{ Id = id, Name = name, Type = concreteType, TimeStamp = timeStamp };
 
 			if (!wasCached)
 			{
@@ -225,20 +230,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (!_fileDataMapping.ContainsKey(guid))
 			{
-				NodeDependencyLookupUtility.AddAssetsToList(_assetList, path);
+				NodeDependencyLookupUtility.AddAssetsOfPathToList(_assetList, path);
 				var assetData = new FileData();
 
 				foreach (var entry in _assetList)
 				{
 					GetNameAndTypeForAsset(entry.Asset, entry.AssetId, path, out name, out type);
-					assetData.Assets.Add(entry.AssetId, new NameAndType {Name = name, Type = type});
+					assetData.Assets.Add(entry.AssetId, new NameAndType { Name = name, Type = type });
 				}
 
 				_fileDataMapping.Add(guid, assetData);
 			}
 
 			if (_fileDataMapping.TryGetValue(guid, out var value) &&
-			    value.Assets.TryGetValue(assetId, out NameAndType nameAndType))
+			    value.Assets.TryGetValue(assetId, out var nameAndType))
 			{
 				name = nameAndType.Name;
 				type = nameAndType.Type;
@@ -275,15 +280,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (Path.GetExtension(path).Equals(".unity", StringComparison.Ordinal))
 			{
-				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
+				return EditorBuildSettings.scenes.Any(scene =>
+					scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
 			}
 
 			return false;
 		}
 
-		private bool IsInResources(string path)
-		{
-			return path.Contains("/Resources/");
-		}
+		private bool IsInResources(string path) => path.Contains("/Resources/");
 	}
 }

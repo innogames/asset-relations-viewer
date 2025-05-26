@@ -47,7 +47,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private class CacheUpgradeSettingsOptions
 		{
-			public readonly PrefValueBool AsyncUpdate = new PrefValueBool("AsyncUpdate", false);
+			public readonly PrefValueBool AsyncUpdate = new PrefValueBool("AsyncUpdate_V4", true);
 			public readonly PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("ARV_UnloadUnusedAssets", false);
 
 			public readonly PrefValueInt UnloadUnusedAssetsInterval =

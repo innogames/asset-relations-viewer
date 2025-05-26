@@ -202,8 +202,15 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private int GetLoadedScenesKey()
 		{
 			var result = 0;
+			var sceneCount = 0;
 
-			for (var i = 0; i < EditorSceneManager.loadedSceneCount; ++i)
+#if UNITY_2022_3_OR_NEWER
+			sceneCount = SceneManager.loadedSceneCount;
+#else
+			sceneCount = EditorSceneManager.loadedSceneCount;
+#endif
+			
+			for (var i = 0; i < sceneCount; ++i)
 			{
 				var scene = SceneManager.GetSceneAt(i);
 				result ^= scene.name.GetHashCode();

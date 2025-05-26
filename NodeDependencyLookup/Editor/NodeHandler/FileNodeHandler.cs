@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.U2D;
@@ -41,7 +42,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly string spriteTypeName = typeof(Sprite).FullName;
 		private readonly string spriteAtlasTypeName = typeof(SpriteAtlas).FullName;
 
-		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup = new ConcurrentDictionary<string, CachedData>();
+		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup =
+			new ConcurrentDictionary<string, CachedData>();
 
 		public FileNodeHandler()
 		{
@@ -61,48 +63,59 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string GetHandledNodeType() => FileNodeType.Name;
 
-		private static long? GetCompressedSize(string path)
+		public void CalculatePrecalculatableAsyncDataWhileCacheExecution(Node node, List<Task> taskList)
 		{
-			if (string.IsNullOrEmpty(path))
+			TryAddNodeLibraryPath(node);
+
+			if (node.CompressedSizeCalculationStarted)
 			{
-				return 0;
+				return;
 			}
 
-			using (var memoryStream = new MemoryStream())
-			{
-				var fileInfo = new FileInfo(path);
-				if (!fileInfo.Exists)
-				{
-					return null;
-				}
-
-				using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
-
-				using (var originalFileStream = fileInfo.OpenRead())
-				{
-					originalFileStream.CopyTo(compressionStream);
-				}
-
-				return memoryStream.Position;
-			}
+			var task = Task.Run(() => CalculateCompressedSize(node, true));
+			taskList.Add(task);
 		}
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
 		{
-			var isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
-			var contributesToTreeSize = !isSpriteOfSpriteAtlas;
+			InitializeOwnFileSize(node);
+		}
+
+		private void InitializeOwnFileSize(Node node)
+		{
+			TryAddNodeLibraryPath(node);
 
 			var size = GetSpriteAtlasSize(node) + GetAudioClipSize(node);
 
-			var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
-			nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
-
-			node.OwnSize.Size = size;
+			var isSpriteOfSpriteAtlas = IsSpriteOfSpriteAtlas(node);
+			var contributesToTreeSize = !isSpriteOfSpriteAtlas;
 			node.OwnSize.ContributesToTreeSize = contributesToTreeSize;
+			node.OwnSize.Size += size;
 		}
 
-		public void CalculateOwnFileSize(Node node, NodeDependencyLookupContext stateContext, bool updateNodeData)
+		private void TryAddNodeLibraryPath(Node node)
 		{
+			if (!nodeToArtifactPathLookup.ContainsKey(node))
+			{
+				var guid = NodeDependencyLookupUtility.GetGuidFromAssetId(node.Id);
+				nodeToArtifactPathLookup.Add(node, NodeDependencyLookupUtility.GetLibraryFullPath(guid));
+			}
+		}
+
+		public void CalculateOwnFileSizeParallel(Node node, NodeDependencyLookupContext context, bool updateNodeData)
+		{
+			CalculateCompressedSize(node, updateNodeData);
+		}
+
+		private void CalculateCompressedSize(Node node, bool updateNodeData)
+		{
+			if (node.CompressedSizeCalculationStarted)
+			{
+				return;
+			}
+
+			node.CompressedSizeCalculationStarted = true;
+
 			var id = node.Id;
 			var packedAssetSize = 0;
 			var wasCached = cachedSizeLookup.TryGetValue(id, out var cachedValue);
@@ -170,13 +183,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						continue;
 					}
 
-					var previewTextures =
-						getPreviewTextureMethod.Invoke(null, new object[] { spriteAtlas }) as Texture2D[];
-
-					foreach (var previewTexture in previewTextures)
+					if (getPreviewTextureMethod.Invoke(null, new object[] { spriteAtlas }) is Texture2D[] previewTextures)
 					{
-						size += Convert.ToInt32(
-							getStorageMemorySizeMethod.Invoke(null, new object[] { previewTexture }));
+						foreach (var previewTexture in previewTextures)
+						{
+							size += Convert.ToInt32(
+								getStorageMemorySizeMethod.Invoke(null, new object[] {previewTexture}));
+						}
 					}
 				}
 			}
@@ -198,6 +211,32 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			return 0;
+		}
+
+		private static long? GetCompressedSize(string path)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				return 0;
+			}
+
+			using (var memoryStream = new MemoryStream())
+			{
+				var fileInfo = new FileInfo(path);
+				if (!fileInfo.Exists)
+				{
+					return null;
+				}
+
+				using (var compressionStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+
+				using (var originalFileStream = fileInfo.OpenRead())
+				{
+					originalFileStream.CopyTo(compressionStream);
+				}
+
+				return memoryStream.Position;
+			}
 		}
 
 		private bool IsSpriteOfSpriteAtlas(Node node)
@@ -229,7 +268,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var path = AssetDatabase.GUIDToAssetPath(node.Id);
-			return IsSceneAndPacked(path) || IsInResources(path) || node.Id.StartsWith("0000000", StringComparison.Ordinal);
+			return IsSceneAndPacked(path) || IsInResources(path) ||
+				node.Id.StartsWith("0000000", StringComparison.Ordinal);
 		}
 
 		public bool IsNodeEditorOnly(string id, string type)
@@ -240,8 +280,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
+			var node = new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
+
 			wasCached = false;
-			return new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
+			return node;
 		}
 
 		private string GetCachePath()
@@ -303,7 +345,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			if (Path.GetExtension(path).Equals(".unity", StringComparison.Ordinal))
 			{
-				return EditorBuildSettings.scenes.Any(scene => scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
+				return EditorBuildSettings.scenes.Any(scene =>
+					scene.enabled && scene.path.Equals(path, StringComparison.Ordinal));
 			}
 
 			return false;
