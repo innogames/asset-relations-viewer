@@ -55,6 +55,31 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			Profiler.BeginSample("VisualizationNode::Draw()");
 			var position = GetPosition(viewAreaData);
 
+			if (Event.current.type == EventType.Repaint)
+			{
+				DrawUi(depth, relationType, displayDataProvider, displayData, position);
+			}
+
+			var assetPreviewSize = displayData.AssetPreviewSize;
+
+			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 16, position.y, 16, 16),
+				    ">"))
+			{
+				selectionChanger.ChangeSelection(NodeData.Node.Id, NodeData.Node.Type);
+			}
+
+			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 32, position.y, 16, 16),
+				    "s"))
+			{
+				NodeData.TypeHandler.SelectInEditor(NodeData.Node.Id);
+			}
+
+			Profiler.EndSample();
+		}
+
+		private void DrawUi(int depth, RelationType relationType, INodeDisplayDataProvider displayDataProvider,
+			NodeDisplayData displayData, Vector2 position)
+		{
 			var rectColor = depth == 0 ? ARVStyles.NodeBackGroundColorOwn : ARVStyles.NodeBackGroundColor;
 
 			var isMissing = NodeData.IsMissing;
@@ -101,7 +126,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			var name = isMissing ? "Missing!!!" : TypeHandler.GetNodeDisplayName(NodeData.Node);
 			var fullname = isMissing ? "Missing!!!" : NodeData.Node.Name;
 			var tooltip = fullTypeText + " " + fullname +
-			              $"\nContributes to tree size: {contributesToTreeSize.ToString()}";
+				$"\nContributes to tree size: {contributesToTreeSize.ToString()}";
 			GUI.Label(new Rect(position.x + assetPreviewSize, position.y, displayData.NodeWidth - 32, assetPreviewSize),
 				new GUIContent(name, tooltip), style);
 
@@ -140,20 +165,6 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 
 			DrawIsFilteredOverlay(position, displayData);
-
-			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 16, position.y, 16, 16),
-				    ">"))
-			{
-				selectionChanger.ChangeSelection(NodeData.Node.Id, NodeData.Node.Type);
-			}
-
-			if (GUI.Button(new Rect(position.x + displayData.NodeWidth + assetPreviewSize - 32, position.y, 16, 16),
-				    "s"))
-			{
-				NodeData.TypeHandler.SelectInEditor(NodeData.Node.Id);
-			}
-
-			Profiler.EndSample();
 		}
 
 		public override bool HasNoneFilteredChildren(RelationType relationType)

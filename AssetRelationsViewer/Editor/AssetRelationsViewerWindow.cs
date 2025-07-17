@@ -336,8 +336,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			}
 			else
 			{
-				NodeDependencyLookupUtility.LoadDependencyLookupForCaches(
-					_nodeDependencyLookupContext, resolverUsageDefinitionList, partialUpdate, fastUpdate);
+				NodeDependencyLookupUtility.LoadDependencyLookupForCaches(_nodeDependencyLookupContext,
+					resolverUsageDefinitionList, partialUpdate, fastUpdate);
 			}
 
 			SetHandlerContext();
@@ -482,8 +482,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			ChangeSelection(NodeDependencyLookupUtility.GetAssetIdForAsset(Selection.activeObject), AssetNodeType.Name);
 			Repaint();
 		}
-
+		
 		private void OnGUI()
+		{
+			DrawUiRoot();
+		}
+
+		private void DrawUiRoot()
 		{
 			var e = Event.current;
 
@@ -620,8 +625,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void DisplayUpgradeSettingsOptions()
 		{
-			EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.AsyncUpdate,
-				"Async Update");
+			EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.AsyncUpdate, "Async Update");
 			EditorPrefUtilities.TogglePref(_cacheUpgradeSettingsOptions.ShouldUnloadUnusedAssets,
 				"Unload Unused Assets");
 			EditorPrefUtilities.IntSliderPref(_cacheUpgradeSettingsOptions.UnloadUnusedAssetsInterval,
@@ -750,7 +754,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private NodeFilterData CreateSearchDataForNode(Node node)
 		{
 			var filterData = new NodeFilterData
-				{Node = node, Name = node.Name.ToLowerInvariant(), TypeName = node.ConcreteType.ToLowerInvariant()};
+				{ Node = node, Name = node.Name.ToLowerInvariant(), TypeName = node.ConcreteType.ToLowerInvariant() };
 			_nodeFilterDataLookup.Add(node.Key, filterData);
 
 			return filterData;
@@ -1023,8 +1027,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 						{
 							text = dependencyType.Name,
 							tooltip = $"{dependencyType.Description} \n\n" +
-							          $"{cacheName}:{GetActivationStateString(cacheState.IsActive)}->\n" +
-							          $"{resolverName}:{GetActivationStateString(resolverState.IsActive)}->\n{connectionTypeName}"
+								$"{cacheName}:{GetActivationStateString(cacheState.IsActive)}->\n" +
+								$"{resolverName}:{GetActivationStateString(resolverState.IsActive)}->\n{connectionTypeName}"
 						};
 
 						ChangeValue(ref newIsActive, EditorGUILayout.ToggleLeft(label, isActive),
@@ -1218,7 +1222,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void ReloadContext(bool updateCache = true, Action onFinished = null)
 		{
-			ReloadContext(CreateCacheUsageList(updateCache), onFinished:onFinished);
+			ReloadContext(CreateCacheUsageList(updateCache), onFinished: onFinished);
 		}
 
 		private void ReloadContext(ResolverUsageDefinitionList resolverUsageDefinitionList, bool updateCache = true,
@@ -1231,8 +1235,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			var coroutine = new EditorCoroutineWithExceptionHandling();
 			coroutine.Start(
-				ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate, onFinished),
-				exception =>
+				ReloadContextEnumerator(resolverUsageDefinitionList, updateCache, partialUpdate, fastUpdate,
+					onFinished), exception =>
 				{
 					_isUpdatingCache = false;
 					throw exception;
@@ -1414,9 +1418,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			var nodePos = node.GetPosition(_viewAreaData);
 			_viewAreaData.ScrollPosition.x = -_viewAreaData.Bounds.MinX - _viewAreaData.ViewArea.width / 2 + nodePos.x +
-			                                 node.Bounds.Width;
+				node.Bounds.Width;
 			_viewAreaData.ScrollPosition.y = -_viewAreaData.Bounds.MinY - _viewAreaData.ViewArea.height / 2 +
-			                                 nodePos.y + node.Bounds.Height;
+				nodePos.y + node.Bounds.Height;
 		}
 
 		/// <summary>
@@ -1505,10 +1509,14 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		{
 			Profiler.BeginSample("DrawRelations");
 			var visualizationConnections = node.GetRelations(relationType);
+			var isRepaint = Event.current.type == EventType.Repaint;
 
 			foreach (var childConnection in visualizationConnections)
 			{
-				DrawConnectionForNodes(node, childConnection, relationType, false, visualizationConnections.Count);
+				if(isRepaint)
+				{
+					DrawConnectionForNodes(node, childConnection, relationType, false, visualizationConnections.Count);
+				}
 
 				var childNode = childConnection.VNode;
 
@@ -1526,14 +1534,17 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					}
 				}
 			}
-
-			var invertedRelationType = NodeDependencyLookupUtility.InvertRelationType(relationType);
-			var recursiveChildConnections = node.GetRelations(invertedRelationType, false, true);
-
-			foreach (var childConnection in recursiveChildConnections)
+			
+			if(isRepaint)
 			{
-				DrawConnectionForNodes(node, childConnection, invertedRelationType, true,
-					recursiveChildConnections.Count);
+				var invertedRelationType = NodeDependencyLookupUtility.InvertRelationType(relationType);
+				var recursiveChildConnections = node.GetRelations(invertedRelationType, false, true);
+
+				foreach (var childConnection in recursiveChildConnections)
+				{
+					DrawConnectionForNodes(node, childConnection, invertedRelationType, true,
+						recursiveChildConnections.Count);
+				}
 			}
 
 			Profiler.EndSample();
@@ -1631,7 +1642,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 				if (!result.ContainsKey(nodeKey))
 				{
-					result.Add(nodeKey, new MergedNode {Target = connection});
+					result.Add(nodeKey, new MergedNode { Target = connection });
 				}
 
 				result[nodeKey]
@@ -1655,8 +1666,9 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		}
 
 		private void CreateNodeHierarchyRec(HashSet<string> addedVisualizationNodes,
-			Stack<NodeVisualizationNode> visualizationNodeStack, NodeVisualizationNode visualizationNode, Connection connection,
-			int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions, ref int iterations)
+			Stack<NodeVisualizationNode> visualizationNodeStack, NodeVisualizationNode visualizationNode,
+			Connection connection, int depth, RelationType relationType, NodeDisplayOptions nodeDisplayOptions,
+			ref int iterations)
 		{
 			visualizationNode.SetKey(connection.Node.Key);
 			var containedNode = addedVisualizationNodes.Contains(connection.Node.Key);
@@ -1670,7 +1682,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					var cutData = visualizationNode.GetCutData(relationType, true);
 					cutData.Entries.Add(new CutData.Entry
-						{Count = connections.Count, CutReason = CutReason.DepthReached});
+						{ Count = connections.Count, CutReason = CutReason.DepthReached });
 				}
 
 				iterations++;
@@ -1684,7 +1696,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 				{
 					var cutData = visualizationNode.GetCutData(relationType, true);
 					cutData.Entries.Add(new CutData.Entry
-						{Count = connections.Count, CutReason = CutReason.HierarchyAlreadyShown});
+						{ Count = connections.Count, CutReason = CutReason.HierarchyAlreadyShown });
 				}
 
 				return;
@@ -1694,7 +1706,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				var cutData = visualizationNode.GetCutData(relationType, true);
 				cutData.Entries.Add(new CutData.Entry
-					{Count = connections.Count, CutReason = CutReason.NodeLimitReached});
+					{ Count = connections.Count, CutReason = CutReason.NodeLimitReached });
 				return;
 			}
 
@@ -1753,13 +1765,13 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				var cutData = visualizationNode.GetCutData(relationType, true);
 				cutData.Entries.Add(new CutData.Entry
-					{Count = cutConnectionCount, CutReason = CutReason.NodeAlreadyShown});
+					{ Count = cutConnectionCount, CutReason = CutReason.NodeAlreadyShown });
 			}
 
 			if (filteredOutCount > 0)
 			{
 				var cutData = visualizationNode.GetCutData(relationType, true);
-				cutData.Entries.Add(new CutData.Entry {Count = filteredOutCount, CutReason = CutReason.FilteredOut});
+				cutData.Entries.Add(new CutData.Entry { Count = filteredOutCount, CutReason = CutReason.FilteredOut });
 			}
 
 			SortChildNodes(visualizationNode, relationType);
@@ -1821,7 +1833,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private NodeVisualizationNode GetVisualizationNode(Node node)
 		{
 			return new NodeVisualizationNode
-				{NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type]};
+				{ NodeData = AddNodeCacheForNode(node), TypeHandler = _typeHandlerLookup[node.Type] };
 		}
 
 		/// <summary>
