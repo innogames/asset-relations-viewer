@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Com.Innogames.Core.Frontend.NodeDependencyLookup;
+using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 {
@@ -30,8 +31,12 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			NodeDisplayData displayData, ViewAreaData viewAreaData)
 		{
 			var offset = GetPositionOffset(viewAreaData);
-			PathNode.DrawPathNodes(PosX, PosY + offset, _pathNode, displayDataProvider);
-			DrawPathNodeConnections(_pathNode, _targetNodes, displayDataProvider, offset);
+			
+			if(Event.current.type == EventType.Repaint)
+			{
+				PathNode.DrawPathNodes(PosX, PosY + offset, _pathNode, displayDataProvider);
+				DrawPathNodeConnections(_pathNode, _targetNodes, displayDataProvider, offset);
+			}
 		}
 
 		public override void CalculateCachedDataInternal()

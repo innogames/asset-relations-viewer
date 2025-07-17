@@ -2,7 +2,7 @@
   "name": "com.innogames.asset-relations-viewer",
   "displayName": "Asset Relations Viewer",
   "description": "Editor UI for displaying dependencies between assets in a tree based view",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "unity": "2019.4",
   "license": "MIT",
   "repository": {
