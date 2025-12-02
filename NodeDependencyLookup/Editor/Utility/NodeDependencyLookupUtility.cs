@@ -607,6 +607,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public static string GetAssetIdForAsset(Object asset)
 		{
 			AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long fileId);
+
+			if (AssetDatabase.IsMainAsset(asset))
+			{
+				fileId = NodeDependencyCacheConstants.MainAssetId;
+			}
+			
 			return $"{guid}_{fileId}";
 		}
 
@@ -693,8 +699,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (!(mainAsset is GameObject) || AssetDatabase.IsMainAsset(asset) || AssetDatabase.IsSubAsset(asset))
 				{
-					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long fileID);
-					assetList.Add(new AssetListEntry { AssetId = $"{guid}_{fileID}", Asset = asset });
+					assetList.Add(new AssetListEntry { AssetId = GetAssetIdForAsset(asset), Asset = asset });
 				}
 			}
 		}
