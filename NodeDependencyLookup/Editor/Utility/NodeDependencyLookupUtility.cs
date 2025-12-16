@@ -177,6 +177,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var allPaths = GetAllAssetPaths(true);
+			allPaths = allPaths.OrderBy(p => p).ToArray();
 			var pathTimeStamps = GetTimeStampsForFilePaths(allPaths);
 			var timeStampsForFilesDictionary = GetTimeStampsForFilesDictionary(allPaths, pathTimeStamps);
 

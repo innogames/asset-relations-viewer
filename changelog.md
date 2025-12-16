@@ -1,6 +1,7 @@
 **4.1.0**
 - Speed up performance if asset has thousands of subassets
 - If an addressable referenced asset is mainasset the asset does not need to be loaded anymore
+- Loading order is now sorted by file path
 
 **4.0.0**
 - Change the cache update logic from "each cache updates for all assets" to "each asset updates every cache" which improves the async mode to be as fast as non async.
