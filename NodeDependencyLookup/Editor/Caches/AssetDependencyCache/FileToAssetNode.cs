@@ -40,8 +40,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var newAssetNode = new AssetNode(id);
-			assetNodes.Add(newAssetNode);
-			assetNodesLookup.Add(id, newAssetNode);
+			AddAssetNode(newAssetNode);
 			return newAssetNode;
 		}
 

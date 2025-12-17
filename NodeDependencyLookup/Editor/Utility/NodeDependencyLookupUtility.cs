@@ -177,12 +177,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var allPaths = GetAllAssetPaths(true);
-			allPaths = allPaths.OrderBy(p => p).ToArray();
+			Array.Sort(allPaths);
 			var pathTimeStamps = GetTimeStampsForFilePaths(allPaths);
 			var timeStampsForFilesDictionary = GetTimeStampsForFilesDictionary(allPaths, pathTimeStamps);
-
 			var loadedCaches = LoadCaches(resolverUsageDefinitionList, fileDirectory, caches);
-
 			var changedPaths = GetCacheChangedPathLookup(resolverUsageDefinitionList, loadedCaches, allPaths,
 				pathTimeStamps, ref needsDataSave);
 
