@@ -1,3 +1,6 @@
+**4.1.1**
+- Fix non working selection of main asset for tree node in editor 
+
 **4.1.0**
 - Speed up performance if asset has thousands of subassets
 - If an addressable referenced asset is mainasset the asset does not need to be loaded anymore

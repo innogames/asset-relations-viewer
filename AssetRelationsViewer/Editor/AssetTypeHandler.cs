@@ -40,6 +40,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 			var allAssets = NodeDependencyLookupUtility.LoadAllAssetsAtPath(path);
+			var isMainAsset = fileId == NodeDependencyCacheConstants.MainAssetId;
 
 			foreach (var asset in allAssets)
 			{
@@ -48,12 +49,23 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 					return;
 				}
 
-				AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var aguid, out long afileId);
-
-				if (afileId == fileId)
+				if (isMainAsset)
 				{
-					Selection.activeObject = asset;
-					return;
+					if (AssetDatabase.IsMainAsset(asset))
+					{
+						Selection.activeObject = asset;
+						return;
+					}
+				}
+				else
+				{
+					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out _, out long afileId);
+
+					if (afileId == fileId)
+					{
+						Selection.activeObject = asset;
+						return;
+					}
 				}
 			}
 		}

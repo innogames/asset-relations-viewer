@@ -601,6 +601,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return id.Substring(0, separatorIndex);
 		}
 
+		/// <summary>
+		/// Returns <see cref="NodeDependencyCacheConstants"/> MainAssetId if its the main asset of the file
+		/// It does not return the actual FileID of the asset!
+		/// </summary>
 		public static string GetFileIdFromAssetId(string id) => id.Substring(id.IndexOf('_') + 1);
 
 		public static string GetAssetIdForAsset(Object asset)
@@ -621,6 +625,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var guid = GetGuidFromAssetId(id);
 			var path = AssetDatabase.GUIDToAssetPath(guid);
 			var assetsAtPath = LoadAllAssetsAtPath(path);
+			var isMainAsset = long.Parse(fileId) == NodeDependencyCacheConstants.MainAssetId;
 
 			foreach (var asset in assetsAtPath)
 			{
@@ -628,11 +633,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					continue;
 				}
-
-				AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var aguid, out long afileId);
-				if (afileId.ToString() == fileId)
+				
+				if (isMainAsset)
 				{
-					return asset;
+					if (AssetDatabase.IsMainAsset(asset))
+					{
+						return asset;
+					}
+				}
+				else
+				{
+					AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out _, out var afileId);
+					if (afileId.ToString() == fileId)
+					{
+						return asset;
+					}
 				}
 			}
 
