@@ -12,9 +12,7 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
-#if UNITY_2019_2_OR_NEWER
 using UnityEditor.Experimental;
-#endif
 
 #endregion
 
@@ -434,6 +432,36 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return 0;
 		}
 
+#if UNITY_6000_4_OR_NEWER
+		private static string[] GetArtifactPaths_6000_4_x(string guid)
+		{
+			var importResultID = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid)));
+
+			if (!importResultID.isValid)
+			{
+				return Array.Empty<string>();
+			}
+
+			AssetDatabaseExperimental.GetArtifactPaths(importResultID, out var paths);
+			return paths;
+		}
+#elif UNITY_2020_2_OR_NEWER
+        private static string[] GetArtifactPaths_2020_2_x(string guid)
+        {
+            var artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
+
+            if (!artifactHash.isValid)
+            {
+                return Array.Empty<string>();
+            }
+
+            var artifactID = new ArtifactID();
+            artifactID.value = artifactHash;
+            AssetDatabaseExperimental.GetArtifactPaths(artifactID, out var paths);
+            return paths;
+        }
+#endif
+
 		public static string GetLibraryFullPath(string guid)
 		{
 			if (string.IsNullOrEmpty(guid))
@@ -449,28 +477,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				return path;
 			}
 
-#if UNITY_2019_2_OR_NEWER
-			if (EditorSettings.assetPipelineMode == AssetPipelineMode.Version1)
-			{
-				return GetAssetDatabaseVersion1LibraryDataPath(guid);
-			}
-#if UNITY_2020_2_OR_NEWER
-			var artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
+#if UNITY_6000_4_OR_NEWER
+			var paths = GetArtifactPaths_6000_4_x(guid);
+#elif UNITY_2020_2_OR_NEWER
+			var paths = GetArtifactPaths_2020_2_x(guid);
 #else
-                Hash128 artifactHash = AssetDatabaseExperimental.GetArtifactHash(guid);
-#endif
-
-			if (!artifactHash.isValid)
-			{
-				return null;
-			}
-
-#if UNITY_2020_2_OR_NEWER
-			var artifactID = new ArtifactID();
-			artifactID.value = artifactHash;
-			AssetDatabaseExperimental.GetArtifactPaths(artifactID, out var paths);
-#else
-                AssetDatabaseExperimental.GetArtifactPaths(artifactHash, out string[] paths);
+			var paths = Array.Empty<string>();
 #endif
 
 			foreach (var artifactPath in paths)
@@ -480,15 +492,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				return Path.GetFullPath(artifactPath);
 			}
-#else // For older unity versions that dont have asset database V2 yet
-                return return GetAssetDatabaseVersion1LibraryDataPath(guid);
-#endif
 
 			return null;
 		}
-
-		private static string GetAssetDatabaseVersion1LibraryDataPath(string guid) => Application.dataPath +
-			"../../Library/metadata/" + guid.Substring(0, 2) + "/" + guid;
 
 		/// <summary>
 		/// Right now this only works if the asset or one of its parents (referencers) are in a packaged scene or in a resources

@@ -1,3 +1,7 @@
+**4.2.0**
+- Fix compile issue for UNITY_6000_4_OR_NEWER due to API change for AssetDatabaseExperimental.LookupArtifact()
+- Remove support of Unity 2019
+
 **4.1.1**
 - Fix non working selection of main asset for tree node in editor 
 
