@@ -1,3 +1,7 @@
+**4.3.0**
+- Use NextVisible() instead of Next() to avoid recursive SerializedProperties
+  - In Unity 6000.3.x uxml assets have a back reference to the parent property leading to children.parent.children.parent. recursion
+
 **4.2.0**
 - Fix compile issue for UNITY_6000_4_OR_NEWER due to API change for AssetDatabaseExperimental.LookupArtifact()
 - Remove support of Unity 2019
