@@ -1,3 +1,8 @@
+**4.2.1**
+- Add max depth limit for serialized property dependency search
+  - Since Unity 6000.3 the serialized property format has a recursive endless loop due to children,parent,children,parent,...
+  - Due to this we need to 
+
 **4.2.0**
 - Fix compile issue for UNITY_6000_4_OR_NEWER due to API change for AssetDatabaseExperimental.LookupArtifact()
 - Remove support of Unity 2019
