@@ -1,4 +1,10 @@
+**4.4.1**
+
+- Fix bug for 4.4.0 not finding dependencies due to wrong == check
+
 **4.4.0**
+
+[BROKEN]
 
 - Some performance and gc improvements to the dependency search
 - Require Unity 2021.1 as min Unity version
