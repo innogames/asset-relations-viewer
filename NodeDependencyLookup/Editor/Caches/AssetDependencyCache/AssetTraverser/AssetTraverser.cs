@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -35,14 +36,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		protected void Traverse(ResolverDependencySearchContext searchContext, Object obj, Stack<PathSegment> stack)
 		{
 			// TODO avoid adding them at another place
-			if (obj is Mesh || obj is Texture)
+			if (obj is Mesh or Texture)
 			{
 				return;
 			}
 
 			if (obj is GameObject gameObject)
 			{
-				TraverseGameObject(searchContext, gameObject, null, new List<AddedComponent>(), stack);
+				using var _ = ListPool<AddedComponent>.Get(out var addedComponents);
+				TraverseGameObject(searchContext, gameObject, null, addedComponents, stack);
 			}
 			else if (obj is SceneAsset sceneAsset)
 			{
@@ -67,7 +69,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
 
 			TraverseObject(searchContext, sceneAsset, false, stack);
-			var addedComponents = new List<AddedComponent>();
+			using var _ = ListPool<AddedComponent>.Get(out var addedComponents);
 
 			foreach (var go in scene.GetRootGameObjects())
 			{
@@ -124,8 +126,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					}
 				}
 			}
+			
+			using var _ = ListPool<Component>.Get(out var components);
+			go.GetComponents(components);
 
-			foreach (var component in go.GetComponents<Component>())
+			foreach (var component in components)
 			{
 				if (component == null)
 				{

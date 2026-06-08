@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
@@ -44,7 +45,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			var offset = 0;
 			var numAssetToFileNodes = (int) CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
-
 			var assetToFileMappings = new FileToAssetsMapping[numAssetToFileNodes];
 
 			for (var n = 0; n < numAssetToFileNodes; ++n)
@@ -54,7 +54,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				mapping.Timestamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 				mapping.FileId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
 
-				int numFileNodes = CacheSerializerUtils.DecodeInt(ref bytes, ref offset);
+				var numFileNodes = CacheSerializerUtils.DecodeInt(ref bytes, ref offset);
 
 				mapping.FileNodes = new List<GenericDependencyMappingNode>(numFileNodes);
 
