@@ -12,18 +12,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private const int TraversablePropertyTypes = 
-			(1 << (int)SerializedPropertyType.ObjectReference) |
-			(1 << (int)SerializedPropertyType.Generic) | 
-			(1 << (int)SerializedPropertyType.ManagedReference);
-		
-		private const int TraverseChildrenTypes =
-			(1 << (int)SerializedPropertyType.Generic) |
-			(1 << (int)SerializedPropertyType.ManagedReference);
-		
-		private readonly Stack<PathSegment> pathSegmentStack = new Stack<PathSegment>();
+		private const int TraversablePropertyTypes = (1 << (int)SerializedPropertyType.ObjectReference) |
+			(1 << (int)SerializedPropertyType.Generic) | (1 << (int)SerializedPropertyType.ManagedReference);
 
-		private readonly HashSet<Type> excludedTypes = new HashSet<Type>
+		private const int TraverseChildrenTypes = (1 << (int)SerializedPropertyType.Generic) |
+			(1 << (int)SerializedPropertyType.ManagedReference);
+
+		private readonly Stack<PathSegment> pathSegmentStack = new();
+
+		private readonly HashSet<Type> excludedTypes = new()
 		{
 			typeof(Transform),
 			typeof(RectTransform),
@@ -80,7 +77,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				var propertyType = property.propertyType;
 				var propertyTypeBit = 1 << (int)propertyType;
-				traverseChildren = (TraverseChildrenTypes & propertyTypeBit) == 0;
+				traverseChildren = (TraverseChildrenTypes & propertyTypeBit) != 0;
 
 				if ((TraversablePropertyTypes & propertyTypeBit) == 0)
 				{
