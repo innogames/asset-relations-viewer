@@ -15,7 +15,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetDependencyCache : IDependencyCache
 	{
-		private const string Version = "3.0.0";
+		private const string Version = "4.0.0";
 		private const string FileName = "AssetDependencyCacheData";
 		private const string VersionedFileName = FileName + "_" + Version + ".cache";
 
@@ -73,7 +73,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			foreach (var fileToAssetNode in _fileToAssetNodes)
 			{
-				foreach (var assetNode in fileToAssetNode.AssetNodes)
+				foreach (var assetNode in fileToAssetNode.GetAssetNodes())
 				{
 					nodes.Add(assetNode);
 				}
@@ -86,7 +86,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (var fileToAssetNode in _fileToAssetNodes)
 			{
-				foreach (var assetNode in fileToAssetNode.AssetNodes)
+				foreach (var assetNode in fileToAssetNode.GetAssetNodes())
 				{
 					_assetNodesDict.Add(assetNode.Id, assetNode);
 				}
@@ -208,39 +208,40 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			foreach (var entry in assetEntries)
 			{
 				_hierarchyTraverser.Search(_searchContext.Set(entry.Asset, entry.AssetId, _tmpResolvers));
-
-				foreach (var resolver in _resolversToExecute)
-				{
-					var dependency = GetDependenciesForResolver(_searchContext, timeStamp, resolver);
-					result.Add(dependency);
-				}
+				result.Add(GetDependenciesForResolvers(_searchContext, timeStamp, _resolversToExecute));
 			}
 
 			return result;
 		}
 
-		private IDependencyMappingNode GetDependenciesForResolver(ResolverDependencySearchContext searchContext,
-			long timeStamp, IAssetDependencyResolver resolver)
+		private IDependencyMappingNode GetDependenciesForResolvers(ResolverDependencySearchContext searchContext,
+			long timeStamp, List<IAssetDependencyResolver> resolvers)
 		{
-			var resolverId = resolver.GetId();
 			var fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(searchContext.AssetId);
 
 			if (!_tmpFileToAssetNodesLookup.ContainsKey(fileId))
 			{
-				_tmpFileToAssetNodesLookup.Add(fileId,
-					new FileToAssetNode { FileId = fileId, AssetNodes = new List<AssetNode>() });
+				var newNode = new FileToAssetNode { FileId = fileId};
+				newNode.Init(4);
+				
+				_tmpFileToAssetNodesLookup.Add(fileId, newNode);
 			}
 
 			var fileToAssetNode = _tmpFileToAssetNodesLookup[fileId];
-			var dependencies = searchContext.ResolverDependencies[resolver];
-			var assetNode = fileToAssetNode.GetAssetNode(searchContext.AssetId);
-
-			if (dependencies.Count > 0)
+			var assetNode = fileToAssetNode.GetOrCreateAssetNode(searchContext.AssetId);
+			
+			foreach (var resolver in resolvers)
 			{
-				assetNode.GetResolverData(resolverId).Dependencies = dependencies;
-			}
+				var resolverId = resolver.GetId();
+				var dependencies = searchContext.ResolverDependencies[resolver];
 
-			fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp = timeStamp;
+				if (dependencies.Count > 0)
+				{
+					assetNode.GetResolverData(resolverId).Dependencies = dependencies;
+				}
+
+				fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp = timeStamp;
+			}
 
 			return assetNode;
 		}

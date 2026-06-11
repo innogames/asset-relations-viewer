@@ -104,12 +104,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 				{
 					return null;
 				}
-
-				Object asset = null;
+				
 				var subAssetName = property.FindPropertyRelative("m_SubObjectName").stringValue;
 
 				if (!string.IsNullOrEmpty(subAssetName))
 				{
+					Object asset = null;
 					var subAssetType = property.FindPropertyRelative("m_SubObjectType").stringValue;
 					var allAssets = AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath);
 
@@ -122,22 +122,26 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 							break;
 						}
 					}
-				}
-				else
-				{
-					asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
-				}
+					
+					if (asset == null)
+					{
+						Debug.LogError($"AddressableAssetReferenceResolver: Asset for {assetPath} was null");
+						return null;
+					}
 
-				if (asset == null)
-				{
-					Debug.LogError($"AddressableAssetReferenceResolver: Asset for {assetPath} was null");
-					return null;
+					var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
+					return new AssetDependencyResolverResult
+					{
+						Id = assetId, NodeType = AssetNodeType.Name, DependencyType = AssetToAssetAssetRefDependency.Name
+					};
 				}
-
-				var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asset);
+				
+				// If its the main asset
+				var id = $"{guid}_{NodeDependencyCacheConstants.MainAssetId}";
+					
 				return new AssetDependencyResolverResult
 				{
-					Id = assetId, NodeType = AssetNodeType.Name, DependencyType = AssetToAssetAssetRefDependency.Name
+					Id = id, NodeType = AssetNodeType.Name, DependencyType = AssetToAssetAssetRefDependency.Name
 				};
 			}
 

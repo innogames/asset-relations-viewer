@@ -12,9 +12,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetSerializedPropertyTraverser : AssetTraverser
 	{
-		private readonly Stack<PathSegment> pathSegmentStack = new Stack<PathSegment>();
+		private const int TraversablePropertyTypes = (1 << (int)SerializedPropertyType.ObjectReference) |
+			(1 << (int)SerializedPropertyType.Generic) | (1 << (int)SerializedPropertyType.ManagedReference);
 
-		private readonly HashSet<Type> excludedTypes = new HashSet<Type>
+		private const int TraverseChildrenTypes = (1 << (int)SerializedPropertyType.Generic) |
+			(1 << (int)SerializedPropertyType.ManagedReference);
+
+		private readonly Stack<PathSegment> pathSegmentStack = new();
+
+		private readonly HashSet<Type> excludedTypes = new()
 		{
 			typeof(Transform),
 			typeof(RectTransform),
@@ -65,15 +71,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			unsafeModeMethod.SetValue(property, true);
 			property.Next(true);
 
-			SerializedPropertyType propertyType;
+			var traverseChildren = false;
 
 			do
 			{
-				propertyType = property.propertyType;
+				var propertyType = property.propertyType;
+				var propertyTypeBit = 1 << (int)propertyType;
+				traverseChildren = (TraverseChildrenTypes & propertyTypeBit) != 0;
 
-				if (propertyType != SerializedPropertyType.ObjectReference &&
-				    propertyType != SerializedPropertyType.Generic &&
-				    propertyType != SerializedPropertyType.ManagedReference)
+				if ((TraversablePropertyTypes & propertyTypeBit) == 0)
 				{
 					continue;
 				}
@@ -82,7 +88,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					TraverseProperty(searchContext, property, propertyType, property.propertyPath, stack);
 				}
-			} while (property.Next(propertyType == SerializedPropertyType.Generic || propertyType == SerializedPropertyType.ManagedReference));
+			} while (property.NextVisible(traverseChildren));
 
 			serializedObject.Dispose();
 		}
