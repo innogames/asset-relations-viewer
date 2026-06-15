@@ -1,3 +1,6 @@
+**4.5.0**
+- Speed up drawing of tree structure
+
 **4.4.1**
 
 - Fix bug for 4.4.0 not finding dependencies due to wrong == check
