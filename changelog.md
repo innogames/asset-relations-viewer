@@ -1,3 +1,7 @@
+**5.0.0**
+- Speed up code that runs before the dependency search itself so all caches are loaded simultaniously
+- Use Unity TypeCache to find Caches and Resolvers
+
 **4.5.0**
 - Speed up drawing of tree structure
 

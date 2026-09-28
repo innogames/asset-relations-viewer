@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -27,8 +28,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private CreatedDependencyCache _createdDependencyCache;
 
-		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup =
-			new Dictionary<string, GenericDependencyMappingNode>();
+		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup = new();
 
 		private IDependencyMappingNode[] _nodes = Array.Empty<IDependencyMappingNode>();
 
@@ -74,7 +74,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, InSceneDependencyResolver.Id,
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, InSceneDependencyResolver.IdHash,
 				    InSceneConnectionType.Name))
 			{
 				return _lookup[id].Dependencies;
@@ -141,60 +141,64 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			while (serializedProperty.Next(true))
 			{
-				if (serializedProperty.propertyType == SerializedPropertyType.ObjectReference)
+				if (serializedProperty.propertyType != SerializedPropertyType.ObjectReference)
 				{
-					var value = serializedProperty.objectReferenceValue;
+					continue;
+				}
+				
+				var value = serializedProperty.objectReferenceValue;
 
-					if (value == null)
+				if (value == null)
+				{
+					continue;
+				}
+
+				Component componentValue = null;
+
+				if (value is Component)
+				{
+					var propertyPath = serializedProperty.propertyPath;
+					var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal) ||
+					              propertyPath == "m_Father";
+
+					if (!exclude)
 					{
-						continue;
-					}
-
-					Component componentValue = null;
-
-					if (value is Component)
-					{
-						var propertyPath = serializedProperty.propertyPath;
-						var exclude = propertyPath.StartsWith("m_Children.", StringComparison.Ordinal) ||
-							propertyPath == "m_Father";
-
-						if (!exclude)
-						{
-							componentValue = value as Component;
-							value = componentValue.gameObject;
-						}
-					}
-
-					if (value == go)
-					{
-						continue;
-					}
-
-					if (traverseValues.SceneObjects.Contains(value))
-					{
-						var goHash = go.GetHashCode().ToString();
-						var valueHash = value.GetHashCode().ToString();
-
-						var node = GetNode(goHash);
-
-						stack.Push(new PathSegment(serializedProperty.propertyPath, PathSegmentType.Property));
-
-						if (componentValue)
-						{
-							stack.Push(new PathSegment(componentValue.GetType().Name, PathSegmentType.Unknown));
-							node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
-								InSceneNodeType.Name, stack.ToArray()));
-							stack.Pop();
-						}
-						else
-						{
-							node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
-								InSceneNodeType.Name, stack.ToArray()));
-						}
-
-						stack.Pop();
+						componentValue = value as Component;
+						value = componentValue.gameObject;
 					}
 				}
+
+				if (value == go)
+				{
+					continue;
+				}
+
+				if (!traverseValues.SceneObjects.Contains(value))
+				{
+					continue;
+				};
+				
+				var goHash = go.GetHashCode().ToString();
+				var valueHash = value.GetHashCode().ToString();
+
+				var node = GetNode(goHash);
+
+				stack.Push(new PathSegment(serializedProperty.propertyPath, PathSegmentType.Property));
+
+				if (componentValue)
+				{
+					stack.Push(new PathSegment(componentValue.GetType().Name, PathSegmentType.Unknown));
+					node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
+						InSceneNodeType.Name, stack.ToArray()));
+					stack.Pop();
+				}
+				else
+				{
+					node.Dependencies.Add(new Dependency(valueHash, InSceneConnectionType.Name,
+						InSceneNodeType.Name, stack.ToArray()));
+				}
+
+				stack.Pop();
 			}
 
 			stack.Pop();
@@ -265,28 +269,31 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private static readonly DependencyType InSceneType = new DependencyType("Scene GameObject->GameObject",
 			new Color(0.8f, 0.9f, 0.6f), false, true, ConnectionTypeDescription);
 
-		public const string Id = "InSceneDependencyResolver";
+		private static readonly string[] DependencyTypes = new[] { InSceneConnectionType.Name };
 
-		public string[] GetDependencyTypes()
-		{
-			return new[] { InSceneConnectionType.Name };
-		}
+		private const string Id = "InSceneDependencyResolver";
+		public static readonly ulong IdHash = NodeDependencyLookupUtility.Fnv1a64(Id);
+
+		public string[] GetDependencyTypes() => DependencyTypes;
 
 		public string GetId() => Id;
+
+		public ulong GetIdHash() => IdHash;
 
 		public DependencyType GetDependencyTypeForId(string typeId) => InSceneType;
 	}
 
-	public class InSceneNodeType
+	public static class InSceneNodeType
 	{
 		public const string Name = "InSceneGameObject";
 	}
 
-	public class InSceneConnectionType
+	public static class InSceneConnectionType
 	{
 		public const string Name = "GTOG_InScene";
 	}
 
+	[UsedImplicitly]
 	public class InSceneDependencyNodeHandler : INodeHandler
 	{
 		private readonly Dictionary<string, GameObject> _hashToGameObject = new Dictionary<string, GameObject>();
@@ -314,7 +321,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public bool IsNodeEditorOnly(string id, string type) => false;
 
-		public void BuildHashToGameObjectMapping()
+		private void BuildHashToGameObjectMapping()
 		{
 			_hashToGameObject.Clear();
 
@@ -337,7 +344,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
 			var concreteType = "GameObject";
-			var name = _hashToGameObject.ContainsKey(id) ? _hashToGameObject[id].name : id;
+			var name = _hashToGameObject.TryGetValue(id, out var value) ? value.name : id;
 
 			wasCached = false;
 			return new Node(id, type, name, concreteType);
@@ -347,10 +354,14 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			// Nothing to do
 		}
+		
+		public void PreInitNodeCreation()
+		{
+			BuildHashToGameObjectMapping();
+		}
 
 		public void InitNodeCreation()
 		{
-			BuildHashToGameObjectMapping();
 		}
 
 		public void SaveCaches()

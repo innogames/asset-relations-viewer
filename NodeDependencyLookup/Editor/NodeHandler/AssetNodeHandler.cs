@@ -46,6 +46,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly Dictionary<string, FileData> _fileDataMapping = new Dictionary<string, FileData>();
 		private readonly List<AssetListEntry> _assetList = new List<AssetListEntry>(1024);
 
+		private string buildTarget;
+
 		public string GetHandledNodeType() => AssetNodeType.Name;
 
 		public void InitializeOwnFileSize(Node node, NodeDependencyLookupContext context, bool updateNodeData)
@@ -98,6 +100,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return path.Contains("/Editor/");
 		}
 
+		public void PreInitNodeCreation()
+		{
+			buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
+		}
+
 		public void InitNodeCreation()
 		{
 			LoadNodeDataCache();
@@ -117,7 +124,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private string GetCachePath()
 		{
 			var version = "3.0";
-			var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
 			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH,
 				$"AssetNodeHandlerCache_{buildTarget}_{version}.cache");
 		}

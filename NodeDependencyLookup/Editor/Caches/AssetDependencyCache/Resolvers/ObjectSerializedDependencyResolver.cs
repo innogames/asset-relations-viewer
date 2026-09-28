@@ -48,6 +48,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private readonly HashSet<string> _inValidGuids = new HashSet<string>();
 		private const string Id = "ObjectSerializedDependencyResolver";
+		private static ulong idHash = NodeDependencyLookupUtility.Fnv1a64(Id);
 
 		// Don't include m_CorrespondingSourceObject because otherwise every property would have a dependency to it
 		private readonly HashSet<string> ExcludedProperties = new HashSet<string>(new[] {"m_CorrespondingSourceObject"});
@@ -167,10 +168,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		{
 			return !_inValidGuids.Contains(guid);
 		}
+		
 
 		public string GetId()
 		{
 			return Id;
+		}
+		
+		public ulong GetIdHash()
+		{
+			return idHash;
 		}
 
 		public DependencyType GetDependencyTypeForId(string typeId)

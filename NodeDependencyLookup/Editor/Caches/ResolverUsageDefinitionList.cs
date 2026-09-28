@@ -52,6 +52,25 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			return false;
 		}
+		
+		public CacheUpdateInfo GetTotalUpdateState()
+		{
+			var load = false;
+			var update = false;
+			var save = false;
+
+			foreach (var cacheUsage in CacheUsages)
+			{
+				if (cacheUsage.HasActiveConnectionTypes())
+				{
+					load |= cacheUsage.Load;
+					update |= cacheUsage.Update;
+					save |= cacheUsage.Save;
+				}
+			}
+
+			return new CacheUpdateInfo {Load = load, Update = update, Save = save};
+		}
 
 		public CacheUpdateInfo GetUpdateStateForCache(Type cacheType)
 		{

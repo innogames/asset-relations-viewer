@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public class ResolverData
 		{
-			public string ResolverId;
+			public ulong ResolverHash;
 			public List<Dependency> Dependencies;
 		}
 
@@ -17,7 +17,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public string Key { get; }
 		public string Type => AssetNodeType.Name;
 
-		public readonly List<ResolverData> ResolverDatas = new List<ResolverData>(2);
+		public readonly List<ResolverData> ResolverDatas = new(2);
 
 		public AssetNode(string assetId)
 		{
@@ -25,36 +25,34 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			Key = NodeDependencyLookupUtility.GetNodeKey(Id, Type);
 		}
 
-		public ResolverData GetResolverData(string id)
+		public ResolverData GetResolverData(ulong hash)
 		{
 			foreach (var resolverData in ResolverDatas)
 			{
-				if (resolverData.ResolverId == id)
+				if (resolverData.ResolverHash == hash)
 				{
 					return resolverData;
 				}
 			}
 
 			var newResolver = new ResolverData();
-			newResolver.ResolverId = id;
+			newResolver.ResolverHash = hash;
 
 			ResolverDatas.Add(newResolver);
 
 			return newResolver;
 		}
 
-		public List<Dependency> GetDependenciesForResolverUsages(Dictionary<string, CreatedResolver> resolverUsages)
+		public List<Dependency> GetDependenciesForResolverUsages(Dictionary<ulong, CreatedResolver> resolverUsages)
 		{
 			var result = new List<Dependency>();
 
 			foreach (var data in ResolverDatas)
 			{
-				if (!resolverUsages.ContainsKey(data.ResolverId))
+				if (!resolverUsages.TryGetValue(data.ResolverHash, out var dependencyCache))
 				{
 					continue;
 				}
-
-				var dependencyCache = resolverUsages[data.ResolverId];
 
 				foreach (var dependency in data.Dependencies)
 				{

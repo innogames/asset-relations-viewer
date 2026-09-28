@@ -121,7 +121,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					k++;
 
-					if (k % 500 == 0)
+					if (k % 5000 == 0)
 					{
 						yield return null;
 					}

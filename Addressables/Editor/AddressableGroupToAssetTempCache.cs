@@ -61,7 +61,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AddressableAssetGroupResolver.Id,
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AddressableAssetGroupResolver.IdHash,
 				    AddressableGroupToAssetDependency.Name))
 			{
 				return _dependencyLookup[id].Dependencies;
@@ -193,6 +193,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 	public class AddressableAssetGroupResolver : IAddressableGroupResolver
 	{
 		public const string Id = "AddressableAssetGroupResolver";
+		public static ulong IdHash = NodeDependencyLookupUtility.Fnv1a64(Id);
 
 		private readonly string[] _connectionTypes = { AddressableGroupToAssetDependency.Name };
 
@@ -205,6 +206,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		public string[] GetDependencyTypes() => _connectionTypes;
 
 		public string GetId() => Id;
+		public ulong GetIdHash() => IdHash;
 
 		public DependencyType GetDependencyTypeForId(string typeId) => _dependencyType;
 	}

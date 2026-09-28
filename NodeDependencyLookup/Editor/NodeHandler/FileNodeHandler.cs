@@ -45,6 +45,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private readonly ConcurrentDictionary<string, CachedData> cachedSizeLookup =
 			new ConcurrentDictionary<string, CachedData>();
 
+		private string buildTarget;
+
 		public FileNodeHandler()
 		{
 			var spriteAtlasExtensionsType = typeof(SpriteAtlasExtensions);
@@ -278,6 +280,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return path.Contains("/Editor/");
 		}
 
+		public void PreInitNodeCreation()
+		{
+			buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
+		}
+
 		public Node CreateNode(string id, string type, bool update, out bool wasCached)
 		{
 			var node = new Node(id, type, AssetDatabase.GUIDToAssetPath(id), "File");
@@ -289,8 +296,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private string GetCachePath()
 		{
 			var version = "2.0";
-			var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
-
 			return Path.Combine(NodeDependencyLookupUtility.DEFAULT_CACHE_PATH,
 				$"FileNodeHandlerCache_{buildTarget}_{version}.cache");
 		}
