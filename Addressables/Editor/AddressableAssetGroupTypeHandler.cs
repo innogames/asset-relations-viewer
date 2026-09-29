@@ -211,6 +211,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 		{
 			// Nothing to do
 		}
+		
+		public void PreInitNodeCreation()
+		{
+			// nothing to do
+		}
 
 		public void InitNodeCreation()
 		{

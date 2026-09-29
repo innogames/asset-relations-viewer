@@ -31,27 +31,27 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 	{
 		private class NodeDisplayOptions
 		{
-			public readonly PrefValueInt MaxDepth = new PrefValueInt("ARV_MaxDepth", 4, 0, 64);
-			public readonly PrefValueBool ShowNodesOnce = new PrefValueBool("ARV_ShowNodesOnce", false);
-			public readonly PrefValueBool ShowHierarchyOnce = new PrefValueBool("ARV_ShowHierarchyOnce", false);
-			public readonly PrefValueBool DrawReferencerNodes = new PrefValueBool("ARV_DrawReferencerNodes", true);
-			public readonly PrefValueBool ShowPropertyPaths = new PrefValueBool("ARV_ShowPropertyPaths", true);
-			public readonly PrefValueBool AlignNodes = new PrefValueBool("ARV_AlignNodes", true);
-			public readonly PrefValueBool HideFilteredNodes = new PrefValueBool("ARV_HideFilteredNodes", true);
-			public readonly PrefValueBool MergeRelations = new PrefValueBool("ARV_MergeRelations", true);
-			public readonly PrefValueBool SortBySize = new PrefValueBool("ARV_SortBySize", false);
-			public readonly PrefValueBool OnlyHardDependencies = new PrefValueBool("ARV_OnlyHardDependencies", false);
+			public readonly PrefValueInt MaxDepth = new("ARV_MaxDepth", 4, 0, 64);
+			public readonly PrefValueBool ShowNodesOnce = new("ARV_ShowNodesOnce", false);
+			public readonly PrefValueBool ShowHierarchyOnce = new("ARV_ShowHierarchyOnce", false);
+			public readonly PrefValueBool DrawReferencerNodes = new("ARV_DrawReferencerNodes", true);
+			public readonly PrefValueBool ShowPropertyPaths = new("ARV_ShowPropertyPaths", true);
+			public readonly PrefValueBool AlignNodes = new("ARV_AlignNodes", true);
+			public readonly PrefValueBool HideFilteredNodes = new("ARV_HideFilteredNodes", true);
+			public readonly PrefValueBool MergeRelations = new("ARV_MergeRelations", true);
+			public readonly PrefValueBool SortBySize = new("ARV_SortBySize", false);
+			public readonly PrefValueBool OnlyHardDependencies = new("ARV_OnlyHardDependencies", false);
 
-			public HashSet<string> ConnectionTypesToDisplay = new HashSet<string>();
+			public HashSet<string> ConnectionTypesToDisplay = new();
 		}
 
 		private class CacheUpgradeSettingsOptions
 		{
-			public readonly PrefValueBool AsyncUpdate = new PrefValueBool("AsyncUpdate_V4", true);
-			public readonly PrefValueBool ShouldUnloadUnusedAssets = new PrefValueBool("ARV_UnloadUnusedAssets", false);
+			public readonly PrefValueBool AsyncUpdate = new("AsyncUpdate_V4", true);
+			public readonly PrefValueBool ShouldUnloadUnusedAssets = new("ARV_UnloadUnusedAssets", false);
 
 			public readonly PrefValueInt UnloadUnusedAssetsInterval =
-				new PrefValueInt("ARV_UnloadUnusedAssetsInterval", 10000, 100, 100000);
+				new("ARV_UnloadUnusedAssetsInterval", 10000, 100, 100000);
 		}
 
 		private class UndoStep
@@ -63,7 +63,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private class MergedNode
 		{
 			public Connection Target;
-			public readonly List<VisualizationConnection.Data> Datas = new List<VisualizationConnection.Data>();
+			public readonly List<VisualizationConnection.Data> Datas = new();
 		}
 
 		private class NodeFilterData
@@ -91,19 +91,18 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private readonly int _maxHierarchyDepth = 256;
 
 		private NodeVisualizationNode _nodeStructure;
-		private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new NodeDependencyLookupContext();
+		private readonly NodeDependencyLookupContext _nodeDependencyLookupContext = new();
 
-		private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas =
-			new Dictionary<string, VisualizationNodeData>();
+		private readonly Dictionary<string, VisualizationNodeData> _cachedVisualizationNodeDatas = new();
 
-		private readonly HashSet<string> _visibleNodes = new HashSet<string>();
-		private readonly Dictionary<string, AssetCacheData> _cachedNodes = new Dictionary<string, AssetCacheData>();
-		private readonly Dictionary<string, bool> _cachedPackedInfo = new Dictionary<string, bool>();
-		private readonly HashSet<Node> _nodeSizesReachedNodes = new HashSet<Node>();
+		private readonly HashSet<string> _visibleNodes = new();
+		private readonly Dictionary<string, AssetCacheData> _cachedNodes = new();
+		private readonly Dictionary<string, bool> _cachedPackedInfo = new();
+		private readonly HashSet<Node> _nodeSizesReachedNodes = new();
 
-		private readonly Stack<UndoStep> _undoSteps = new Stack<UndoStep>();
+		private readonly Stack<UndoStep> _undoSteps = new();
 
-		private readonly ViewAreaData _viewAreaData = new ViewAreaData();
+		private readonly ViewAreaData _viewAreaData = new();
 
 		private bool _nodeStructureDirty = true;
 		private bool _visualizationDirty = true;
@@ -112,10 +111,10 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private NodeDisplayOptions _nodeDisplayOptions;
 		private CacheUpgradeSettingsOptions _cacheUpgradeSettingsOptions;
 
-		private readonly List<CacheState> _cacheStates = new List<CacheState>();
-		private readonly List<ITypeHandler> _typeHandlers = new List<ITypeHandler>();
+		private readonly List<CacheState> _cacheStates = new();
+		private readonly List<ITypeHandler> _typeHandlers = new();
 
-		private Dictionary<string, ITypeHandler> _typeHandlerLookup = new Dictionary<string, ITypeHandler>();
+		private Dictionary<string, ITypeHandler> _typeHandlerLookup = new();
 
 		private Vector2 _cachesScrollPosition;
 		private Vector2 _handlersScrollPosition;
@@ -125,23 +124,22 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		// node search and filtering
 		private string _nodeSearchString = string.Empty;
 		private string _typeSearchString = string.Empty;
-		private string[] _nodeSearchTokens = new string[0];
-		private string[] _typeSearchTokens = new string[0];
+		private string[] _nodeSearchTokens = Array.Empty<string>();
+		private string[] _typeSearchTokens = Array.Empty<string>();
 
 		private string _nodeFilterString = string.Empty;
 		private string _typeFilterString = string.Empty;
-		private string[] _nodeFilterTokens = new string[0];
-		private string[] _typeFilterTokens = new string[0];
+		private string[] _nodeFilterTokens = Array.Empty<string>();
+		private string[] _typeFilterTokens = Array.Empty<string>();
 
-		private readonly List<Node> _filteredNodes = new List<Node>();
-		private string[] _filteredNodeNames = new string[0];
+		private readonly List<Node> _filteredNodes = new();
+		private string[] _filteredNodeNames = Array.Empty<string>();
 
 		private int _selectedSearchNodeIndex;
 
-		private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup =
-			new Dictionary<string, NodeFilterData>();
+		private readonly Dictionary<string, NodeFilterData> _nodeFilterDataLookup = new();
 
-		private readonly List<NodeFilterData> _nodeSearchList = new List<NodeFilterData>();
+		private readonly List<NodeFilterData> _nodeSearchList = new();
 
 		private bool _canUnloadCaches;
 		private bool _isInitialized;
@@ -695,19 +693,16 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void CreateCacheStates()
 		{
 			_cacheStates.Clear();
-
-			Profiler.BeginSample("Find Caches");
-			var types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(IDependencyCache));
-			Profiler.EndSample();
+			
+			var types = TypeCache.GetTypesDerivedFrom<IDependencyCache>();
 
 			foreach (var type in types)
 			{
 				var cache = NodeDependencyLookupUtility.InstantiateClass<IDependencyCache>(type);
 				var cacheState = new CacheState(cache);
-
-				Profiler.BeginSample("Find Resolvers");
-				var resolverTypes = NodeDependencyLookupUtility.GetTypesForBaseType(cache.GetResolverType());
-				Profiler.EndSample();
+				
+				var resolverType = cache.GetResolverType();
+				var resolverTypes = TypeCache.GetTypesDerivedFrom(resolverType);
 
 				foreach (var rtype in resolverTypes)
 				{
@@ -724,8 +719,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 		private void CreateTypeHandlers()
 		{
 			_typeHandlers.Clear();
-
-			var types = NodeDependencyLookupUtility.GetTypesForBaseType(typeof(ITypeHandler));
+			var types = TypeCache.GetTypesDerivedFrom<ITypeHandler>();
 
 			foreach (var type in types)
 			{
@@ -955,8 +949,8 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 			{
 				if (GUILayout.Button("Reset filter"))
 				{
-					_nodeFilterTokens = new string[0];
-					_typeFilterTokens = new string[0];
+					_nodeFilterTokens = Array.Empty<string>();
+					_typeFilterTokens = Array.Empty<string>();
 					InvalidateNodeStructure();
 				}
 			}
@@ -1600,7 +1594,7 @@ namespace Com.Innogames.Core.Frontend.AssetRelationsViewer
 
 		private void BuildNodeStructure(Node node)
 		{
-			var rootConnection = new Connection(node, "Root", new PathSegment[0], true);
+			var rootConnection = new Connection(node, "Root", Array.Empty<PathSegment>(), true);
 
 			var rootConnectionNode = rootConnection.Node;
 			_nodeStructure = GetVisualizationNode(rootConnectionNode);

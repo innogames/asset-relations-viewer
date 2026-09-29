@@ -15,7 +15,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetDependencyCache : IDependencyCache
 	{
-		private const string Version = "4.0.0";
+		private const string Version = "5.0.0";
 		private const string FileName = "AssetDependencyCacheData";
 		private const string VersionedFileName = FileName + "_" + Version + ".cache";
 
@@ -42,10 +42,9 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void Load(string directory)
 		{
 			Profiler.BeginSample("AssetDependencyCache Load");
-
-			EditorUtility.DisplayProgressBar("AssetDependencyCache", "Loading cache", 0);
+			
 			var path = Path.Combine(directory, VersionedFileName);
-			_fileToAssetNodes = new FileToAssetNode[0];
+			_fileToAssetNodes = Array.Empty<FileToAssetNode>();
 
 			if (File.Exists(path))
 			{
@@ -123,7 +122,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 					if (list.TryGetValue(guid, out var fileToAssetNode))
 					{
-						if (fileToAssetNode.GetResolverTimeStamp(resolver.GetId()).TimeStamp != timestamp)
+						if (fileToAssetNode.GetResolverTimeStamp(resolver.GetIdHash()).TimeStamp != timestamp)
 						{
 							changed = true;
 						}
@@ -136,7 +135,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (changed)
 				{
-					changedAssetPaths.Add(path);
+					if (!Directory.Exists(path))
+					{
+						changedAssetPaths.Add(path);
+					}
 				}
 			}
 
@@ -232,15 +234,15 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			
 			foreach (var resolver in resolvers)
 			{
-				var resolverId = resolver.GetId();
+				var resolverIdHash = resolver.GetIdHash();
 				var dependencies = searchContext.ResolverDependencies[resolver];
 
 				if (dependencies.Count > 0)
 				{
-					assetNode.GetResolverData(resolverId).Dependencies = dependencies;
+					assetNode.GetResolverData(resolverIdHash).Dependencies = dependencies;
 				}
 
-				fileToAssetNode.GetResolverTimeStamp(resolverId).TimeStamp = timeStamp;
+				fileToAssetNode.GetResolverTimeStamp(resolverIdHash).TimeStamp = timeStamp;
 			}
 
 			return assetNode;

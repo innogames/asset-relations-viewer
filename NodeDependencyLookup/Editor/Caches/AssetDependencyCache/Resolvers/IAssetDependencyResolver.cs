@@ -7,6 +7,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	public interface IDependencyResolver
 	{
 		string[] GetDependencyTypes();
+		ulong GetIdHash();
 		string GetId();
 		DependencyType GetDependencyTypeForId(string typeId);
 	}

@@ -17,7 +17,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 	[UsedImplicitly]
 	public class AsmDefDependencyCache : IDependencyCache
 	{
-		private const string Version = "4.0.0";
+		private const string Version = "5.0.0";
 		private const string FileName = "AsmDefDependencyCacheData_" + Version + ".cache";
 
 		[UsedImplicitly]
@@ -35,14 +35,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		private GenericDependencyMappingNode[] _nodes = Array.Empty<GenericDependencyMappingNode>();
 
-		private List<GenericDependencyMappingNode> _nodeList = new List<GenericDependencyMappingNode>();
+		private List<GenericDependencyMappingNode> _nodeList = new();
 
-		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup =
-			new Dictionary<string, GenericDependencyMappingNode>();
+		private readonly Dictionary<string, GenericDependencyMappingNode> _lookup = new();
 
 		private CreatedDependencyCache _createdDependencyCache;
 
-		private Dictionary<string, string> _nameToFileMapping = new Dictionary<string, string>();
+		private Dictionary<string, string> _nameToFileMapping = new();
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
@@ -126,7 +125,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 				var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(refAsmDef);
 				var componentName = "Ref " + g++;
 
-				node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
+				node.Dependencies.Add(new(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
 					new[] { new PathSegment(componentName, PathSegmentType.Property) }));
 			}
 
@@ -158,7 +157,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			var assetId = NodeDependencyLookupUtility.GetAssetIdForAsset(asmRef);
 			var componentName = "Ref";
 
-			node.Dependencies.Add(new Dependency(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
+			node.Dependencies.Add(new(assetId, AsmdefToAsmdefDependency.Name, AssetNodeType.Name,
 				new[] { new PathSegment(componentName, PathSegmentType.Property) }));
 
 			nodes.Add(node);
@@ -175,13 +174,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AsmDefDependencyResolver.Id,
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AsmDefDependencyResolver.IdHash,
 				    AsmdefToAsmdefDependency.Name))
 			{
 				return _lookup[id].Dependencies;
 			}
 
-			return new List<Dependency>();
+			return new();
 		}
 
 		public void Load(string directory)
@@ -255,14 +254,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 		{
 		}
 
+		[UsedImplicitly]
 		public class AsmDefDependencyResolver : IAsmDefDependencyResolver
 		{
 			private const string ConnectionTypeDescription = "Dependencies between AssemblyDefinitions";
 
-			private static readonly DependencyType asmdefDependencyType = new DependencyType("AsmDef->AsmDef",
-				new Color(0.9f, 0.9f, 0.5f), false, true, ConnectionTypeDescription);
+			private static readonly DependencyType asmdefDependencyType = new("AsmDef->AsmDef",
+				new(0.9f, 0.9f, 0.5f), false, true, ConnectionTypeDescription);
 
-			public const string Id = "AsmdefDependencyResolver";
+			private const string Id = "AsmdefDependencyResolver";
+			public static readonly ulong IdHash = NodeDependencyLookupUtility.Fnv1a64(Id);
 
 			public string[] GetDependencyTypes()
 			{
@@ -270,6 +271,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.AsmDefDependencyCache
 			}
 
 			public string GetId() => Id;
+			
+			public ulong GetIdHash() => IdHash;
 
 			public DependencyType GetDependencyTypeForId(string typeId) => asmdefDependencyType;
 		}

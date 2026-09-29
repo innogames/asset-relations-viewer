@@ -22,6 +22,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			"Dependencies between assets done by an Addressable AssetReference";
 
 		private const string Id = "AddressableReferenceResolver";
+		private static ulong IdHash = NodeDependencyLookupUtility.Fnv1a64(Id);
 
 		private static readonly DependencyType AddressableType = new DependencyType("Asset->Asset by AssetReference",
 			new Color(0.6f, 0.7f, 0.85f), true, false, ConnectionTypeDescription);
@@ -33,10 +34,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup.Addressables
 			return validGuids.Contains(guid);
 		}
 
-		public string GetId()
-		{
-			return Id;
-		}
+		public string GetId() => Id;
+		public ulong GetIdHash() => IdHash;
 
 		public DependencyType GetDependencyTypeForId(string typeId)
 		{

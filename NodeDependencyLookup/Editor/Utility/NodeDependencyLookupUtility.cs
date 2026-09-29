@@ -2,10 +2,12 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
@@ -46,17 +48,45 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			NodeDependencyLookupContext.ResetContexts();
 		}
 
-		public static bool IsResolverActive(CreatedDependencyCache createdCache, string id, string connectionType)
+		// FNV-1a 64-bit: fast, deterministic, non-cryptographic
+		public static ulong Fnv1a64(string value)
+		{
+			const ulong offsetBasis = 0xCBF29CE484222325;
+			const ulong prime = 0x100000001B3;
+
+			var hash = offsetBasis;
+			var bytes = Encoding.UTF8.GetBytes(value);
+
+			unchecked
+			{
+				foreach (byte b in bytes)
+				{
+					hash ^= b;
+					hash *= prime; // Automatically wraps modulo 2^64
+				}
+			}
+
+			return hash;
+		}
+		
+		private static Task RunTask(Action action)
+		{
+			return Task.Run(action).ContinueWith(task => 
+			{
+				Debug.LogException(task.Exception);
+			}, TaskContinuationOptions.OnlyOnFaulted);
+		}
+
+		public static bool IsResolverActive(CreatedDependencyCache createdCache, ulong hash, string connectionType)
 		{
 			var resolverUsagesLookup = createdCache.ResolverUsagesLookup;
-			return resolverUsagesLookup.TryGetValue(id, out var resolver) &&
-				resolver.DependencyTypes.Contains(connectionType);
+			return resolverUsagesLookup.TryGetValue(hash, out var resolver) &&
+			       resolver.DependencyTypes.Contains(connectionType);
 		}
 
 		private static long[] GetTimeStampsForFilePaths(string[] paths)
 		{
 			var timestamps = new long[paths.Length];
-
 			Parallel.For(0, paths.Length, index => { timestamps[index] = GetTimeStampForPath(paths[index]); });
 
 			return timestamps;
@@ -171,38 +201,76 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			foreach (var pair in stateContext.NodeHandlerLookup)
 			{
-				pair.Value.InitNodeCreation();
+				pair.Value.PreInitNodeCreation();
 			}
 
-			var allPaths = GetAllAssetPaths(true);
-			Array.Sort(allPaths);
-			var pathTimeStamps = GetTimeStampsForFilePaths(allPaths);
-			var timeStampsForFilesDictionary = GetTimeStampsForFilesDictionary(allPaths, pathTimeStamps);
-			var loadedCaches = LoadCaches(resolverUsageDefinitionList, fileDirectory, caches);
-			var changedPaths = GetCacheChangedPathLookup(resolverUsageDefinitionList, loadedCaches, allPaths,
-				pathTimeStamps, ref needsDataSave);
+			EditorUtility.DisplayProgressBar("Init Node Handlers and Caches",
+				$"Handlers: {stateContext.NodeHandlerLookup.Count} Caches: {caches.Count}", 0.0f);
 
-			var taskList = new List<Task>();
-			yield return ExecuteAssetUpdate(stateContext, changedPaths, timeStampsForFilesDictionary, taskList);
-			taskList.RemoveAll(task => task.IsCompleted);
-			var unfinishedTasks = taskList.ToArray();
-
-			var stopWatch = Stopwatch.StartNew();
-			var waitLimitMS = 60000;
-			
-			while (!Task.WaitAll(unfinishedTasks, 100))
+			var initNodeCreationTask = RunTask(() =>
 			{
-				if (stopWatch.ElapsedMilliseconds > waitLimitMS)
-				{
-					Debug.LogError("Asset Async Task step took too long for some reason. Aborting.");
-					yield break;
-				}
-				
-				yield return null;
+				Parallel.ForEach(stateContext.NodeHandlerLookup, pair => { pair.Value.InitNodeCreation(); });
+			});
+
+			var needsUpdate = resolverUsageDefinitionList.GetTotalUpdateState().Update;
+			var allPaths = Array.Empty<string>();
+			var pathTimeStamps = Array.Empty<long>();
+			var timeStampsForFilesDictionary = new Dictionary<string, long>();
+
+			if (needsUpdate)
+			{
+				allPaths = GetAllAssetPaths(true);
 			}
 
-			yield return PostUpdateCaches(resolverUsageDefinitionList, loadedCaches);
-			yield return SaveCaches(loadedCaches, resolverUsageDefinitionList, fileDirectory);
+			var preparePathsTask = RunTask(() =>
+			{
+				if (!needsUpdate)
+				{
+					return;
+				}
+
+				Array.Sort(allPaths);
+				pathTimeStamps = GetTimeStampsForFilePaths(allPaths);
+				timeStampsForFilesDictionary = GetTimeStampsForFilesDictionary(allPaths, pathTimeStamps);
+			});
+
+			var loadedCaches = new List<IDependencyCache>();
+
+			var loadCachesTask = RunTask(() =>
+			{
+				loadedCaches = LoadCaches(resolverUsageDefinitionList, fileDirectory, caches);
+			});
+
+			var allTasks = Task.WhenAll(initNodeCreationTask, preparePathsTask, loadCachesTask);
+			yield return new WaitUntil(() => allTasks.IsCompleted);
+
+			if (needsUpdate)
+			{
+				var changedPaths = GetCacheChangedPathLookup(resolverUsageDefinitionList, loadedCaches, allPaths,
+					pathTimeStamps, ref needsDataSave);
+
+				var taskList = new List<Task>();
+				yield return ExecuteAssetUpdate(stateContext, changedPaths, timeStampsForFilesDictionary, taskList);
+				taskList.RemoveAll(task => task.IsCompleted);
+				var unfinishedTasks = taskList.ToArray();
+
+				var stopWatch = Stopwatch.StartNew();
+				var waitLimitMS = 60000;
+
+				while (!Task.WaitAll(unfinishedTasks, 200))
+				{
+					if (stopWatch.ElapsedMilliseconds > waitLimitMS)
+					{
+						Debug.LogError("Asset Async Task step took too long for some reason. Aborting.");
+						yield break;
+					}
+
+					yield return null;
+				}
+
+				yield return PostUpdateCaches(resolverUsageDefinitionList, loadedCaches);
+				yield return SaveCaches(loadedCaches, resolverUsageDefinitionList, fileDirectory);
+			}
 
 			yield return stateContext.RelationsLookup.Build(stateContext, caches, stateContext.nodeDictionary,
 				isFastUpdate, needsDataSave);
@@ -357,13 +425,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private static List<IDependencyCache> LoadCaches(ResolverUsageDefinitionList resolverUsageDefinitionList,
 			string fileDirectory, List<CreatedDependencyCache> caches)
 		{
-			var loadedCaches = new List<IDependencyCache>();
+			var loadedCaches = new ConcurrentStack<IDependencyCache>();
 
-			foreach (var cacheUsage in caches)
+			Parallel.ForEach(caches, cacheUsage =>
 			{
 				if (cacheUsage.ResolverUsages.Count == 0)
 				{
-					continue;
+					return;
 				}
 
 				var cache = cacheUsage.Cache;
@@ -371,7 +439,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 				if (!resolverUsageDefinitionList.IsCacheActive(cacheType))
 				{
-					continue;
+					return;
 				}
 
 				var updateInfo = resolverUsageDefinitionList.GetUpdateStateForCache(cacheType);
@@ -384,10 +452,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					Profiler.EndSample();
 				}
 
-				loadedCaches.Add(cache);
-			}
+				loadedCaches.Push(cache);
+			});
 
-			return loadedCaches;
+			return loadedCaches.ToList();
 		}
 
 		public static Dictionary<string, INodeHandler> BuildNodeHandlerLookup()
@@ -404,7 +472,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private static List<INodeHandler> GetNodeHandlers()
 		{
-			var types = GetTypesForBaseType(typeof(INodeHandler));
+			var types = TypeCache.GetTypesDerivedFrom<INodeHandler>();
 			var nodeHandlers = new List<INodeHandler>();
 
 			foreach (var type in types)
@@ -446,20 +514,20 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			return paths;
 		}
 #elif UNITY_2020_2_OR_NEWER
-        private static string[] GetArtifactPaths_2020_2_x(string guid)
-        {
-            var artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
+		private static string[] GetArtifactPaths_2020_2_x(string guid)
+		{
+			var artifactHash = AssetDatabaseExperimental.LookupArtifact(new ArtifactKey(new GUID(guid))).value;
 
-            if (!artifactHash.isValid)
-            {
-                return Array.Empty<string>();
-            }
+			if (!artifactHash.isValid)
+			{
+				return Array.Empty<string>();
+			}
 
-            var artifactID = new ArtifactID();
-            artifactID.value = artifactHash;
-            AssetDatabaseExperimental.GetArtifactPaths(artifactID, out var paths);
-            return paths;
-        }
+			var artifactID = new ArtifactID();
+			artifactID.value = artifactHash;
+			AssetDatabaseExperimental.GetArtifactPaths(artifactID, out var paths);
+			return paths;
+		}
 #endif
 
 		public static string GetLibraryFullPath(string guid)
@@ -621,7 +689,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			{
 				fileId = NodeDependencyCacheConstants.MainAssetId;
 			}
-			
+
 			return $"{guid}_{fileId}";
 		}
 
@@ -639,7 +707,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				{
 					continue;
 				}
-				
+
 				if (isMainAsset)
 				{
 					if (AssetDatabase.IsMainAsset(asset))
@@ -722,32 +790,6 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					assetList.Add(new AssetListEntry { AssetId = GetAssetIdForAsset(asset), Asset = asset });
 				}
 			}
-		}
-
-		public static List<Type> GetTypesForBaseType(Type interfaceType)
-		{
-			var result = new List<Type>();
-			var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
-			foreach (var assembly in assemblies)
-			{
-				foreach (var type in assembly.GetTypes())
-				{
-					if (type.IsClass && !type.IsAbstract && interfaceType.IsAssignableFrom(type))
-					{
-						try
-						{
-							result.Add(type);
-						}
-						catch (Exception e)
-						{
-							Debug.LogWarning(e);
-						}
-					}
-				}
-			}
-
-			return result;
 		}
 
 		public static T InstantiateClass<T>(Type type) where T : class => Activator.CreateInstance(type) as T;
@@ -837,7 +879,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			var currentNode = nodes[0];
 
 			var count = 0;
-			var compressedSizeTask = Task.Run(() =>
+			var compressedSizeTask = RunTask(() =>
 			{
 				Parallel.For(0, nodes.Count, i =>
 				{

@@ -9,7 +9,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	{
 		public class ResolverTimeStamp
 		{
-			public string ResolverId;
+			public ulong ResolverIdHash;
 			public long TimeStamp;
 		}
 
@@ -50,17 +50,17 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			assetNodesLookup.Add(assetNode.Id, assetNode);
 		}
 
-		public ResolverTimeStamp GetResolverTimeStamp(string id)
+		public ResolverTimeStamp GetResolverTimeStamp(ulong idHash)
 		{
 			foreach (var resolverTimeStamp in ResolverTimeStamps)
 			{
-				if (resolverTimeStamp.ResolverId == id)
+				if (resolverTimeStamp.ResolverIdHash == idHash)
 				{
 					return resolverTimeStamp;
 				}
 			}
 
-			var newTimestamp = new ResolverTimeStamp {ResolverId = id};
+			var newTimestamp = new ResolverTimeStamp {ResolverIdHash = idHash};
 			ResolverTimeStamps.Add(newTimestamp);
 
 			return newTimestamp;

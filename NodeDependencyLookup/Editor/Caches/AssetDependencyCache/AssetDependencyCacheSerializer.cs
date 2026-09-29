@@ -28,7 +28,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				for (var i = 0; i < fileToAssetNode.ResolverTimeStamps.Count; ++i)
 				{
 					var resolverTimeStamp = fileToAssetNode.ResolverTimeStamps[i];
-					CacheSerializerUtils.EncodeString(resolverTimeStamp.ResolverId, ref bytes, ref offset);
+					CacheSerializerUtils.EncodeLong((long)resolverTimeStamp.ResolverIdHash, ref bytes, ref offset);
 					CacheSerializerUtils.EncodeLong(resolverTimeStamp.TimeStamp, ref bytes, ref offset);
 				}
 
@@ -47,7 +47,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					{
 						var resolverData = assetNode.ResolverDatas[i];
 
-						CacheSerializerUtils.EncodeString(resolverData.ResolverId, ref bytes, ref offset);
+						CacheSerializerUtils.EncodeLong((long)resolverData.ResolverHash, ref bytes, ref offset);
 						CacheSerializerUtils.EncodeDependencies(resolverData.Dependencies, ref bytes, ref offset);
 
 						bytes = CacheSerializerUtils.EnsureSize(bytes, offset);
@@ -76,7 +76,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 				for (var i = 0; i < resolverTimeStampLength; i++)
 				{
 					var resolverTimeStamp = new FileToAssetNode.ResolverTimeStamp();
-					resolverTimeStamp.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+					resolverTimeStamp.ResolverIdHash = (ulong)CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 					resolverTimeStamp.TimeStamp = CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 					fileAssetNode.ResolverTimeStamps.Add(resolverTimeStamp);
 				}
@@ -94,7 +94,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 					{
 						var data = new AssetNode.ResolverData();
 
-						data.ResolverId = CacheSerializerUtils.DecodeString(ref bytes, ref offset);
+						data.ResolverHash = (ulong)CacheSerializerUtils.DecodeLong(ref bytes, ref offset);
 						data.Dependencies = CacheSerializerUtils.DecodeDependencies(ref bytes, ref offset);
 						assetNode.ResolverDatas.Add(data);
 					}

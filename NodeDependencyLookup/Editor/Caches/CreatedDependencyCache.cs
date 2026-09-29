@@ -16,13 +16,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public bool IsLoaded = false;
 		public readonly IDependencyCache Cache;
-		public readonly List<CreatedResolver> ResolverUsages = new List<CreatedResolver>();
+		public readonly List<CreatedResolver> ResolverUsages = new();
 
-		public readonly Dictionary<string, CreatedResolver> ResolverUsagesLookup =
-			new Dictionary<string, CreatedResolver>();
-
-		public readonly Dictionary<string, CreatedResolver>
-			CreatedResolvers = new Dictionary<string, CreatedResolver>();
+		public readonly Dictionary<ulong, CreatedResolver> ResolverUsagesLookup = new();
+		public readonly Dictionary<string, CreatedResolver> CreatedResolvers = new();
 
 		public void AddResolver(Type resolverType, List<string> dependencyTypes)
 		{
@@ -38,12 +35,12 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			}
 
 			var createdResolver = CreatedResolvers[resolverTypeFullName];
-			var resolverId = createdResolver.Resolver.GetId();
+			var resolverIdHash = createdResolver.Resolver.GetIdHash();
 
-			if (!ResolverUsagesLookup.ContainsKey(resolverId))
+			if (!ResolverUsagesLookup.ContainsKey(resolverIdHash))
 			{
 				ResolverUsages.Add(createdResolver);
-				ResolverUsagesLookup.Add(resolverId, createdResolver);
+				ResolverUsagesLookup.Add(resolverIdHash, createdResolver);
 			}
 
 			var collection = dependencyTypes != null

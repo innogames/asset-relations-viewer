@@ -18,11 +18,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 	/// </summary>
 	public class AssetToFileDependencyCache : IDependencyCache
 	{
-		private const string Version = "3.0.0";
+		private const string Version = "5.0.0";
 		private const string FileName = "AssetToFileDependencyCacheData_" + Version + ".cache";
 
-		private readonly Dictionary<string, GenericDependencyMappingNode> _fileNodesDict =
-			new Dictionary<string, GenericDependencyMappingNode>();
+		private readonly Dictionary<string, GenericDependencyMappingNode> _fileNodesDict = new();
 
 		private FileToAssetsMapping[] _fileToAssetsMappings = Array.Empty<FileToAssetsMapping>();
 
@@ -30,8 +29,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		private bool _isLoaded;
 
-		private Dictionary<string, FileToAssetsMapping> _fileToAssetMappingLookup =
-			new Dictionary<string, FileToAssetsMapping>();
+		private Dictionary<string, FileToAssetsMapping> _fileToAssetMappingLookup = new();
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
 		{
@@ -132,7 +130,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			if (!_fileToAssetMappingLookup.ContainsKey(fileId))
 			{
-				_fileToAssetMappingLookup.Add(fileId, new FileToAssetsMapping { FileId = fileId });
+				_fileToAssetMappingLookup.Add(fileId, new() { FileId = fileId });
 			}
 
 			var fileToAssetsMapping = _fileToAssetMappingLookup[fileId];
@@ -158,13 +156,13 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public List<Dependency> GetDependenciesForId(string id)
 		{
-			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AssetToFileDependencyResolver.Id,
+			if (NodeDependencyLookupUtility.IsResolverActive(_createdDependencyCache, AssetToFileDependencyResolver.IdHash,
 				    AssetToFileDependency.Name))
 			{
 				return _fileNodesDict[id].Dependencies;
 			}
 
-			return new List<Dependency>();
+			return new();
 		}
 
 		public void Load(string directory)
@@ -224,7 +222,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 		public string Id => FileId;
 
-		public List<GenericDependencyMappingNode> FileNodes = new List<GenericDependencyMappingNode>();
+		public List<GenericDependencyMappingNode> FileNodes = new();
 
 		public GenericDependencyMappingNode GetFileNode(string id)
 		{
@@ -254,14 +252,21 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		private const string ConnectionTypeDescription =
 			"Dependencies between assets to the file they are contained in";
 
-		private static readonly DependencyType fileDependencyType = new DependencyType("Asset->File",
-			new Color(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
+		private static readonly DependencyType fileDependencyType = new("Asset->File",
+			new(0.7f, 0.9f, 0.7f), false, true, ConnectionTypeDescription);
 
-		public const string Id = "AssetToFileDependencyResolver";
+		private static readonly string[] DependencyTypes = new[] { AssetToFileDependency.Name };
+		private const string Id = "AssetToFileDependencyResolver";
+		public static readonly ulong IdHash = NodeDependencyLookupUtility.Fnv1a64(Id);
 
 		public string[] GetDependencyTypes()
 		{
-			return new[] { AssetToFileDependency.Name };
+			return DependencyTypes;
+		}
+
+		public ulong GetIdHash()
+		{
+			return IdHash;
 		}
 
 		public string GetId() => Id;
@@ -275,7 +280,7 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		public void GetDependenciesForAsset(string assetId, List<Dependency> dependencies)
 		{
 			var fileId = NodeDependencyLookupUtility.GetGuidFromAssetId(assetId);
-			dependencies.Add(new Dependency(fileId, AssetToFileDependency.Name, FileNodeType.Name,
+			dependencies.Add(new(fileId, AssetToFileDependency.Name, FileNodeType.Name,
 				new[] { new PathSegment(FileNodeType.Name, PathSegmentType.Property) }));
 		}
 	}

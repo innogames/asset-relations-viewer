@@ -27,6 +27,8 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 		/// Returns if a node it just used within the editor. For assets this would be case if its in an editor folder
 		bool IsNodeEditorOnly(string id, string type);
 
+		void PreInitNodeCreation();
+
 		/// Is run before any Node in <see cref="CreateNode"/> is created. Use this to load any caches, create mappings, etc.
 		void InitNodeCreation();
 
