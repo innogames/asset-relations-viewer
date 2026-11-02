@@ -1,8 +1,15 @@
+**5.0.1**
+
+- Always update all sprites on a dependency update since SpriteAtlas changes don't change the timestamp of the sprite's
+  texture file
+
 **5.0.0**
+
 - Speed up code that runs before the dependency search itself so all caches are loaded simultaniously
 - Use Unity TypeCache to find Caches and Resolvers
 
 **4.5.0**
+
 - Speed up drawing of tree structure
 
 **4.4.1**
