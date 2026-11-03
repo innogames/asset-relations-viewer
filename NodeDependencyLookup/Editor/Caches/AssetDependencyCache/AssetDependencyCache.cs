@@ -32,6 +32,10 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 			new Dictionary<string, FileToAssetNode>();
 		private readonly List<IAssetDependencyResolver> _resolversToExecute = new List<IAssetDependencyResolver>();
 
+		// GUIDs of all files containing sprites. These are always updated since SpriteAtlas changes
+		// don't change the timestamp of the sprite's texture file but can change its atlas reference.
+		private readonly HashSet<string> _spriteGuids = new HashSet<string>();
+
 		public Type GetResolverType() => typeof(IAssetDependencyResolver);
 
 		public void Initialize(CreatedDependencyCache createdDependencyCache)
@@ -120,7 +124,11 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 						continue;
 					}
 
-					if (list.TryGetValue(guid, out var fileToAssetNode))
+					if (_spriteGuids.Contains(guid))
+					{
+						changed = true;
+					}
+					else if (list.TryGetValue(guid, out var fileToAssetNode))
 					{
 						if (fileToAssetNode.GetResolverTimeStamp(resolver.GetIdHash()).TimeStamp != timestamp)
 						{
@@ -180,6 +188,16 @@ namespace Com.Innogames.Core.Frontend.NodeDependencyLookup
 
 			Profiler.BeginSample("SpriteAtlasUtility.PackAllAtlases");
 			SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
+			Profiler.EndSample();
+
+			Profiler.BeginSample("Find sprite guids");
+			_spriteGuids.Clear();
+
+			foreach (var guid in AssetDatabase.FindAssets("t:Sprite"))
+			{
+				_spriteGuids.Add(guid);
+			}
+
 			Profiler.EndSample();
 
 			_tmpFileToAssetNodesLookup = RelationLookup.ConvertToDictionary(_fileToAssetNodes);
